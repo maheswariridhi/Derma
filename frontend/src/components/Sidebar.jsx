@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 const Sidebar = () => {
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-8">DJ Dental</h1>
+      <h1 className="text-2xl font-bold mb-8">Derma Care</h1>
       <nav>
         <ul className="space-y-4">
           <li>
@@ -13,6 +13,22 @@ const Sidebar = () => {
               className="block text-gray-700 text-lg hover:bg-gray-100 p-2 rounded"
             >
               Dashboard
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/patient-database"
+              className="block text-gray-700 text-lg hover:bg-gray-100 p-2 rounded"
+            >
+              Patient Database
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/clinic-services"
+              className="block text-gray-700 text-lg hover:bg-gray-100 p-2 rounded"
+            >
+              Clinic Services
             </Link>
           </li>
           <li>
