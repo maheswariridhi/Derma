@@ -1,0 +1,18 @@
+# Frontend-specific (for safety, if someone works at the root level)
+frontend/node_modules/
+
+# Backend-specific (if venv is in the backend folder)
+backend/venv/
+
+# Python cache files
+*.pyc
+__pycache__/
+
+# Logs (applies to all subdirectories)
+*.log
+*.log.*
+
+# Misc
+.DS_Store
+.vscode/
+.idea/
