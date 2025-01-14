@@ -1,76 +1,89 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 
 const DashboardPage = () => {
-  const navigate = useNavigate();
-  
-  const treatmentPlans = [
+  const patients = [
     {
-      id: 1,
-      patient: "Nancy Out of Network",
+      name: "Nancy Out of Network",
       status: "Saved",
-      treatmentValue: "130.00",
+      treatmentValue: "$130.00",
       createdDate: "11/18/2024",
-      phone: "(855)369-8746",
-      email: "No email"
+      phone: "(855) 369-8746",
+      email: "No email",
     },
     {
-      id: 2,
-      patient: "Candi Copay",
+      name: "Candi Copay",
       status: "Saved",
-      treatmentValue: "440.00",
+      treatmentValue: "$440.00",
       createdDate: "11/18/2024",
-      phone: "(245)698-3265",
-      email: "No email"
-    }
+      phone: "(245) 698-3265",
+      email: "No email",
+    },
   ];
 
   return (
     <MainLayout>
-      <div className="py-6">
-        {/* Welcome Section */}
-        <h1 className="text-2xl font-bold mb-2">Good morning, Daniel Bessonov</h1>
-        <p className="text-gray-700 mb-8">
-          I've surfaced 16 cases to follow up on today
-        </p>
-
-        {/* Treatment Plans Section */}
+      <div className="space-y-8">
+        {/* Greeting Section */}
         <div>
-          <h2 className="text-xl font-bold mb-2">Treatment Plans to Customize</h2>
-          <p className="text-gray-700 mb-4">
-            Active treatment plans that need to be customized and sent out to patients
+          <h2 className="text-3xl font-bold">Good morning, Daniel Bessonov</h2>
+          <p className="text-gray-600">
+            I've surfaced <span className="font-bold">16 cases</span> to follow up on today.
+          </p>
+        </div>
+
+        {/* Table Section */}
+        <div className="bg-white shadow-md rounded-lg p-6">
+          <h3 className="text-xl font-bold mb-4">Treatment Plans to Customize</h3>
+          <p className="text-gray-600 mb-6">
+            Active treatment plans that need to be customized and sent out to patients.
           </p>
 
-          {/* Table */}
-          <table className="w-full">
-            <thead>
-              <tr className="text-left">
-                <th className="py-2 font-normal text-gray-600">Patient</th>
-                <th className="py-2 font-normal text-gray-600">Status</th>
-                <th className="py-2 font-normal text-gray-600">Treatment Value</th>
-                <th className="py-2 font-normal text-gray-600">Created Date</th>
-                <th className="py-2 font-normal text-gray-600">Phone</th>
-                <th className="py-2 font-normal text-gray-600">Email</th>
-              </tr>
-            </thead>
-            <tbody>
-              {treatmentPlans.map((plan) => (
-                <tr 
-                  key={plan.id} 
-                  className="hover:bg-gray-50 cursor-pointer"
-                  onClick={() => navigate(`/patients/${plan.id}`)}
-                >
-                  <td className="py-2">{plan.patient}</td>
-                  <td className="py-2">{plan.status}</td>
-                  <td className="py-2">${plan.treatmentValue}</td>
-                  <td className="py-2">{plan.createdDate}</td>
-                  <td className="py-2">{plan.phone}</td>
-                  <td className="py-2">{plan.email}</td>
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white border-collapse">
+              <thead>
+                <tr className="bg-gray-100 border-b">
+                  <th className="text-left px-6 py-3 text-sm font-medium text-gray-700">
+                    Patient
+                  </th>
+                  <th className="text-left px-6 py-3 text-sm font-medium text-gray-700">
+                    Status
+                  </th>
+                  <th className="text-left px-6 py-3 text-sm font-medium text-gray-700">
+                    Treatment Value
+                  </th>
+                  <th className="text-left px-6 py-3 text-sm font-medium text-gray-700">
+                    Created Date
+                  </th>
+                  <th className="text-left px-6 py-3 text-sm font-medium text-gray-700">
+                    Phone
+                  </th>
+                  <th className="text-left px-6 py-3 text-sm font-medium text-gray-700">
+                    Email
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {patients.map((patient, index) => (
+                  <tr
+                    key={index}
+                    className="border-b hover:bg-gray-50 transition"
+                  >
+                    <td className="px-6 py-4 text-gray-700">{patient.name}</td>
+                    <td className="px-6 py-4">
+                      <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
+                        {patient.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-gray-700">{patient.treatmentValue}</td>
+                    <td className="px-6 py-4 text-gray-700">{patient.createdDate}</td>
+                    <td className="px-6 py-4 text-gray-700">{patient.phone}</td>
+                    <td className="px-6 py-4 text-gray-700">{patient.email}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </MainLayout>
