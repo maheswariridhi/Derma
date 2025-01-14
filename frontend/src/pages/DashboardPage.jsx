@@ -1,93 +1,61 @@
 import React from "react";
-import MainLayout from "../layouts/MainLayout";
+import AppointmentCard from "../components/AppointmentCard";
 
-const DashboardPage = () => {
+const Dashboard = () => {
+  const cases = 16;
   const patients = [
-    {
-      name: "Nancy Out of Network",
-      status: "Saved",
-      treatmentValue: "$130.00",
-      createdDate: "11/18/2024",
-      phone: "(855) 369-8746",
-      email: "No email",
-    },
-    {
-      name: "Candi Copay",
-      status: "Saved",
-      treatmentValue: "$440.00",
-      createdDate: "11/18/2024",
-      phone: "(245) 698-3265",
-      email: "No email",
-    },
+    { name: "Nancy Out of Network", status: "Saved", value: 130.0, date: "11/18/2024", phone: "(855) 369-8746", email: "No email" },
+    { name: "Candi Copay", status: "Saved", value: 440.0, date: "11/18/2024", phone: "(245) 698-3265", email: "No email" },
+    { name: "Allen Allowed", status: "Saved", value: 2250.0, date: "11/18/2024", phone: "(253) 687-9654", email: "No email" },
+    { name: "Marvin Medicaid", status: "Saved", value: 1125.0, date: "11/18/2024", phone: "(585) 484-6245", email: "No email" },
   ];
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
+  };
+
   return (
-    <MainLayout>
-      <div className="space-y-8">
-        {/* Greeting Section */}
+    <div className="min-h-screen bg-gray-50">
+      <div className="p-6 space-y-8">
+        {/* Sidebar */}
         <div>
-          <h2 className="text-3xl font-bold">Good morning, Daniel Bessonov</h2>
-          <p className="text-gray-600">
-            I've surfaced <span className="font-bold">16 cases</span> to follow up on today.
+          <h1 className="text-2xl font-bold mb-2">DJ Dental</h1>
+          <nav className="space-y-2">
+            <a href="#" className="block text-gray-600 hover:text-gray-900">Dashboard</a>
+            <a href="#" className="block text-gray-600 hover:text-gray-900">Inbox</a>
+          </nav>
+        </div>
+
+        {/* Greeting */}
+        <div className="bg-pink-50 rounded-lg p-6">
+          <h2 className="text-xl font-medium">{getGreeting()}, Daniel Bessonov</h2>
+          <p className="text-gray-600 mt-2">
+            I've surfaced <span className="font-semibold text-xl">{cases}</span> cases to follow up on today.
           </p>
         </div>
 
-        {/* Table Section */}
-        <div className="bg-white shadow-md rounded-lg p-6">
-          <h3 className="text-xl font-bold mb-4">Treatment Plans to Customize</h3>
-          <p className="text-gray-600 mb-6">
-            Active treatment plans that need to be customized and sent out to patients.
-          </p>
-
-          <div className="overflow-x-auto">
-            <table className="min-w-full bg-white border-collapse">
-              <thead>
-                <tr className="bg-gray-100 border-b">
-                  <th className="text-left px-6 py-3 text-sm font-medium text-gray-700">
-                    Patient
-                  </th>
-                  <th className="text-left px-6 py-3 text-sm font-medium text-gray-700">
-                    Status
-                  </th>
-                  <th className="text-left px-6 py-3 text-sm font-medium text-gray-700">
-                    Treatment Value
-                  </th>
-                  <th className="text-left px-6 py-3 text-sm font-medium text-gray-700">
-                    Created Date
-                  </th>
-                  <th className="text-left px-6 py-3 text-sm font-medium text-gray-700">
-                    Phone
-                  </th>
-                  <th className="text-left px-6 py-3 text-sm font-medium text-gray-700">
-                    Email
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {patients.map((patient, index) => (
-                  <tr
-                    key={index}
-                    className="border-b hover:bg-gray-50 transition"
-                  >
-                    <td className="px-6 py-4 text-gray-700">{patient.name}</td>
-                    <td className="px-6 py-4">
-                      <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
-                        {patient.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-700">{patient.treatmentValue}</td>
-                    <td className="px-6 py-4 text-gray-700">{patient.createdDate}</td>
-                    <td className="px-6 py-4 text-gray-700">{patient.phone}</td>
-                    <td className="px-6 py-4 text-gray-700">{patient.email}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* Patient List */}
+        <div>
+          <h3 className="text-lg font-medium mb-4">Treatment Plans to Customize</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {patients.map((patient, index) => (
+              <AppointmentCard
+                key={index}
+                patient={patient.name}
+                time={patient.date}
+                status={patient.status}
+                phone={patient.phone}
+                email={patient.email}
+              />
+            ))}
           </div>
         </div>
       </div>
-    </MainLayout>
+    </div>
   );
 };
 
-export default DashboardPage;
+export default Dashboard;
