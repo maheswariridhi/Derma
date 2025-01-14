@@ -1,18 +1,15 @@
 import React from "react";
-import Navbar from "../components/Navbar"; // Path to Navbar component
-import Footer from "../components/Footer"; // Path to Footer component
+import Sidebar from "../components/Sidebar";
 
 const MainLayout = ({ children }) => {
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Navbar */}
-      <Navbar />
-
-      {/* Main Content */}
-      <main className="flex-1 p-4 bg-gray-50">{children}</main>
-
-      {/* Footer (optional) */}
-      <Footer />
+    <div className="flex min-h-screen bg-white">
+      <div className="w-64 min-h-screen border-r border-gray-200">
+        <Sidebar />
+      </div>
+      <div className="flex-1 pl-8">
+        {children}
+      </div>
     </div>
   );
 };
