@@ -5,7 +5,6 @@ import PatientCard from "../components/PatientCard";
 const DashboardPage = () => {
   const navigate = useNavigate();
   const userName = "Ridhi Maheswari";
-  const casesToFollow = 16;
 
   // State for patients and search
   const [patients, setPatients] = useState([]);
@@ -49,7 +48,7 @@ const DashboardPage = () => {
       <div className="bg-pink-50 rounded-lg p-6 mb-8">
         <h1 className="text-xl font-semibold">Good evening, {userName}</h1>
         <p className="text-gray-600 mt-2">
-          I've surfaced {casesToFollow} cases to follow up on today.
+          You've got {filteredPatients.length} cases to follow up on today.
         </p>
       </div>
 
@@ -57,7 +56,7 @@ const DashboardPage = () => {
       <div className="mb-4">
         <input
           type="text"
-          placeholder="Search patients by name or status"
+          placeholder="Search patients by name "
           className="w-full p-2 border border-gray-300 rounded"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -67,7 +66,7 @@ const DashboardPage = () => {
       {/* Treatment Plans Section */}
       <div className="mb-8">
         <h2 className="text-xl font-semibold mb-4">Treatment Plans to Customize</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredPatients.length > 0 ? (
             filteredPatients.map((patient) => (
               <PatientCard
