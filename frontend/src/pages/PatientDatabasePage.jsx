@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const PatientDatabasePage = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const navigate = useNavigate();
   
   const patients = [
     {
@@ -43,6 +45,10 @@ const PatientDatabasePage = () => {
     patient.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handlePatientClick = (patientId) => {
+    navigate(`/patient/${patientId}`);
+  };
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Patient Database</h1>
@@ -70,7 +76,11 @@ const PatientDatabasePage = () => {
           </thead>
           <tbody className="divide-y divide-gray-200">
             {filteredPatients.map((patient) => (
-              <tr key={patient.id} className="hover:bg-gray-50">
+              <tr 
+                key={patient.id} 
+                className="hover:bg-gray-50 cursor-pointer"
+                onClick={() => handlePatientClick(patient.id)}
+              >
                 <td className="px-6 py-4 whitespace-nowrap">{patient.name}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{patient.condition}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{patient.lastVisit}</td>

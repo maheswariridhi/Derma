@@ -1,37 +1,28 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from prioritization_agent import PrioritizationAgent  # Import the AI logic
+from app.services.ai_service import DermatologyAIService
+from app.models.ai_models import PatientHistory
 
-# Initialize the FastAPI app
 app = FastAPI()
 
-# Add CORS middleware to allow communication with React frontend
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # "*" means all origins (change in production)
+    allow_origins=["http://localhost:5173"],  # Your React frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Initialize the AI prioritization agent
-agent = PrioritizationAgent()
-
-@app.post("/ai/prioritize")
-def prioritize_cases(cases: list[dict]):
-    """
-    API endpoint to prioritize patient cases using AI.
-    Args:
-        cases (list[dict]): List of cases with "summary" field.
-    Returns:
-        dict: Sorted cases based on priority score.
-    """
-    if not isinstance(cases, list):
-        raise HTTPException(status_code=400, detail="Input must be a list of cases.")
-    
-    prioritized_cases = agent.calculate_priority(cases)
-    return {"prioritized_cases": prioritized_cases}
+@app.post("/api/ai/recommendations")
+async def get_recommendations(patient_data: PatientHistory):
+    try:
+        ai_service = DermatologyAIService()
+        recommendations = await ai_service.generate_recommendations(patient_data)
+        return recommendations
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=3001)

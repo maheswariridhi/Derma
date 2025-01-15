@@ -31,7 +31,7 @@ An AI-powered dermatology application that simplifies patient workflows for derm
    
    cd frontend
    npm install  #install dependencies
-   REACT_APP_BACKEND_URL=http://localhost:8000  # create .env file
+   echo "VITE_BACKEND_URL=http://localhost:8000" > .env  # create .env file
    npm run dev  # start development server
 
 ### Backend Setup

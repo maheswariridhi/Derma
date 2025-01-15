@@ -1,44 +1,39 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 const Sidebar = () => {
+  const location = useLocation();
+
+  const isActive = (path) => location.pathname === path;
+
+  const menuItems = [
+    { path: "/", label: "Dashboard" },
+    { path: "/patients", label: "Patient Database" },
+    { path: "/appointments", label: "Appointments" },
+    { path: "/clinic-services", label: "Clinic Services" },
+  ];
+
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-8">Derma Care</h1>
+    <div className="h-full p-4">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-green-700">DermaAI</h1>
+      </div>
       <nav>
-        <ul className="space-y-4">
-          <li>
-            <Link
-              to="/"
-              className="block text-gray-700 text-lg hover:bg-gray-100 p-2 rounded"
-            >
-              Dashboard
-            </Link>
-          </li>
-          <li>
-            <Link
-              to="/patient-database"
-              className="block text-gray-700 text-lg hover:bg-gray-100 p-2 rounded"
-            >
-              Patient Database
-            </Link>
-          </li>
-          <li>
-            <Link
-              to="/clinic-services"
-              className="block text-gray-700 text-lg hover:bg-gray-100 p-2 rounded"
-            >
-              Clinic Services
-            </Link>
-          </li>
-          <li>
-            <Link
-              to="/inbox"
-              className="block text-gray-700 text-lg hover:bg-gray-100 p-2 rounded"
-            >
-              Inbox
-            </Link>
-          </li>
+        <ul className="space-y-2">
+          {menuItems.map((item) => (
+            <li key={item.path}>
+              <Link
+                to={item.path}
+                className={`block px-4 py-2 rounded-lg transition-colors duration-200 ${
+                  isActive(item.path)
+                    ? "bg-green-50 text-green-700"
+                    : "text-gray-600 hover:bg-gray-50"
+                }`}
+              >
+                {item.label}
+              </Link>
+            </li>
+          ))}
         </ul>
       </nav>
     </div>
