@@ -4,6 +4,7 @@ import DashboardPage from './pages/DashboardPage';
 import AppointmentsPage from './pages/AppointmentsPage';
 import PatientWorkflow from './pages/PatientWorkflow';
 import PatientDatabasePage from './pages/PatientDatabasePage';
+import ClinicServicesPage from './pages/ClinicServicesPage';
 import MainLayout from './layouts/MainLayout';
 
 const App = () => {
@@ -16,6 +17,7 @@ const App = () => {
           <Route path="/appointments" element={<AppointmentsPage />} />
           <Route path="/patients" element={<PatientDatabasePage />} />
           <Route path="/patient/:id/workflow" element={<PatientWorkflow />} />
+          <Route path="/clinic-services" element={<ClinicServicesPage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </MainLayout>
