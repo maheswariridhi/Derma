@@ -1,37 +1,37 @@
-import React from "react";
-import { useParams } from "react-router-dom";
-import AIRecommendationPanel from "../components/ai/AIRecommendationPanel";
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import MainLayout from '../layouts/MainLayout';
+import PatientService from '../services/PatientService';
 
 const PatientsPage = () => {
-  const { patientSlug } = useParams();
+  const { patientId } = useParams();
+  const [patient, setPatient] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data - replace with actual API call
-  const patientData = {
-    name: "John Doe",
-    age: 45,
-    condition: "Eczema",
-    symptoms: ["itching", "redness", "dry skin"],
-    previousTreatments: ["topical steroids", "moisturizers"],
-    lastVisit: "2024-02-15",
-    allergies: ["peanuts"],
-    currentMedications: ["hydrocortisone cream"],
-    treatmentPlan: {
-      diagnosis: "Moderate Atopic Dermatitis",
-      currentStatus: "Under Treatment",
-      nextSteps: ["Continue current medication", "Monitor for improvements"],
-      medications: [
-        { name: "Hydrocortisone Cream", dosage: "Apply twice daily" },
-        { name: "Moisturizer", dosage: "Apply as needed" }
-      ]
-    }
-  };
+  useEffect(() => {
+    const loadPatient = async () => {
+      try {
+        const data = await PatientService.getPatientById(patientId);
+        setPatient(data);
+      } catch (error) {
+        console.error('Error loading patient:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadPatient();
+  }, [patientId]);
+
+  if (loading || !patient) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
       {/* Patient Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">{patientData.name}</h1>
-        <p className="mt-2 text-sm text-gray-600">Patient ID: {patientSlug}</p>
+        <h1 className="text-3xl font-bold text-gray-900">{patient.name}</h1>
+        <p className="mt-2 text-sm text-gray-600">Patient ID: {patient.id}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -43,11 +43,11 @@ const PatientsPage = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <h3 className="text-sm font-medium text-gray-500">Diagnosis</h3>
-                <p className="mt-1">{patientData.treatmentPlan.diagnosis}</p>
+                <p className="mt-1">{patient.treatmentPlan.diagnosis}</p>
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-500">Status</h3>
-                <p className="mt-1">{patientData.treatmentPlan.currentStatus}</p>
+                <p className="mt-1">{patient.treatmentPlan.currentStatus}</p>
               </div>
             </div>
           </section>
@@ -59,7 +59,7 @@ const PatientsPage = () => {
               <div>
                 <h3 className="text-sm font-medium text-gray-500">Current Medications</h3>
                 <ul className="mt-2 divide-y divide-gray-200">
-                  {patientData.treatmentPlan.medications.map((med, index) => (
+                  {patient.treatmentPlan.medications.map((med, index) => (
                     <li key={index} className="py-2">
                       <div className="flex justify-between">
                         <span className="font-medium">{med.name}</span>
@@ -72,7 +72,7 @@ const PatientsPage = () => {
               <div>
                 <h3 className="text-sm font-medium text-gray-500">Next Steps</h3>
                 <ul className="mt-2 list-disc list-inside">
-                  {patientData.treatmentPlan.nextSteps.map((step, index) => (
+                  {patient.treatmentPlan.nextSteps.map((step, index) => (
                     <li key={index} className="text-gray-600">{step}</li>
                   ))}
                 </ul>
@@ -83,7 +83,7 @@ const PatientsPage = () => {
 
         {/* Right Column - AI Recommendations */}
         <div className="lg:col-span-1">
-          <AIRecommendationPanel patientData={patientData} />
+          <AIRecommendationPanel patientData={patient} />
         </div>
       </div>
     </div>

@@ -1,103 +1,125 @@
-import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-
-const WorkflowStep = ({ number, title, description, isActive }) => (
-  <div className={`flex items-start gap-4 p-4 ${isActive ? 'bg-green-50 rounded-lg' : ''}`}>
-    <div className={`flex items-center justify-center w-8 h-8 rounded-full ${
-      isActive ? 'bg-green-600 text-white' : 'border-2 border-gray-300 text-gray-500'
-    }`}>
-      {number}
-    </div>
-    <div>
-      <h3 className={`font-medium ${isActive ? 'text-green-600' : 'text-gray-900'}`}>{title}</h3>
-      <p className="text-sm text-gray-500">{description}</p>
-    </div>
-  </div>
-);
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
+import MainLayout from '../layouts/MainLayout';
+import WorkflowLayout from '../layouts/WorkflowLayout';
+import WorkflowSteps from '../components/workflow/WorkflowSteps';
+import PatientInformation from '../components/workflow/PatientInformation';
+import ReviewAndFinalize from '../components/workflow/ReviewAndFinalize';
+import SendToPatient from '../components/workflow/SendToPatient';
+import PatientService from '../services/PatientService';
 
 const PatientWorkflow = () => {
-  const { id } = useParams();
+  const [activeStep, setActiveStep] = useState(1);
+  const [patient, setPatient] = useState(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
+  const { id } = useParams();
 
-  // Mock patient data - replace with actual data fetching
-  const patients = {
-    1: {
-      name: "Nancy Out of Network",
-      phone: "(855) 369-8746",
-      time: "11/18/2024"
-    },
-    2: {
-      name: "Candi Copay",
-      phone: "(245) 698-3265",
-      time: "11/18/2024"
-    },
-    3: {
-      name: "Allen Allowed",
-      phone: "(253) 687-9654",
-      time: "11/18/2024"
-    },
-    4: {
-      name: "Marvin Medicaid",
-      phone: "(585) 484-6245",
-      time: "11/18/2024"
+  useEffect(() => {
+    const loadPatient = async () => {
+      try {
+        // Try to get patient from navigation state first
+        if (location.state?.patient) {
+          setPatient(location.state.patient);
+        } else {
+          // Fetch from service if not in navigation state
+          const data = await PatientService.getPatientById(id);
+          setPatient(data);
+        }
+      } catch (error) {
+        console.error('Error loading patient:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPatient();
+  }, [id, location.state]);
+
+  const handleStepComplete = async (stepData) => {
+    try {
+      // Update patient data in service
+      const updatedPatient = await PatientService.updateWorkflowStep(id, stepData, activeStep);
+      setPatient(updatedPatient);
+      
+      // Move to next step if not on last step
+      if (activeStep < 3) {
+        setActiveStep(activeStep + 1);
+      } else {
+        // On last step, navigate back to appointments
+        navigate('/appointments');
+      }
+    } catch (error) {
+      console.error('Error updating patient:', error);
     }
   };
 
-  const selectedPatient = patients[id];
+  if (loading || !patient) {
+    return <div>Loading...</div>;
+  }
 
-  const handleBack = () => {
-    navigate('/');
+  const renderStepContent = () => {
+    switch (activeStep) {
+      case 1:
+        return (
+          <PatientInformation 
+            patient={patient}
+            onComplete={handleStepComplete}
+          />
+        );
+      case 2:
+        return (
+          <ReviewAndFinalize 
+            patient={patient}
+            onComplete={handleStepComplete}
+          />
+        );
+      case 3:
+        return (
+          <SendToPatient 
+            patient={patient}
+            onComplete={handleStepComplete}
+          />
+        );
+      default:
+        return <PatientInformation patient={patient} />;
+    }
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <button 
-        onClick={handleBack}
-        className="text-gray-600 hover:text-gray-900 mb-4"
-      >
-        ← Back
-      </button>
-
-      <h1 className="text-2xl font-bold mb-8">Finalize Case</h1>
-
-      <div className="space-y-4 mb-8">
-        <WorkflowStep
-          number="1"
-          title="Tell us about the patient"
-          description="We use this information to make a case presentation."
-          isActive={true}
-        />
-        <WorkflowStep
-          number="2"
-          title="Review and Finalize"
-          description="Click on any text in the treatment plan to edit it."
-          isActive={false}
-        />
-        <WorkflowStep
-          number="3"
-          title="Send to Patient"
-          description="Send the treatment plan for review"
-          isActive={false}
-        />
-      </div>
-
-      <button 
-        className="w-full bg-gray-900 text-white py-3 rounded-lg hover:bg-gray-800 mb-8"
-      >
-        I'm finished reviewing
-      </button>
-
-      {selectedPatient && (
-        <div className="bg-white rounded-lg border p-6">
-          <h2 className="text-xl font-bold mb-4">Patient Information</h2>
-          <div className="space-y-2">
-            <p className="text-gray-700">Patient: {selectedPatient.name}</p>
-            <p className="text-gray-700">Phone: {selectedPatient.phone}</p>
-            <p className="text-gray-700">Appointment: {selectedPatient.time}</p>
+    <WorkflowLayout
+      workflow={
+        <>
+          <div className="p-6 border-b">
+            <button 
+              onClick={() => navigate(-1)}
+              className="text-gray-600 hover:text-gray-900 flex items-center gap-2"
+            >
+              ← Back
+            </button>
+            <h2 className="text-xl font-bold mt-4">{patient.name}</h2>
+            <p className="text-gray-600">{patient.phone}</p>
           </div>
+          <div className="flex-1 overflow-y-auto">
+            <WorkflowSteps 
+              activeStep={activeStep}
+              onStepClick={setActiveStep}
+              steps={[
+                { id: 1, label: 'Patient Information' },
+                { id: 2, label: 'Review & Finalize' },
+                { id: 3, label: 'Send to Patient' }
+              ]}
+            />
+          </div>
+        </>
+      }
+      content={
+        <div className="p-6">
+          {renderStepContent()}
         </div>
-      )}
-    </div>
+      }
+    />
   );
 };
 

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
+import { PlusIcon } from '@heroicons/react/24/outline';
 
-const ClinicServicesPage = () => {
-  const [activeTab, setActiveTab] = useState('treatments');
-
-  const treatments = [
+// Initial data with more items
+const initialServices = {
+  treatments: [
     {
       id: 1,
       name: "Chemical Peel",
@@ -24,24 +24,9 @@ const ClinicServicesPage = () => {
       description: "Comprehensive treatment for active acne and scarring",
       duration: "45-60 minutes",
       cost: "$150-400",
-    },
-    {
-      id: 4,
-      name: "Botox Injection",
-      description: "Treatment for wrinkles and fine lines",
-      duration: "15-30 minutes",
-      cost: "$300-600",
-    },
-    {
-      id: 5,
-      name: "Dermal Fillers",
-      description: "Volume restoration and facial contouring",
-      duration: "30-45 minutes",
-      cost: "$600-1200",
     }
-  ];
-
-  const medicines = [
+  ],
+  medicines: [
     {
       id: 1,
       name: "Tretinoin",
@@ -52,42 +37,39 @@ const ClinicServicesPage = () => {
     },
     {
       id: 2,
-      name: "Hydroquinone",
-      type: "Skin lightener",
-      usage: "Hyperpigmentation",
-      dosage: "4%",
-      stock: 50,
-    },
-    {
-      id: 3,
-      name: "Clindamycin",
-      type: "Antibiotic",
-      usage: "Acne treatment",
-      dosage: "1%",
-      stock: 100,
-    },
-    {
-      id: 4,
-      name: "Benzoyl Peroxide",
-      type: "Antimicrobial",
-      usage: "Acne treatment",
-      dosage: "5%",
-      stock: 120,
-    },
-    {
-      id: 5,
       name: "Hyaluronic Acid",
       type: "Moisturizer",
       usage: "Hydration",
       dosage: "2%",
       stock: 80,
+    },
+    {
+      id: 3,
+      name: "Benzoyl Peroxide",
+      type: "Antibacterial",
+      usage: "Acne treatment",
+      dosage: "5%",
+      stock: 60,
     }
-  ];
+  ]
+};
+
+const ClinicServicesPage = () => {
+  const [activeTab, setActiveTab] = useState('treatments');
+  const [services, setServices] = useState(initialServices);
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Dermatology Services</h1>
-      
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Clinic Services</h1>
+        <button
+          className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+        >
+          <PlusIcon className="w-5 h-5 mr-2" />
+          Add {activeTab === 'treatments' ? 'Treatment' : 'Medicine'}
+        </button>
+      </div>
+
       {/* Tab Navigation */}
       <div className="mb-6 border-b">
         <button
@@ -107,7 +89,7 @@ const ClinicServicesPage = () => {
       {/* Treatments Section */}
       {activeTab === 'treatments' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {treatments.map((treatment) => (
+          {services.treatments.map((treatment) => (
             <div key={treatment.id} className="bg-white p-6 rounded-lg shadow">
               <h3 className="font-bold text-lg mb-2">{treatment.name}</h3>
               <p className="text-gray-600 mb-4">{treatment.description}</p>
@@ -134,7 +116,7 @@ const ClinicServicesPage = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {medicines.map((medicine) => (
+              {services.medicines.map((medicine) => (
                 <tr key={medicine.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">{medicine.name}</td>
                   <td className="px-6 py-4">{medicine.type}</td>

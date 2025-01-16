@@ -9,6 +9,28 @@ load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 class DermatologyAIService:
+    def __init__(self):
+        self.services_db = {}  # This could be a database connection
+    
+    def update_services_database(self, services_data):
+        """Update the AI's knowledge of available services"""
+        self.services_db = services_data
+        return {"status": "success"}
+    
+    def suggest_services(self, service_type, query=None):
+        """Suggest services based on type and optional query"""
+        available_services = self.services_db.get(service_type, [])
+        
+        prompt = f"""As a dermatology specialist AI, suggest relevant {service_type} 
+        based on the following available services: {available_services}
+        Query: {query if query else 'general suggestions'}
+        
+        Provide suggestions that are most relevant and commonly used in dermatology practices.
+        """
+        
+        # Your existing OpenAI call logic here
+        return suggestions
+
     @staticmethod
     def create_prompt(patient_data: PatientHistory) -> str:
         return f"""As a dermatology specialist AI, analyze the following patient data and provide comprehensive recommendations:
