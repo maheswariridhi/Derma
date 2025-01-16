@@ -30,7 +30,9 @@ const DashboardPage = () => {
   }, []);
 
   const handlePatientClick = (patient) => {
-    navigate(`/patient/${patient.id}/workflow`, patient.toNavigationState());
+    navigate(`/patient/${patient.id}/workflow`, {
+      state: { patient }
+    });
   };
 
   const filteredPatients = patients.filter(patient =>

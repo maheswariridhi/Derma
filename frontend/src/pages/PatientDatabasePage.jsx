@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PatientService from '../services/PatientService';
 import Table from '../components/common/Table';
+import Patient from '../models/Patient';
 
 const PatientDatabasePage = () => {
   const navigate = useNavigate();
@@ -32,7 +33,10 @@ const PatientDatabasePage = () => {
   }, []);
 
   const handlePatientClick = (patient) => {
-    navigate(`/patient/${patient.id}`);
+    const patientData = new Patient(patient);
+    navigate(`/patient/${patient.id}/workflow`, {
+      state: { patient: patientData }
+    });
   };
 
   if (loading) {

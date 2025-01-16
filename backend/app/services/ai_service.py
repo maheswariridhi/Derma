@@ -1,89 +1,78 @@
-import openai
-from app.models.ai_models import PatientHistory, AIRecommendationResponse
-import json
-from datetime import datetime
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+from langchain_community.chat_models import ChatOpenAI
+from langchain_community.embeddings import OpenAIEmbeddings
+from langchain_community.vectorstores import Chroma
+from app.models.ai_models import PatientHistory, Recommendation, AIRecommendationResponse
 
 class DermatologyAIService:
     def __init__(self):
-        self.services_db = {}  # This could be a database connection
-    
-    def update_services_database(self, services_data):
-        """Update the AI's knowledge of available services"""
-        self.services_db = services_data
-        return {"status": "success"}
-    
-    def suggest_services(self, service_type, query=None):
-        """Suggest services based on type and optional query"""
-        available_services = self.services_db.get(service_type, [])
+        self.llm = ChatOpenAI(temperature=0)
+        self.embeddings = OpenAIEmbeddings()
         
-        prompt = f"""As a dermatology specialist AI, suggest relevant {service_type} 
-        based on the following available services: {available_services}
-        Query: {query if query else 'general suggestions'}
-        
-        Provide suggestions that are most relevant and commonly used in dermatology practices.
-        """
-        
-        # Your existing OpenAI call logic here
-        return suggestions
+        # Setup RAG
+        self.medical_knowledge = Chroma(
+            collection_name="medical_knowledge",
+            embedding_function=self.embeddings
+        )
+        self.clinic_services = Chroma(
+            collection_name="clinic_services",
+            embedding_function=self.embeddings
+        )
 
-    @staticmethod
-    def create_prompt(patient_data: PatientHistory) -> str:
-        return f"""As a dermatology specialist AI, analyze the following patient data and provide comprehensive recommendations:
-
-Patient Information:
-- Name: {patient_data.patient_name}
-- Age: {patient_data.age}
-- Condition: {patient_data.condition}
-- Current Symptoms: {', '.join(patient_data.symptoms)}
-- Previous Treatments: {', '.join(patient_data.previous_treatments)}
-- Last Visit: {patient_data.last_visit}
-- Allergies: {', '.join(patient_data.allergies) if patient_data.allergies else 'None'}
-- Current Medications: {', '.join(patient_data.current_medications) if patient_data.current_medications else 'None'}
-
-Provide dermatological recommendations in JSON format:
-{
-    "recommendations": [
-        {
-            "type": "follow_up|treatment|test|medication",
-            "title": "string",
-            "description": "detailed explanation",
-            "priority": "high|medium|low",
-            "suggested_date": "YYYY-MM-DD",
-            "reasoning": "clinical reasoning"
-        }
-    ],
-    "next_appointment": "YYYY-MM-DD",
-    "additional_notes": "string"
-}"""
-
-    @staticmethod
-    async def generate_recommendations(patient_data: PatientHistory) -> AIRecommendationResponse:
+    async def generate_recommendations(self, patient_data: PatientHistory) -> AIRecommendationResponse:
         try:
-            prompt = DermatologyAIService.create_prompt(patient_data)
-            
-            response = await openai.ChatCompletion.acreate(
-                model="gpt-4",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a specialized dermatology AI assistant trained to provide evidence-based recommendations."
-                    },
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                temperature=0.7,
-                max_tokens=1000
+            # Format patient information
+            patient_info = f"""
+            Patient: {patient_data.patient_name}
+            Age: {patient_data.age}
+            Condition: {patient_data.condition}
+            Symptoms: {', '.join(patient_data.symptoms)}
+            Previous Treatments: {', '.join(patient_data.previous_treatments)}
+            Last Visit: {patient_data.last_visit}
+            Allergies: {', '.join(patient_data.allergies)}
+            Current Medications: {', '.join(patient_data.current_medications)}
+            """
+
+            # Get relevant medical knowledge
+            medical_results = self.medical_knowledge.similarity_search(
+                f"treatment for {patient_data.condition} with symptoms: {', '.join(patient_data.symptoms)}",
+                k=2
+            )
+            medical_context = "\n".join([doc.page_content for doc in medical_results])
+
+            # Generate recommendations using LLM
+            prompt = f"""
+            Based on the following patient information and medical knowledge, provide treatment recommendations:
+
+            Patient Information:
+            {patient_info}
+
+            Medical Knowledge:
+            {medical_context}
+
+            Please provide:
+            1. Treatment recommendations
+            2. Next appointment suggestion
+            3. Any warnings or precautions
+            """
+
+            response = await self.llm.apredict(prompt)
+
+            # Parse response into recommendations
+            recommendations = [
+                Recommendation(
+                    type="Treatment",
+                    title="Treatment Plan",
+                    description=response,
+                    priority="High",
+                    reasoning="Based on patient symptoms and medical knowledge"
+                )
+            ]
+
+            return AIRecommendationResponse(
+                recommendations=recommendations,
+                next_appointment="2 weeks from today",
+                additional_notes="Monitor progress and adjust treatment as needed"
             )
 
-            result = json.loads(response.choices[0].message.content)
-            return AIRecommendationResponse(**result)
-
         except Exception as e:
-            raise Exception(f"Failed to generate AI recommendations: {str(e)}") 
+            raise Exception(f"Failed to generate recommendations: {str(e)}") 

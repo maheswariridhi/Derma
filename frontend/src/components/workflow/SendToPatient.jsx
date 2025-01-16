@@ -50,18 +50,12 @@ const SendToPatient = ({ patient, onComplete }) => {
           </div>
         </div>
 
-        {/* Patient Contact Info */}
+        {/* Treatment Summary */}
         <div className="bg-gray-50 p-4 rounded">
-          <h3 className="font-medium mb-2">Patient Contact Information</h3>
-          <p>Email: {patient.email}</p>
-          <p>Phone: {patient.phone}</p>
-        </div>
-
-        {/* Treatment Plan Summary */}
-        <div className="bg-gray-50 p-4 rounded">
-          <h3 className="font-medium mb-2">Treatment Plan Summary</h3>
+          <h3 className="font-medium mb-2">Treatment Summary</h3>
           <p>Diagnosis: {patient.treatmentPlan?.diagnosis}</p>
           <p>Status: {patient.treatmentPlan?.currentStatus}</p>
+          <p>Medications: {patient.treatmentPlan?.medications?.map(m => m.name).join(', ')}</p>
         </div>
 
         {/* Additional Notes */}
@@ -87,7 +81,7 @@ const SendToPatient = ({ patient, onComplete }) => {
               className="form-checkbox"
             />
             <span className="ml-2">
-              I confirm that all information is correct and ready to be sent to the patient
+              I confirm that all information is correct
             </span>
           </label>
         </div>
@@ -97,7 +91,7 @@ const SendToPatient = ({ patient, onComplete }) => {
           disabled={!isConfirmed}
           className={`w-full py-2 rounded ${
             isConfirmed 
-              ? 'bg-blue-500 text-white hover:bg-blue-600' 
+              ? 'bg-blue-600 text-white hover:bg-blue-700' 
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}
         >
