@@ -4,8 +4,12 @@ import DashboardPage from './pages/DashboardPage';
 import AppointmentsPage from './pages/AppointmentsPage';
 import PatientWorkflow from './pages/PatientWorkflow';
 import PatientDatabasePage from './pages/PatientDatabasePage';
+import PatientDetails from './pages/PatientDetails';
 import ClinicServicesPage from './pages/ClinicServicesPage';
 import MainLayout from './layouts/MainLayout';
+import PatientInformation from './components/workflow/PatientInformation';
+import ReviewAndFinalize from './components/workflow/ReviewAndFinalize';
+import SendToPatient from './components/workflow/SendToPatient';
 
 const App = () => {
   return (
@@ -16,7 +20,13 @@ const App = () => {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/appointments" element={<AppointmentsPage />} />
           <Route path="/patients" element={<PatientDatabasePage />} />
-          <Route path="/patient/:id/workflow" element={<PatientWorkflow />} />
+          <Route path="/patient/:id" element={<PatientDetails />} />
+          <Route path="/patient/:id/workflow" element={<PatientWorkflow />}>
+            <Route index element={<Navigate to="information" replace />} />
+            <Route path="information" element={<PatientInformation />} />
+            <Route path="review" element={<ReviewAndFinalize />} />
+            <Route path="send" element={<SendToPatient />} />
+          </Route>
           <Route path="/clinic-services" element={<ClinicServicesPage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

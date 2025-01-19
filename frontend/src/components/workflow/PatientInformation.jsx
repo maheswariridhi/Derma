@@ -1,7 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 
-const PatientInformation = ({ patient, onComplete }) => {
-  const [editedPatient, setEditedPatient] = useState(patient);
+const PatientInformation = () => {
+  const { patient, onComplete } = useOutletContext();
+  const [editedPatient, setEditedPatient] = useState(patient || {});
+
+  // Update editedPatient when patient data changes
+  useEffect(() => {
+    if (patient) {
+      setEditedPatient(patient);
+    }
+  }, [patient]);
 
   const handleSubmit = () => {
     onComplete(editedPatient);
@@ -18,7 +27,7 @@ const PatientInformation = ({ patient, onComplete }) => {
             <label className="block text-sm font-medium text-gray-600 mb-1">Name</label>
             <input
               type="text"
-              value={editedPatient.name}
+              value={editedPatient.name || ''}
               onChange={(e) => setEditedPatient({...editedPatient, name: e.target.value})}
               className="w-full p-2.5 border border-gray-300 rounded-lg"
             />
@@ -28,7 +37,7 @@ const PatientInformation = ({ patient, onComplete }) => {
             <label className="block text-sm font-medium text-gray-600 mb-1">Phone</label>
             <input
               type="text"
-              value={editedPatient.phone}
+              value={editedPatient.phone || ''}
               onChange={(e) => setEditedPatient({...editedPatient, phone: e.target.value})}
               className="w-full p-2.5 border border-gray-300 rounded-lg"
             />
@@ -38,7 +47,7 @@ const PatientInformation = ({ patient, onComplete }) => {
             <label className="block text-sm font-medium text-gray-600 mb-1">Email</label>
             <input
               type="email"
-              value={editedPatient.email}
+              value={editedPatient.email || ''}
               onChange={(e) => setEditedPatient({...editedPatient, email: e.target.value})}
               className="w-full p-2.5 border border-gray-300 rounded-lg"
             />
@@ -49,7 +58,7 @@ const PatientInformation = ({ patient, onComplete }) => {
             <label className="block text-sm font-medium text-gray-600 mb-1">Condition</label>
             <input
               type="text"
-              value={editedPatient.condition}
+              value={editedPatient.condition || ''}
               onChange={(e) => setEditedPatient({...editedPatient, condition: e.target.value})}
               className="w-full p-2.5 border border-gray-300 rounded-lg"
             />
@@ -59,7 +68,7 @@ const PatientInformation = ({ patient, onComplete }) => {
             <label className="block text-sm font-medium text-gray-600 mb-1">Last Visit</label>
             <input
               type="date"
-              value={editedPatient.lastVisit}
+              value={editedPatient.lastVisit || ''}
               onChange={(e) => setEditedPatient({...editedPatient, lastVisit: e.target.value})}
               className="w-full p-2.5 border border-gray-300 rounded-lg"
             />

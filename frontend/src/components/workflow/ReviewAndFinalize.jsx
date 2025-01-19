@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { AIRecommendationPanel } from '../ai/AIRecommendationPanel';
+import AIRecommendationPanel from '../ai/AIRecommendationPanel';
 
 const ReviewAndFinalize = ({ patient, onComplete }) => {
   const [treatmentPlan, setTreatmentPlan] = useState({
-    diagnosis: patient.treatmentPlan?.diagnosis || '',
-    currentStatus: patient.treatmentPlan?.currentStatus || '',
-    medications: patient.treatmentPlan?.medications || [],
-    nextSteps: patient.treatmentPlan?.nextSteps || []
+    diagnosis: patient?.treatmentPlan?.diagnosis || '',
+    currentStatus: patient?.treatmentPlan?.currentStatus || '',
+    medications: patient?.treatmentPlan?.medications || [],
+    nextSteps: patient?.treatmentPlan?.nextSteps || [],
   });
 
   const [activeSection, setActiveSection] = useState('diagnosis');
@@ -15,21 +15,27 @@ const ReviewAndFinalize = ({ patient, onComplete }) => {
 
   const handleAddMedication = () => {
     if (newMedication.name && newMedication.dosage) {
-      setTreatmentPlan({
-        ...treatmentPlan,
-        medications: [...treatmentPlan.medications, newMedication]
-      });
+      setTreatmentPlan((prev) => ({
+        ...prev,
+        medications: [...prev.medications, newMedication],
+      }));
       setNewMedication({ name: '', dosage: '' });
     }
   };
 
   const handleAddStep = () => {
     if (newStep) {
-      setTreatmentPlan({
-        ...treatmentPlan,
-        nextSteps: [...treatmentPlan.nextSteps, newStep]
-      });
+      setTreatmentPlan((prev) => ({
+        ...prev,
+        nextSteps: [...prev.nextSteps, newStep],
+      }));
       setNewStep('');
+    }
+  };
+
+  const handleSaveAndContinue = () => {
+    if (onComplete) {
+      onComplete({ ...patient, treatmentPlan });
     }
   };
 
@@ -38,30 +44,25 @@ const ReviewAndFinalize = ({ patient, onComplete }) => {
       {/* Left Panel - Navigation */}
       <div className="w-72 border-r border-gray-200 p-6 space-y-6">
         <h2 className="text-xl font-semibold text-gray-800">Treatment Review</h2>
-        
         <nav className="space-y-2">
           {['diagnosis', 'medications', 'next-steps', 'ai-recommendations'].map((section, index) => (
             <button
               key={section}
               onClick={() => setActiveSection(section)}
               className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 ${
-                activeSection === section 
-                  ? 'bg-white shadow-sm border border-gray-200' 
-                  : 'hover:bg-white/50'
+                activeSection === section ? 'bg-white shadow-sm border border-gray-200' : 'hover:bg-white/50'
               }`}
             >
               <span className="w-6 h-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-sm">
                 {index + 1}
               </span>
-              <span className="text-gray-700 capitalize">
-                {section.replace('-', ' ')}
-              </span>
+              <span className="text-gray-700 capitalize">{section.replace('-', ' ')}</span>
             </button>
           ))}
         </nav>
 
         <button
-          onClick={() => onComplete({ ...patient, treatmentPlan })}
+          onClick={handleSaveAndContinue}
           className="w-full py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           Save and Continue
@@ -80,7 +81,9 @@ const ReviewAndFinalize = ({ patient, onComplete }) => {
                   <input
                     type="text"
                     value={treatmentPlan.diagnosis}
-                    onChange={(e) => setTreatmentPlan({...treatmentPlan, diagnosis: e.target.value})}
+                    onChange={(e) =>
+                      setTreatmentPlan({ ...treatmentPlan, diagnosis: e.target.value })
+                    }
                     className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
@@ -89,7 +92,9 @@ const ReviewAndFinalize = ({ patient, onComplete }) => {
                   <input
                     type="text"
                     value={treatmentPlan.currentStatus}
-                    onChange={(e) => setTreatmentPlan({...treatmentPlan, currentStatus: e.target.value})}
+                    onChange={(e) =>
+                      setTreatmentPlan({ ...treatmentPlan, currentStatus: e.target.value })
+                    }
                     className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
@@ -102,7 +107,10 @@ const ReviewAndFinalize = ({ patient, onComplete }) => {
               <h3 className="text-lg font-semibold text-gray-800 mb-4">Medications</h3>
               <div className="space-y-4">
                 {treatmentPlan.medications.map((med, index) => (
-                  <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  <div
+                    key={index}
+                    className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
+                  >
                     <span className="font-medium text-gray-700">{med.name}</span>
                     <span className="text-gray-600">{med.dosage}</span>
                   </div>
@@ -111,13 +119,15 @@ const ReviewAndFinalize = ({ patient, onComplete }) => {
                   <input
                     placeholder="Medication name"
                     value={newMedication.name}
-                    onChange={(e) => setNewMedication({...newMedication, name: e.target.value})}
+                    onChange={(e) => setNewMedication({ ...newMedication, name: e.target.value })}
                     className="flex-1 p-2.5 border border-gray-300 rounded-lg"
                   />
                   <input
                     placeholder="Dosage"
                     value={newMedication.dosage}
-                    onChange={(e) => setNewMedication({...newMedication, dosage: e.target.value})}
+                    onChange={(e) =>
+                      setNewMedication({ ...newMedication, dosage: e.target.value })
+                    }
                     className="flex-1 p-2.5 border border-gray-300 rounded-lg"
                   />
                   <button
@@ -161,7 +171,7 @@ const ReviewAndFinalize = ({ patient, onComplete }) => {
           {activeSection === 'ai-recommendations' && (
             <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">AI Recommendations</h3>
-              <AIRecommendationPanel patientData={patient} />
+              <AIRecommendationPanel />
             </section>
           )}
         </div>
@@ -170,4 +180,4 @@ const ReviewAndFinalize = ({ patient, onComplete }) => {
   );
 };
 
-export default ReviewAndFinalize; 
+export default ReviewAndFinalize;

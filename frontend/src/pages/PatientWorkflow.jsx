@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import { useParams, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import PatientService from '../services/PatientService';
 import WorkflowLayout from '../layouts/WorkflowLayout';
-import PatientInformation from '../components/workflow/PatientInformation';
-import ReviewAndFinalize from '../components/workflow/ReviewAndFinalize';
-import SendToPatient from '../components/workflow/SendToPatient';
 import WorkflowSteps from '../components/workflow/WorkflowSteps';
 
 const PatientWorkflow = () => {
@@ -44,7 +41,7 @@ const PatientWorkflow = () => {
     };
 
     loadPatient();
-  }, [id]);
+  }, [id, location.state]);
 
   const handleStepComplete = async (updatedPatient) => {
     try {
@@ -56,6 +53,9 @@ const PatientWorkflow = () => {
       // Move to next step or finish workflow
       if (activeStep < 3) {
         setActiveStep(prev => prev + 1);
+        // Update URL to match new step
+        const nextPath = activeStep === 1 ? 'review' : 'send';
+        navigate(`/patient/${id}/workflow/${nextPath}`);
       } else {
         // Workflow complete, redirect to dashboard
         navigate('/dashboard', { 
@@ -68,56 +68,34 @@ const PatientWorkflow = () => {
     }
   };
 
-  if (loading || !patient) {
-    return <div>Loading...</div>;
-  }
-
-  if (error) {
+  if (loading) {
     return (
-      <div className="p-6 text-red-600">
-        Error: {error}
-        <button 
-          onClick={() => navigate(-1)}
-          className="ml-4 text-blue-600 hover:underline"
-        >
-          Go Back
-        </button>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Loading patient data...</div>
       </div>
     );
   }
 
-  const renderStepContent = () => {
-    switch (activeStep) {
-      case 1:
-        return (
-          <PatientInformation 
-            patient={patient}
-            onComplete={handleStepComplete}
-          />
-        );
-      case 2:
-        return (
-          <ReviewAndFinalize 
-            patient={patient}
-            onComplete={handleStepComplete}
-          />
-        );
-      case 3:
-        return (
-          <SendToPatient 
-            patient={patient}
-            onComplete={handleStepComplete}
-          />
-        );
-      default:
-        return <PatientInformation patient={patient} />;
-    }
-  };
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-red-500">
+          <p>Error: {error}</p>
+          <button 
+            onClick={() => navigate(-1)}
+            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <WorkflowLayout
       workflow={
-        <>
+        <div className="h-full flex flex-col">
           <div className="p-6 border-b">
             <button 
               onClick={() => navigate(-1)}
@@ -125,13 +103,17 @@ const PatientWorkflow = () => {
             >
               ← Back
             </button>
-            <h2 className="text-xl font-bold mt-4">{patient.name}</h2>
-            <p className="text-gray-600">{patient.phone}</p>
+            <h2 className="text-xl font-bold mt-4">{patient?.name || 'Patient Workflow'}</h2>
+            <p className="text-gray-600">{patient?.phone || ''}</p>
           </div>
           <div className="flex-1 overflow-y-auto">
             <WorkflowSteps 
               activeStep={activeStep}
-              onStepClick={setActiveStep}
+              onStepClick={(stepId) => {
+                setActiveStep(stepId);
+                const path = stepId === 1 ? 'information' : stepId === 2 ? 'review' : 'send';
+                navigate(`/patient/${id}/workflow/${path}`);
+              }}
               steps={[
                 { id: 1, label: 'Patient Information' },
                 { id: 2, label: 'Review & Finalize' },
@@ -139,11 +121,16 @@ const PatientWorkflow = () => {
               ]}
             />
           </div>
-        </>
+        </div>
       }
       content={
         <div className="p-6">
-          {renderStepContent()}
+          <Outlet context={{ 
+            patient, 
+            onComplete: handleStepComplete,
+            error,
+            setError 
+          }} />
         </div>
       }
     />

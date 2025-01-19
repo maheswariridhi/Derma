@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 
-const SendToPatient = ({ patient, onComplete }) => {
+const SendToPatient = () => {
+  const { patient, onComplete } = useOutletContext();
+  
   const [communicationMethod, setCommunicationMethod] = useState('email');
   const [additionalNotes, setAdditionalNotes] = useState('');
   const [isConfirmed, setIsConfirmed] = useState(false);
@@ -53,9 +56,9 @@ const SendToPatient = ({ patient, onComplete }) => {
         {/* Treatment Summary */}
         <div className="bg-gray-50 p-4 rounded">
           <h3 className="font-medium mb-2">Treatment Summary</h3>
-          <p>Diagnosis: {patient.treatmentPlan?.diagnosis}</p>
-          <p>Status: {patient.treatmentPlan?.currentStatus}</p>
-          <p>Medications: {patient.treatmentPlan?.medications?.map(m => m.name).join(', ')}</p>
+          <p>Diagnosis: {patient?.treatmentPlan?.diagnosis || 'Not specified'}</p>
+          <p>Status: {patient?.treatmentPlan?.currentStatus || 'Not specified'}</p>
+          <p>Medications: {patient?.treatmentPlan?.medications?.map(m => m.name).join(', ') || 'None prescribed'}</p>
         </div>
 
         {/* Additional Notes */}

@@ -1,40 +1,36 @@
 import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
 
-const WorkflowSteps = ({ activeStep, onStepClick, steps }) => {
+const WorkflowSteps = ({ steps, activeStep, onStepClick }) => {
+  const location = useLocation();
+  const patientId = location.pathname.split('/')[2]; // Get patient ID from URL
+
   return (
     <div className="p-6">
       <div className="space-y-4">
-        {steps.map((step) => {
-          const isCompleted = step.id < activeStep;
-          const isCurrent = step.id === activeStep;
-          
-          return (
-            <button
-              key={step.id}
-              onClick={() => onStepClick(step.id)}
-              className={`w-full text-left p-4 rounded-lg transition-colors ${
-                isCurrent
-                  ? 'bg-blue-50 text-blue-700'
-                  : isCompleted
-                  ? 'bg-green-50 text-green-700'
-                  : 'hover:bg-gray-50'
-              }`}
-            >
-              <div className="flex items-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
-                  isCurrent
-                    ? 'bg-blue-100 text-blue-700'
-                    : isCompleted
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-gray-100'
-                }`}>
-                  {isCompleted ? '✓' : step.id}
-                </div>
-                {step.label}
+        {steps.map((step) => (
+          <Link
+            key={step.id}
+            to={`/patient/${patientId}/workflow/${step.id === 1 ? 'information' : step.id === 2 ? 'review' : 'send'}`}
+            className={`block p-4 rounded-lg border ${
+              activeStep === step.id
+                ? 'bg-blue-50 border-blue-500'
+                : 'bg-white hover:bg-gray-50'
+            }`}
+            onClick={() => onStepClick(step.id)}
+          >
+            <div className="flex items-center">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                activeStep === step.id
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-200'
+              }`}>
+                {step.id}
               </div>
-            </button>
-          );
-        })}
+              <span className="ml-3 font-medium">{step.label}</span>
+            </div>
+          </Link>
+        ))}
       </div>
     </div>
   );

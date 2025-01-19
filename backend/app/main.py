@@ -1,117 +1,143 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from app.services.ai_orchestrator import AIOrchestrator
 from app.services.ai_service import DermatologyAIService
-from app.models.ai_models import PatientHistory
-from dotenv import load_dotenv
+from app.models.ai_models import (
+    PatientHistory, 
+    AIRecommendationResponse,
+    ValidationResponse,
+    Recommendation
+)
+from typing import Dict, Any, List, Optional
 import os
+from dotenv import load_dotenv
+from datetime import datetime
 
+# Load environment variables
 load_dotenv()
 
-app = FastAPI()
+app = FastAPI(
+    title="Dermatology AI API",
+    description="AI-powered dermatology diagnosis and treatment recommendations",
+    version="1.0.0"
+)
 
-# Add CORS middleware
+# CORS setup
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Your React frontend URL
+    allow_origins=["http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-@app.post("/api/ai/recommendations")
-async def get_recommendations(patient_data: PatientHistory):
+# Initialize services
+mock_mode = os.getenv("OPENAI_API_KEY") is None
+ai_orchestrator = AIOrchestrator()
+dermatology_service = DermatologyAIService()
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc), "path": str(request.url.path)}
+    )
+
+@app.get("/api/health")
+async def health_check():
+    """Health check endpoint"""
+    return {
+        "status": "healthy",
+        "mock_mode": mock_mode,
+        "services": {
+            "orchestrator": "running",
+            "dermatology": "running"
+        }
+    }
+
+@app.post("/api/ai/analyze", response_model=AIRecommendationResponse)
+async def analyze_patient_case(patient: PatientHistory):
+    """
+    Analyze patient case and provide recommendations
+    """
     try:
-        ai_service = DermatologyAIService()
-        recommendations = await ai_service.generate_recommendations(patient_data)
-        return recommendations
+        medical_results = await ai_orchestrator.process_patient_case(patient.model_dump())
+        
+        specialty_results = await dermatology_service.process_patient_case(
+            patient_data=patient.model_dump(),
+            medical_results=medical_results
+        )
+        
+        # Restructure the response to match frontend expectations
+        return {
+            "diagnosis": {
+                "primary_diagnosis": medical_results["diagnosis"]["primary_diagnosis"],
+                "confidence": medical_results["diagnosis"]["confidence"],
+                "differential_diagnoses": medical_results["diagnosis"]["differential_diagnoses"],
+                "reasoning": medical_results["diagnosis"]["reasoning"]
+            },
+            "treatment_plan": {
+                "recommendations": medical_results["treatment_plan"]["recommendations"],
+                "next_appointment": medical_results["treatment_plan"]["follow_up"],
+                "additional_notes": medical_results["medical_context"],
+                "lifestyle_modifications": medical_results["treatment_plan"].get("lifestyle_modifications", [])
+            },
+            "specialty_insights": specialty_results,
+            "confidence_score": medical_results["diagnosis"]["confidence"]
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/")
-async def root():
-    return {"message": "DermaAI API is running"}
-
-@app.post("/api/rag/query")
-async def query_knowledge(query: str, context: dict = None):
+@app.post("/api/ai/validate", response_model=ValidationResponse)
+async def validate_recommendation(recommendation: Recommendation):
+    """
+    Validate a medical recommendation
+    
+    Parameters:
+    - type: str
+    - title: str
+    - description: str
+    - priority: str
+    - reasoning: str
+    - confidence: float
+    """
     try:
-        ai_service = DermatologyAIService()
-        results = await ai_service.search_knowledge(query, context or {})
-        return results
+        validation_result = await dermatology_service.validator.validate_recommendation(
+            recommendation.model_dump()
+        )
+        return validation_result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/rag/services")
-async def search_services(query: str):
+@app.post("/api/ai/feedback")
+async def add_feedback(
+    recommendation_id: str,
+    feedback_type: str,
+    feedback_text: str,
+    rating: int
+):
+    """
+    Add feedback for a recommendation
+    
+    Parameters:
+    - recommendation_id: str (UUID of the recommendation)
+    - feedback_type: str (positive/negative/suggestion)
+    - feedback_text: str (detailed feedback)
+    - rating: int (1-5 rating)
+    """
     try:
-        ai_service = DermatologyAIService()
-        results = await ai_service.search_clinic_services(query)
-        return results
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/rag/medical")
-async def search_medical(query: str):
-    try:
-        ai_service = DermatologyAIService()
-        results = await ai_service.search_medical_knowledge(query)
-        return results
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/agent/schedule")
-async def schedule_appointment(patient_data: dict, preferred_time: str):
-    try:
-        ai_service = DermatologyAIService()
-        result = await ai_service.schedule_appointment(patient_data, preferred_time)
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/agent/follow-up")
-async def handle_follow_up(patient_data: dict):
-    try:
-        ai_service = DermatologyAIService()
-        result = await ai_service.handle_follow_up(patient_data)
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/agent/treatment-plan")
-async def manage_treatment_plan(patient_data: dict, current_plan: dict):
-    try:
-        ai_service = DermatologyAIService()
-        result = await ai_service.manage_treatment(patient_data, current_plan)
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/knowledge/search")
-async def search_knowledge(query: str, type: str = "dermatology"):
-    try:
-        ai_service = DermatologyAIService()
-        results = await ai_service.search_knowledge_base(query, type)
-        return results
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/knowledge/conditions/{condition}")
-async def get_condition_info(condition: str):
-    try:
-        ai_service = DermatologyAIService()
-        info = await ai_service.get_condition_details(condition)
-        return info
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/knowledge/treatments/{treatment}")
-async def get_treatment_guidelines(treatment: str):
-    try:
-        ai_service = DermatologyAIService()
-        guidelines = await ai_service.get_treatment_guidelines(treatment)
-        return guidelines
+        feedback_data = {
+            "recommendation_id": recommendation_id,
+            "feedback_type": feedback_type,
+            "feedback_text": feedback_text,
+            "rating": rating,
+            "timestamp": datetime.now().isoformat()
+        }
+        return {"status": "success", "message": "Feedback recorded", "data": feedback_data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=3001)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
