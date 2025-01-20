@@ -3,7 +3,7 @@ import { Patient } from '../models/Patient';
 const MOCK_PATIENTS = [
   {
     id: 1,
-    name: "Nancy Out of Network",
+    name: "Sampreeta Maheswari",
     time: "11/18/2024",
     status: "Saved",
     phone: "(855) 369-8746",
