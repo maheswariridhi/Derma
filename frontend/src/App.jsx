@@ -10,6 +10,7 @@ import MainLayout from './layouts/MainLayout';
 import PatientInformation from './components/workflow/PatientInformation';
 import ReviewAndFinalize from './components/workflow/ReviewAndFinalize';
 import SendToPatient from './components/workflow/SendToPatient';
+import PatientRegistration from './components/patients/PatientRegistration';
 
 const App = () => {
   return (
@@ -28,6 +29,8 @@ const App = () => {
             <Route path="send" element={<SendToPatient />} />
           </Route>
           <Route path="/clinic-services" element={<ClinicServicesPage />} />
+          <Route path="/patients/new" element={<PatientRegistration />} />
+          <Route path="/review" element={<ReviewAndFinalize />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </MainLayout>

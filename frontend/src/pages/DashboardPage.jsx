@@ -18,9 +18,10 @@ const DashboardPage = () => {
     const fetchPatients = async () => {
       try {
         const data = await PatientService.getPatients();
-        setPatients(data);
+        setPatients(Array.isArray(data) ? data : []);  // Ensure it's always an array
       } catch (error) {
         console.error('Error fetching patients:', error);
+        setPatients([]);  // Set empty array on error
       } finally {
         setLoading(false);
       }

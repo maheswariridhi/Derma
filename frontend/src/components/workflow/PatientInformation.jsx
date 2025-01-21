@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import PatientService from '../../services/PatientService';
 
 const PatientInformation = () => {
   const { patient, onComplete } = useOutletContext();
@@ -12,8 +13,13 @@ const PatientInformation = () => {
     }
   }, [patient]);
 
-  const handleSubmit = () => {
-    onComplete(editedPatient);
+  const handleSubmit = async () => {
+    try {
+      await PatientService.updatePatient(editedPatient.id, editedPatient);
+      onComplete();
+    } catch (error) {
+      console.error('Failed to update patient:', error);
+    }
   };
 
   return (

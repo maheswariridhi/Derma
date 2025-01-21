@@ -171,7 +171,7 @@ const ReviewAndFinalize = ({ patient, onComplete }) => {
           {activeSection === 'ai-recommendations' && (
             <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">AI Recommendations</h3>
-              <AIRecommendationPanel />
+              <AIRecommendationPanel patientId={patientData?.id} patientData={patientData} />
             </section>
           )}
         </div>

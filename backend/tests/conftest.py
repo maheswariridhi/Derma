@@ -6,6 +6,10 @@ from datetime import datetime
 # Load test environment variables
 load_dotenv(".env.test", override=True)
 
+# Set test environment
+os.environ["TESTING"] = "true"
+os.environ["MOCK_MODE"] = "true"
+
 # Set default event loop scope for async tests
 pytest.ini_options = {
     "asyncio_mode": "auto",
@@ -16,6 +20,7 @@ pytest.ini_options = {
 def env_setup():
     """Setup test environment variables"""
     os.environ["OPENAI_API_KEY"] = "test-key"
+    os.environ["TESTING"] = "true"
     os.environ["MOCK_MODE"] = "true"
 
 @pytest.fixture

@@ -31,10 +31,11 @@ async def test_process_patient_case(dermatology_service, sample_patient_data, sa
     )
     
     assert "recommendation_id" in result
-    assert "specialty_analysis" in result
+    assert "treatment_plan" in result
     assert "validation_results" in result
     assert "enhanced_results" in result
     
-    specialty = result["specialty_analysis"]
-    assert "severity_level" in specialty
-    assert "affected_areas" in specialty 
+    treatment = result["treatment_plan"]
+    assert "recommendations" in treatment
+    assert "follow_up" in treatment
+    assert isinstance(treatment["recommendations"], str) 

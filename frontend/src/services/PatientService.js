@@ -1,4 +1,8 @@
-import { Patient } from '../models/Patient';
+import { db } from '../config/firebase';
+import { collection, doc, getDocs, getDoc, addDoc } from 'firebase/firestore';
+import axios from 'axios';
+
+const BASE_URL = 'http://localhost:8000';
 
 const MOCK_PATIENTS = [
   {
@@ -20,53 +24,67 @@ const MOCK_PATIENTS = [
   // Add more mock data here
 ];
 
-class PatientService {
-  static useApi = false;
+const PatientService = {
+  async registerPatient(patientData) {
+    try {
+      // First save to Firebase directly
+      const patientsRef = collection(db, 'patients');
+      const docRef = await addDoc(patientsRef, {
+        ...patientData,
+        status: "Active",
+        created_at: new Date()
+      });
 
-  async getPatients() {
-    if (PatientService.useApi) {
-      const response = await fetch('/api/patients');
-      const data = await response.json();
-      return data.map(patient => new Patient(patient));
+      // Then notify backend
+      await axios.post(`${BASE_URL}/api/patients`, {
+        ...patientData,
+        id: docRef.id
+      });
+
+      return { id: docRef.id, ...patientData };
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error.message;
     }
-    return MOCK_PATIENTS.map(patient => new Patient(patient));
-  }
+  },
+
+  async getAllPatients() {
+    try {
+      const patientsRef = collection(db, 'patients');
+      const snapshot = await getDocs(patientsRef);
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+    } catch (error) {
+      console.error('Error fetching patients:', error);
+      throw error.message;
+    }
+  },
 
   async getPatientById(id) {
-    if (PatientService.useApi) {
-      const response = await fetch(`/api/patients/${id}`);
-      const data = await response.json();
-      return new Patient(data);
+    try {
+      const docRef = doc(db, 'patients', id);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return { id: docSnap.id, ...docSnap.data() };
+      }
+      throw new Error('Patient not found');
+    } catch (error) {
+      console.error('Error getting patient by ID:', error);
+      throw error.message;
     }
-    const patient = MOCK_PATIENTS.find(p => p.id === parseInt(id));
-    return new Patient(patient || {});
-  }
+  },
 
-  async updatePatient(id, patientData) {
-    if (PatientService.useApi) {
-      const response = await fetch(`/api/patients/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(patientData)
-      });
-      const data = await response.json();
-      return new Patient(data);
-    }
-    return new Patient({ ...patientData, id });
-  }
+  async getPatient(id) {
+    return this.getPatientById(id);
+  },
 
-  async updateWorkflowStep(id, stepData, step) {
-    if (PatientService.useApi) {
-      const response = await fetch(`/api/patients/${id}/workflow/${step}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(stepData)
-      });
-      return response.json();
-    }
-    console.log(`Updating workflow step ${step} for patient ${id}:`, stepData);
-    return stepData;
-  }
-}
+  async getPatients() {
+    return this.getAllPatients();
+  },
 
-export default new PatientService(); 
+  // Add more patient-related methods as needed
+};
+
+export default PatientService; 

@@ -13,6 +13,8 @@ from typing import Dict, Any, List, Optional
 import os
 from dotenv import load_dotenv
 from datetime import datetime
+from app.services.firebase_service import FirebaseService
+from pydantic import BaseModel, Field, EmailStr
 
 # Load environment variables
 load_dotenv()
@@ -23,19 +25,45 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS setup
+# Update CORS settings to allow requests from your frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],  # Your frontend URLs
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allows all headers
 )
 
 # Initialize services
 mock_mode = os.getenv("OPENAI_API_KEY") is None
 ai_orchestrator = AIOrchestrator()
 dermatology_service = DermatologyAIService()
+firebase_service = FirebaseService()
+
+class PatientData(BaseModel):
+    patient_name: str
+    age: int
+    condition: str
+    symptoms: List[str]
+    previous_treatments: List[str]
+    last_visit: str
+    allergies: Optional[List[str]] = []
+    current_medications: Optional[List[str]] = []
+    medical_history: Optional[str] = None
+
+class AnalysisResponse(BaseModel):
+    recommendations: str
+    next_appointment: str
+    confidence_score: float
+    medical_context: Optional[str] = None
+
+class RecommendationRequest(BaseModel):
+    recommendation: str
+
+class PatientCreate(BaseModel):
+    name: str
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -56,57 +84,27 @@ async def health_check():
         }
     }
 
-@app.post("/api/ai/analyze", response_model=AIRecommendationResponse)
-async def analyze_patient_case(patient: PatientHistory):
-    """
-    Analyze patient case and provide recommendations
-    """
+@app.post("/api/ai/analyze", response_model=AnalysisResponse)
+async def analyze_patient_data(patient_data: PatientData):
     try:
-        medical_results = await ai_orchestrator.process_patient_case(patient.model_dump())
-        
-        specialty_results = await dermatology_service.process_patient_case(
-            patient_data=patient.model_dump(),
-            medical_results=medical_results
-        )
-        
-        # Restructure the response to match frontend expectations
+        result = await dermatology_service.process_patient_case(patient_data.model_dump())
         return {
-            "diagnosis": {
-                "primary_diagnosis": medical_results["diagnosis"]["primary_diagnosis"],
-                "confidence": medical_results["diagnosis"]["confidence"],
-                "differential_diagnoses": medical_results["diagnosis"]["differential_diagnoses"],
-                "reasoning": medical_results["diagnosis"]["reasoning"]
-            },
-            "treatment_plan": {
-                "recommendations": medical_results["treatment_plan"]["recommendations"],
-                "next_appointment": medical_results["treatment_plan"]["follow_up"],
-                "additional_notes": medical_results["medical_context"],
-                "lifestyle_modifications": medical_results["treatment_plan"].get("lifestyle_modifications", [])
-            },
-            "specialty_insights": specialty_results,
-            "confidence_score": medical_results["diagnosis"]["confidence"]
+            "recommendations": result["treatment_plan"]["recommendations"],
+            "next_appointment": result["treatment_plan"]["next_appointment"],
+            "confidence_score": result["confidence_score"],
+            "medical_context": result.get("medical_context")
         }
     except Exception as e:
+        print(f"Error in analyze_patient_data: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/ai/validate", response_model=ValidationResponse)
-async def validate_recommendation(recommendation: Recommendation):
-    """
-    Validate a medical recommendation
-    
-    Parameters:
-    - type: str
-    - title: str
-    - description: str
-    - priority: str
-    - reasoning: str
-    - confidence: float
-    """
+@app.post("/api/ai/validate")
+async def validate_recommendation(request: RecommendationRequest):
     try:
-        validation_result = await dermatology_service.validator.validate_recommendation(
-            recommendation.model_dump()
-        )
-        return validation_result
+        result = await dermatology_service.validate_recommendation({
+            "recommendation": request.recommendation
+        })
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -136,6 +134,52 @@ async def add_feedback(
         }
         return {"status": "success", "message": "Feedback recorded", "data": feedback_data}
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/ai/analyze/{patient_id}", response_model=AnalysisResponse)
+async def analyze_patient(patient_id: str):
+    try:
+        result = await dermatology_service.analyze_patient(patient_id)
+        return {
+            "recommendations": result["treatment_plan"]["recommendations"],
+            "next_appointment": result["treatment_plan"]["next_appointment"],
+            "confidence_score": result["confidence_score"],
+            "medical_context": result.get("medical_context")
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        print(f"Error in analyze_patient: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/patients")
+async def create_patient(patient: PatientCreate):
+    print("Received create patient request:", patient.dict())  # Debug log
+    try:
+        result = await firebase_service.create_patient(patient.dict())
+        if "error" in result:
+            raise HTTPException(status_code=400, detail=result["error"])
+        return result
+    except Exception as e:
+        print(f"Error in create_patient endpoint: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/patients/{identifier}")
+async def get_patient(identifier: str):
+    patient = await firebase_service.get_patient(identifier)
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    return patient
+
+@app.get("/api/patients")
+async def get_all_patients():
+    print("Received get all patients request")  # Debug log
+    try:
+        patients = await firebase_service.get_all_patients()
+        print("Returning patients:", patients)
+        return patients
+    except Exception as e:
+        print(f"Error in get_all_patients endpoint: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
