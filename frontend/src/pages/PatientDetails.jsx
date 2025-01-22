@@ -37,7 +37,6 @@ const PatientDetails = () => {
     }
   }, [patientData]);
 
-  if (loading) return <div>Loading patient analysis...</div>;
   if (error) return <div>Error: {error}</div>;
   if (!patientData || !aiResults) return null;
 

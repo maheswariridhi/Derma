@@ -6,7 +6,6 @@ import Table from '../components/common/Table';
 const PatientDatabasePage = () => {
   const navigate = useNavigate();
   const [patients, setPatients] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchPatients = async () => {
@@ -15,8 +14,7 @@ const PatientDatabasePage = () => {
         setPatients(data);
       } catch (error) {
         console.error('Error fetching patients:', error);
-      } finally {
-        setLoading(false);
+        setPatients([]);
       }
     };
 
@@ -26,10 +24,6 @@ const PatientDatabasePage = () => {
   const handlePatientClick = (patient) => {
     navigate(`/patients/${patient.id}`);
   };
-
-  if (loading) {
-    return <div className="p-6">Loading...</div>;
-  }
 
   return (
     <div className="p-6">

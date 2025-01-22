@@ -11,21 +11,19 @@ const DashboardPage = () => {
 
   // State for patients and search
   const [patients, setPatients] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const fetchPatients = async () => {
       try {
         const data = await PatientService.getPatients();
-        setPatients(Array.isArray(data) ? data : []);  // Ensure it's always an array
+        setPatients(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error('Error fetching patients:', error);
-        setPatients([]);  // Set empty array on error
-      } finally {
-        setLoading(false);
+        setPatients([]);
       }
     };
+
     fetchPatients();
   }, []);
 
@@ -38,10 +36,6 @@ const DashboardPage = () => {
   const filteredPatients = patients.filter(patient =>
     patient.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
 
   return (
     <div className="flex flex-col p-6">
