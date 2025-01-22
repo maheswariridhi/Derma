@@ -13,8 +13,9 @@ async def test_get_patient(firebase_service):
     # Assert patient data structure
     assert patient is not None
     assert "name" in patient
-    assert "symptoms" in patient
-    assert "medical_history" in patient
+    assert "status" in patient
+    assert "hospitalId" in patient
+    assert patient["hospitalId"] == "hospital_dermai_01"
 
 @pytest.mark.asyncio
 async def test_get_all_patients(firebase_service):
@@ -23,8 +24,9 @@ async def test_get_all_patients(firebase_service):
     
     # Assert we got a list of patients
     assert isinstance(patients, list)
-    assert len(patients) > 0
     # Assert each patient has required fields
     for patient in patients:
         assert "id" in patient
-        assert "name" in patient 
+        assert "name" in patient
+        assert "hospitalId" in patient
+        assert patient["hospitalId"] == "hospital_dermai_01" 

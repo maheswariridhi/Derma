@@ -4,20 +4,21 @@ import PatientService from '../../services/PatientService';
 
 const PatientRegistration = () => {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: ''
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(false);
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -27,15 +28,14 @@ const PatientRegistration = () => {
       setError(null);
       const result = await PatientService.registerPatient({
         name: formData.name,
-        email: formData.email,
-        phone: formData.phone
+        email: formData.email || '',
+        phone: formData.phone || ''
       });
       
-      console.log('Patient registered:', result); // Debug log
+      console.log('Patient registered:', result);
       setSuccess(true);
       setFormData({ name: '', email: '', phone: '' });
       
-      // Navigate to patient list after successful registration
       setTimeout(() => {
         navigate('/patients');
       }, 2000);
@@ -66,7 +66,7 @@ const PatientRegistration = () => {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-            Full Name *
+            Full Name <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -109,10 +109,8 @@ const PatientRegistration = () => {
 
         <button
           type="submit"
-          disabled={loading}
-          className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white 
-            ${loading ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'} 
-            focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
+          disabled={loading || !formData.name.trim()}
+          className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
         >
           {loading ? 'Registering...' : 'Register Patient'}
         </button>
