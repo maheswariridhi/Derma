@@ -1,6 +1,7 @@
 import { db } from '../config/firebase';
 import { collection, doc, getDocs, getDoc, addDoc } from 'firebase/firestore';
 import axios from 'axios';
+import { HOSPITAL, COLLECTIONS } from '../models/constants';
 
 const BASE_URL = 'http://localhost:8000';
 
@@ -27,20 +28,13 @@ const MOCK_PATIENTS = [
 const PatientService = {
   async registerPatient(patientData) {
     try {
-      // First save to Firebase directly
-      const patientsRef = collection(db, 'patients');
+      const patientsRef = collection(db, COLLECTIONS.HOSPITALS, HOSPITAL.ID, COLLECTIONS.PATIENTS);
       const docRef = await addDoc(patientsRef, {
         ...patientData,
         status: "Active",
-        created_at: new Date()
+        created_at: new Date(),
+        hospitalId: HOSPITAL.ID
       });
-
-      // Then notify backend
-      await axios.post(`${BASE_URL}/api/patients`, {
-        ...patientData,
-        id: docRef.id
-      });
-
       return { id: docRef.id, ...patientData };
     } catch (error) {
       console.error('Registration error:', error);
@@ -50,7 +44,7 @@ const PatientService = {
 
   async getAllPatients() {
     try {
-      const patientsRef = collection(db, 'patients');
+      const patientsRef = collection(db, COLLECTIONS.HOSPITALS, HOSPITAL.ID, COLLECTIONS.PATIENTS);
       const snapshot = await getDocs(patientsRef);
       return snapshot.docs.map(doc => ({
         id: doc.id,
@@ -64,7 +58,7 @@ const PatientService = {
 
   async getPatientById(id) {
     try {
-      const docRef = doc(db, 'patients', id);
+      const docRef = doc(db, COLLECTIONS.HOSPITALS, HOSPITAL.ID, COLLECTIONS.PATIENTS, id);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         return { id: docSnap.id, ...docSnap.data() };

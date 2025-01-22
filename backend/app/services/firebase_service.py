@@ -27,13 +27,16 @@ class FirebaseService:
         
         try:
             print("Creating patient:", patient_data)  # Debug log
-            doc_ref = self.db.collection('patients').document()
+            hospital_id = 'hospital_dermai_01'  # Your hospital ID
+            doc_ref = self.db.collection('hospitals').document(hospital_id).collection('patients').document()
             
             patient_doc = {
                 "name": patient_data["name"],
                 "email": patient_data.get("email", ""),
                 "phone": patient_data.get("phone", ""),
-                "status": "Active"
+                "status": "Active",
+                "created_at": firestore.SERVER_TIMESTAMP,
+                "hospitalId": hospital_id
             }
             
             doc_ref.set(patient_doc)

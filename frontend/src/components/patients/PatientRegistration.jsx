@@ -23,25 +23,25 @@ const PatientRegistration = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
-    setSuccess(false);
-
     try {
-      if (!formData.email && !formData.phone) {
-        throw new Error('Either email or phone is required');
-      }
-
-      const response = await PatientService.registerPatient(formData);
+      setError(null);
+      const result = await PatientService.registerPatient({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone
+      });
+      
+      console.log('Patient registered:', result); // Debug log
       setSuccess(true);
       setFormData({ name: '', email: '', phone: '' });
       
-      // Wait a bit before redirecting
+      // Navigate to patient list after successful registration
       setTimeout(() => {
-        navigate('/review', { state: { patientId: response.id } });
+        navigate('/patients');
       }, 2000);
-      
     } catch (err) {
-      setError(err.toString());
+      console.error('Registration error:', err);
+      setError(err.message || 'Failed to register patient');
     } finally {
       setLoading(false);
     }
