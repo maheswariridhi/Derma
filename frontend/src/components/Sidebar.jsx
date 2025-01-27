@@ -6,14 +6,14 @@ const Sidebar = () => {
   const location = useLocation();
 
   const navigation = [
-    { name: 'Dashboard', href: '/', icon: HomeIcon },
-    { name: 'Patients', href: '/patients', icon: UsersIcon },
-    { name: 'Appointments', href: '/appointments', icon: CalendarIcon },
-    { name: 'Services', href: '/services', icon: BuildingOfficeIcon },
+    { name: 'Dashboard', href: '/clinic/dashboard', icon: HomeIcon },
+    { name: 'Patient Database', href: '/clinic/manage-patients', icon: UsersIcon },
+    { name: 'Appointments', href: '/clinic/appointments', icon: CalendarIcon },
+    { name: 'Services', href: '/clinic/services', icon: BuildingOfficeIcon },
   ];
 
   return (
-    <div className="h-full bg-white p-4">
+    <div className="h-full bg-white p-4 shadow-lg">
       <div className="mb-8">
         <h1 className="text-xl font-bold text-green-600">DermaAI</h1>
       </div>

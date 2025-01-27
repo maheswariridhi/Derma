@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import PatientService from '../services/PatientService';
-import Table from '../components/common/Table';
+import PatientService from '../../services/PatientService';
+import Table from '../../components/common/Table';
 
 const PatientDatabasePage = () => {
   const navigate = useNavigate();
@@ -10,7 +10,7 @@ const PatientDatabasePage = () => {
   useEffect(() => {
     const fetchPatients = async () => {
       try {
-        const data = await PatientService.getAllPatients();
+        const data = await PatientService.getPatients();
         setPatients(data);
       } catch (error) {
         console.error('Error fetching patients:', error);
@@ -22,7 +22,7 @@ const PatientDatabasePage = () => {
   }, []);
 
   const handlePatientClick = (patient) => {
-    navigate(`/patients/${patient.id}`);
+    navigate(`/clinic/manage-patient/${patient.id}`);
   };
 
   return (
@@ -30,7 +30,7 @@ const PatientDatabasePage = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Patient Database</h1>
         <button
-          onClick={() => navigate('/patients/new')}
+          onClick={() => navigate('/clinic/manage-patients/new')}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
         >
           Add New Patient

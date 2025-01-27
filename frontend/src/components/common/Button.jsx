@@ -1,15 +1,16 @@
 import React from 'react';
 
-export const Button = ({ 
-  children, 
-  variant = 'primary', 
+export const Button = ({
+  children,
+  variant = 'primary',
   size = 'md',
   onClick,
   className = '',
-  ...props 
+  loading = false,
+  ...props
 }) => {
   const baseStyles = 'inline-flex items-center justify-center rounded-lg font-medium transition-colors';
-  
+
   const variants = {
     primary: 'bg-blue-600 text-white hover:bg-blue-700',
     secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300',
@@ -25,10 +26,15 @@ export const Button = ({
   return (
     <button
       className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}
-      onClick={onClick}
+      onClick={loading ? null : onClick}
+      disabled={loading}
       {...props}
     >
-      {children}
+      {loading ? (
+        <span className="loader mr-2"></span> // Add a spinner class here
+      ) : (
+        children
+      )}
     </button>
   );
 };

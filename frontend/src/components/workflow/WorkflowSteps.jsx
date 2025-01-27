@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 
 const WorkflowSteps = ({ steps, activeStep, onStepClick }) => {
   const location = useLocation();
-  const patientId = location.pathname.split('/')[2]; // Get patient ID from URL
+  const patientId = location.pathname.split('/')[3]; // Updated to get ID from /clinic/manage-patient/:id/...
 
   return (
     <div className="p-6">
@@ -11,7 +11,7 @@ const WorkflowSteps = ({ steps, activeStep, onStepClick }) => {
         {steps.map((step) => (
           <Link
             key={step.id}
-            to={`/patient/${patientId}/workflow/${step.id === 1 ? 'information' : step.id === 2 ? 'review' : 'send'}`}
+            to={`/clinic/manage-patient/${patientId}/workflow/${step.id === 1 ? 'information' : step.id === 2 ? 'review' : 'send'}`}
             className={`block p-4 rounded-lg border ${
               activeStep === step.id
                 ? 'bg-blue-50 border-blue-500'

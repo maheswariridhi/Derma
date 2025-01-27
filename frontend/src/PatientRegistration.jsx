@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import PatientService from '../../services/PatientService';
+import PatientService from './services/PatientService';
 
 const PatientRegistration = () => {
   const navigate = useNavigate();
@@ -37,7 +37,7 @@ const PatientRegistration = () => {
       setFormData({ name: '', email: '', phone: '' });
       
       setTimeout(() => {
-        navigate('/patients');
+        navigate('/dpatients');
       }, 2000);
     } catch (err) {
       console.error('Registration error:', err);

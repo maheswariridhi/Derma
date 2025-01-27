@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import PatientCard from "../components/PatientCard";
-import PatientService from '../services/PatientService';
+import PatientCard from "../../components/PatientCard";
+import PatientService from '../../services/PatientService';
 
 
 // pages/DashboardPage.jsx
@@ -28,7 +28,7 @@ const DashboardPage = () => {
   }, []);
 
   const handlePatientClick = (patient) => {
-    navigate(`/patient/${patient.id}/workflow`, {
+    navigate(`/clinic/manage-patient/${patient.id}/workflow`, {
       state: { patient }
     });
   };

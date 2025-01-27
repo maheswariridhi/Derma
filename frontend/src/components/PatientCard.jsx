@@ -16,7 +16,7 @@ const PatientCard = ({ patient, onClick }) => {
 
   return (
     <div 
-      onClick={onClick}
+      onClick={() => onClick(`/clinic/manage-patient/${patient.id}`)}
       className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer border border-gray-100 hover:border-pink-200"
     >
       {/* Header Section */}

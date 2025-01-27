@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate, Outlet } from 'react-router-dom';
-import PatientService from '../services/PatientService';
-import WorkflowLayout from '../layouts/WorkflowLayout';
-import WorkflowSteps from '../components/workflow/WorkflowSteps';
+import PatientService from '../../services/PatientService';
+import WorkflowLayout from '../../layouts/WorkflowLayout';
+import WorkflowSteps from '../../components/workflow/WorkflowSteps';
 
 const PatientWorkflow = () => {
   const { id } = useParams();
@@ -55,10 +55,10 @@ const PatientWorkflow = () => {
         setActiveStep(prev => prev + 1);
         // Update URL to match new step
         const nextPath = activeStep === 1 ? 'review' : 'send';
-        navigate(`/patient/${id}/workflow/${nextPath}`);
+        navigate(`/clinic/manage-patient/${id}/workflow/${nextPath}`);
       } else {
         // Workflow complete, redirect to dashboard
-        navigate('/dashboard', { 
+        navigate('/clinic/dashboard', { 
           state: { message: 'Patient workflow completed successfully' } 
         });
       }
@@ -104,7 +104,7 @@ const PatientWorkflow = () => {
               onStepClick={(stepId) => {
                 setActiveStep(stepId);
                 const path = stepId === 1 ? 'information' : stepId === 2 ? 'review' : 'send';
-                navigate(`/patient/${id}/workflow/${path}`);
+                navigate(`/clinic/manage-patient/${id}/workflow/${path}`);
               }}
               steps={[
                 { id: 1, label: 'Patient Information' },

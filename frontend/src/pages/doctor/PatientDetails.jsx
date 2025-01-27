@@ -1,6 +1,6 @@
 import React from 'react';
-import AIRecommendationPanel from '../components/ai/AIRecommendationPanel';
-import AIRecommendations from '../components/ai/AIRecommendations';
+import AIRecommendationPanel from '../../components/ai/AIRecommendationPanel';
+import AIRecommendations from '../../components/ai/AIRecommendations';
 
 const PatientDetails = () => {
   const [patientData, setPatientData] = useState(null);
