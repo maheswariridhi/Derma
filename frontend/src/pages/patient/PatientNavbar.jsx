@@ -22,7 +22,7 @@ const PatientNavbar = () => {
           
           <div className="flex space-x-4">
             <Link
-              to="/ppatient/queue"
+              to="/patient/queue"
               className={`px-3 py-2 rounded-md text-sm font-medium ${isActive('/queue')}`}
             >
               Queue Status
