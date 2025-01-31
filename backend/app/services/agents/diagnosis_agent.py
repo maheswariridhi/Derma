@@ -1,7 +1,7 @@
 from langchain_openai import ChatOpenAI
 from typing import Dict, Any
 import os
-from mock_handler import MockHandler
+
 
 class DiagnosisAgent:
     def __init__(self):
@@ -9,28 +9,33 @@ class DiagnosisAgent:
             self.llm = ChatOpenAI(
                 model_name="gpt-4",
                 temperature=0.2,
-                openai_api_key=os.getenv("OPENAI_API_KEY")
+                openai_api_key=os.getenv("OPENAI_API_KEY"),
             )
         except Exception as e:
             print(f"Warning: LLM initialization failed - {str(e)}")
             self.llm = None
-        
-    async def analyze(self, patient_data: Dict[str, Any], medical_context: str) -> Dict[str, Any]:
+
+    async def analyze(
+        self, patient_data: Dict[str, Any], medical_context: str
+    ) -> Dict[str, Any]:
         """Generate diagnosis based on symptoms and medical context"""
         if not self.llm:
             return self._get_mock_diagnosis()
 
         try:
             response = await self.llm.ainvoke(
-                messages=[{
-                    "role": "system",
-                    "content": "You are a dermatology diagnosis specialist. Analyze the case and provide diagnosis."
-                }, {
-                    "role": "user",
-                    "content": self._format_prompt(patient_data, medical_context)
-                }]
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a dermatology diagnosis specialist. Analyze the case and provide diagnosis.",
+                    },
+                    {
+                        "role": "user",
+                        "content": self._format_prompt(patient_data, medical_context),
+                    },
+                ]
             )
-            
+
             return self._parse_diagnosis_response(response.content)
         except Exception as e:
             print(f"Warning: Using mock diagnosis - {str(e)}")
@@ -60,7 +65,7 @@ class DiagnosisAgent:
             "primary_diagnosis": response,
             "confidence": 0.85,
             "differential_diagnoses": [],
-            "reasoning": response
+            "reasoning": response,
         }
 
     def _get_mock_diagnosis(self) -> Dict[str, Any]:
@@ -70,7 +75,7 @@ class DiagnosisAgent:
             "differential_diagnoses": [
                 "Contact dermatitis",
                 "Atopic dermatitis",
-                "Seborrheic dermatitis"
+                "Seborrheic dermatitis",
             ],
-            "reasoning": "Based on reported symptoms and typical presentation"
-        } 
+            "reasoning": "Based on reported symptoms and typical presentation",
+        }
