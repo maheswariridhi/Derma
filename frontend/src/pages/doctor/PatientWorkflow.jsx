@@ -19,7 +19,7 @@ const PatientWorkflow = () => {
         setLoading(true);
         setError(null);
         
-        // First try to get patient from navigation state
+        // First, try to get patient from navigation state
         let patientData = location.state?.patient;
         
         // If no patient in state, fetch from service
@@ -46,18 +46,15 @@ const PatientWorkflow = () => {
   const handleStepComplete = async (updatedPatient) => {
     try {
       setError(null);
-      // Save step data
       await PatientService.updateWorkflowStep(id, updatedPatient, activeStep);
       setPatient(updatedPatient);
-      
+
       // Move to next step or finish workflow
       if (activeStep < 3) {
         setActiveStep(prev => prev + 1);
-        // Update URL to match new step
         const nextPath = activeStep === 1 ? 'review' : 'send';
         navigate(`/clinic/manage-patient/${id}/workflow/${nextPath}`);
       } else {
-        // Workflow complete, redirect to dashboard
         navigate('/clinic/dashboard', { 
           state: { message: 'Patient workflow completed successfully' } 
         });
@@ -65,6 +62,29 @@ const PatientWorkflow = () => {
     } catch (error) {
       setError('Failed to save workflow step');
       console.error('Error updating workflow:', error);
+    }
+  };
+
+  const sendReportToPatient = async () => {
+    try {
+      if (!patient) return;
+      
+      const reportData = {
+        patientId: patient.id,
+        diagnosis: patient.diagnosis || "Not provided",
+        medications: patient.medications || "Not provided",
+        recommendations: patient.recommendations || "Not provided",
+        timestamp: new Date().toISOString(),
+      };
+      
+      await PatientService.sendPatientReport(reportData);
+      alert("Report sent successfully!");
+      
+      // Navigate to patient dashboard so they can see their report
+      navigate(`/patient/dashboard`);
+    } catch (error) {
+      console.error("Error sending report:", error);
+      setError("Failed to send report to patient.");
     }
   };
 
@@ -123,6 +143,18 @@ const PatientWorkflow = () => {
             error,
             setError 
           }} />
+
+          {/* Send Report Button (Only in Final Step) */}
+          {activeStep === 3 && (
+            <div className="mt-6">
+              <button 
+                className="w-full py-2 text-white bg-green-500 rounded-lg hover:bg-green-600"
+                onClick={sendReportToPatient}
+              >
+                Send Report to Patient
+              </button>
+            </div>
+          )}
         </div>
       }
     />

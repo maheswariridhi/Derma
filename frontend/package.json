@@ -10,7 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
     "@heroicons/react": "^2.2.0",
+    "@mantine/core": "^7.16.2",
+    "@mantine/hooks": "^7.16.2",
+    "@tabler/icons-react": "^3.29.0",
     "@vitejs/plugin-react": "^4.x",
     "axios": "^1.7.9",
     "firebase": "^11.2.0",

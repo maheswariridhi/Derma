@@ -1,5 +1,5 @@
 import React from 'react';
-import AIRecommendationPanel from '../../components/ai/AIRecommendationPanel';
+import AIRecommendationPanel from '../../components/ai/AIChatbot';
 import AIRecommendations from '../../components/ai/AIRecommendations';
 
 const PatientDetails = () => {
