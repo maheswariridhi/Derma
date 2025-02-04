@@ -4,13 +4,13 @@ import {
   Title, 
   Text, 
   Stack, 
-  Timeline,
   Card,
   Container,
   Group,
-  Button,
   ThemeIcon,
-  ScrollArea
+  ScrollArea,
+  Progress,
+  Stepper
 } from '@mantine/core';
 import { 
   IconStethoscope, 
@@ -25,138 +25,122 @@ import AIChatbot from "../../components/ai/AIChatbot";
 const ReviewAndFinalize = ({ patient, onComplete }) => {
   const [treatmentPlan, setTreatmentPlan] = useState({
     diagnosis: patient?.treatmentPlan?.diagnosis || '',
+    diagnosisDetails: patient?.treatmentPlan?.diagnosisDetails || '',
     medications: patient?.treatmentPlan?.medications || [],
     nextSteps: patient?.treatmentPlan?.nextSteps || [],
+    next_appointment: patient?.treatmentPlan?.next_appointment || '',
     recommendations: patient?.treatmentPlan?.recommendations || [],
+    additional_notes: patient?.treatmentPlan?.additional_notes || ''
   });
-
   const [activeSection, setActiveSection] = useState('diagnosis');
+  const [progress, setProgress] = useState(0);
 
-  const handleSaveAndContinue = () => {
-    if (onComplete) {
+  const handleEdit = (section, value) => {
+    setTreatmentPlan(prev => ({
+      ...prev,
+      [section]: value
+    }));
+    updateProgress();
+  };
+
+  const updateProgress = () => {
+    let completed = 0;
+    if (treatmentPlan.diagnosis) completed += 30;
+    if (treatmentPlan.medications?.length) completed += 30;
+    if (treatmentPlan.nextSteps?.length) completed += 40;
+    setProgress(completed);
+  };
+
+  const handleSectionComplete = (section) => {
+    const nextSection = 
+      section === 'diagnosis' ? 'medications' :
+      section === 'medications' ? 'next-steps' : null;
+    
+    if (nextSection) {
+      setActiveSection(nextSection);
+    } else if (progress === 100) {
       onComplete({ ...patient, treatmentPlan });
     }
   };
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      
-      {/* Sidebar Navigation */}
-      <Paper className="w-80 p-6 border-r shadow-md bg-white">
-        <Stack spacing="lg">
-          <Title order={4}>Finalize Treatment Plan</Title>
-          
-          <Timeline active={activeSection === 'diagnosis' ? 0 : activeSection === 'medications' ? 1 : 2} bulletSize={24} lineWidth={2}>
-            <Timeline.Item 
-              bullet={<IconClipboardCheck size={16} />} 
-              title="Patient Information" 
-              onClick={() => setActiveSection('diagnosis')}
-            >
-              <Text color="dimmed" size="sm">Review patient details</Text>
-            </Timeline.Item>
-
-            <Timeline.Item 
-              bullet={<IconStethoscope size={16} />} 
-              title="Medications" 
-              onClick={() => setActiveSection('medications')}
-            >
-              <Text color="dimmed" size="sm">Review prescribed medications</Text>
-            </Timeline.Item>
-
-            <Timeline.Item 
-              bullet={<IconCalendar size={16} />} 
-              title="Next Steps" 
-              onClick={() => setActiveSection('next-steps')}
-            >
-              <Text color="dimmed" size="sm">Plan follow-up visits</Text>
-            </Timeline.Item>
-          </Timeline>
-
-          <Button 
-            variant="filled" 
-            color="teal" 
-            fullWidth 
-            onClick={handleSaveAndContinue}
-            leftIcon={<IconSend size={16} />}
-          >
-            Finalize & Send
-          </Button>
-        </Stack>
-      </Paper>
-
-      {/* Right Panel - Scrollable Treatment Report */}
-      <div className="flex-1 h-screen overflow-hidden">
-        <ScrollArea className="h-full p-8">
-          <Container size="lg">
-            <Stack spacing="xl">
-              
-              {/* Diagnosis Section */}
-              {activeSection === 'diagnosis' && (
-                <Card shadow="sm" p="lg" radius="md" withBorder>
-                  <Group position="apart" mb="md">
-                    <Title order={3}>Diagnosis</Title>
-                    <Button variant="light" leftIcon={<IconPencil size={16} />} size="xs">
-                      Edit
-                    </Button>
-                  </Group>
-                  <Text>{treatmentPlan.diagnosis || 'No diagnosis provided.'}</Text>
-                </Card>
-              )}
-
-              {/* Medications Section */}
-              {activeSection === 'medications' && (
-                <Card shadow="sm" p="lg" radius="md" withBorder>
-                  <Group position="apart" mb="md">
-                    <Title order={3}>Medications</Title>
-                    <Button variant="light" leftIcon={<IconPencil size={16} />} size="xs">
-                      Add Medication
-                    </Button>
-                  </Group>
-                  {treatmentPlan.medications.length ? (
-                    <Stack>
-                      {treatmentPlan.medications.map((med, index) => (
-                        <Text key={index}>{med.name} - {med.dosage}</Text>
-                      ))}
-                    </Stack>
-                  ) : <Text color="dimmed">No medications prescribed.</Text>}
-                </Card>
-              )}
-
-              {/* Next Steps Section */}
-              {activeSection === 'next-steps' && (
-                <Card shadow="sm" p="lg" radius="md" withBorder>
-                  <Group position="apart" mb="md">
-                    <Title order={3}>Next Steps</Title>
-                    <Button variant="light" leftIcon={<IconPencil size={16} />} size="xs">
-                      Add Step
-                    </Button>
-                  </Group>
-                  {treatmentPlan.nextSteps.length ? (
-                    <Stack>
-                      {treatmentPlan.nextSteps.map((step, index) => (
-                        <Text key={index}>{step}</Text>
-                      ))}
-                    </Stack>
-                  ) : <Text color="dimmed">No next steps assigned yet.</Text>}
-                </Card>
-              )}
-
-              {/* AI Recommendations */}
-              <Card shadow="sm" p="lg" radius="md" withBorder>
-                <Title order={4} mb="md">AI Recommendations</Title>
-                <AIRecommendations treatmentData={treatmentPlan} />
-              </Card>
-
-              {/* AI Chatbot */}
-              <Card shadow="sm" p="lg" radius="md" withBorder>
-                <Title order={4} mb="md">Ask AI Assistant</Title>
-                <AIChatbot context={treatmentPlan} />
-              </Card>
-
-            </Stack>
-          </Container>
-        </ScrollArea>
+    <div className="flex flex-col h-screen bg-gray-50">
+      {/* Progress Header */}
+      <div className="bg-white border-b px-6 py-4">
+        <Group position="apart" mb="xs">
+          <Title order={3}>Treatment Plan Review</Title>
+          <Text color="dimmed">{progress}% Complete</Text>
+        </Group>
+        <Progress value={progress} size="sm" radius="xl" />
       </div>
+
+      <ScrollArea className="flex-1 p-6">
+        <Container size="lg">
+          <Stack spacing="xl">
+            <Stepper active={
+              activeSection === 'diagnosis' ? 0 :
+              activeSection === 'medications' ? 1 : 2
+            } onStepClick={setActiveSection}>
+              <Stepper.Step 
+                label="Diagnosis" 
+                description="Review patient details"
+                icon={<IconClipboardCheck size={18} />}
+              />
+              <Stepper.Step 
+                label="Medications" 
+                description="Confirm medications"
+                icon={<IconStethoscope size={18} />}
+              />
+              <Stepper.Step 
+                label="Next Steps" 
+                description="Plan follow-up"
+                icon={<IconCalendar size={18} />}
+              />
+            </Stepper>
+
+            {/* Dynamic Content */}
+            <Card shadow="sm" p="lg" radius="md" withBorder>
+              {/* Content sections remain the same but with smooth transitions */}
+              <div className="transition-all duration-300">
+                {activeSection === 'diagnosis' && (
+                  <div className="space-y-4">
+                    <Title order={4}>Diagnosis Details</Title>
+                    <Text>{treatmentPlan.diagnosis || 'Click to add diagnosis'}</Text>
+                    <Text>{treatmentPlan.diagnosisDetails || 'Add additional details...'}</Text>
+                  </div>
+                )}
+
+                {activeSection === 'medications' && (
+                  <div className="space-y-4">
+                    <Title order={4}>Prescribed Medications</Title>
+                    {treatmentPlan.medications?.map((med, index) => (
+                      <Text key={index}>{med.name} - {med.dosage}</Text>
+                    ))}
+                  </div>
+                )}
+
+                {activeSection === 'next-steps' && (
+                  <div className="space-y-4">
+                    <Title order={4}>Treatment Timeline</Title>
+                    {treatmentPlan.nextSteps?.map((step, index) => (
+                      <Text key={index}>{step}</Text>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            {/* AI Recommendations - Always visible */}
+            <Card shadow="sm" p="lg" radius="md" withBorder>
+              <AIRecommendations treatmentData={treatmentPlan} />
+            </Card>
+
+            <Card shadow="sm" p="lg" radius="md" withBorder>
+              <AIChatbot context={treatmentPlan} />
+            </Card>
+          </Stack>
+        </Container>
+      </ScrollArea>
     </div>
   );
 };

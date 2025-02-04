@@ -18,23 +18,15 @@ const PatientWorkflow = () => {
       try {
         setLoading(true);
         setError(null);
-        
-        // First, try to get patient from navigation state
+
         let patientData = location.state?.patient;
-        
-        // If no patient in state, fetch from service
         if (!patientData) {
           patientData = await PatientService.getPatientById(id);
         }
-        
-        if (!patientData) {
-          throw new Error('Patient not found');
-        }
-        
+        if (!patientData) throw new Error('Patient not found');
         setPatient(patientData);
       } catch (error) {
         setError(error.message);
-        console.error('Error loading patient:', error);
       } finally {
         setLoading(false);
       }
@@ -45,112 +37,60 @@ const PatientWorkflow = () => {
 
   const handleStepComplete = async (updatedPatient) => {
     try {
-      setError(null);
       await PatientService.updateWorkflowStep(id, updatedPatient, activeStep);
       setPatient(updatedPatient);
 
-      // Move to next step or finish workflow
       if (activeStep < 3) {
-        setActiveStep(prev => prev + 1);
-        const nextPath = activeStep === 1 ? 'review' : 'send';
-        navigate(`/clinic/manage-patient/${id}/workflow/${nextPath}`);
+        setActiveStep((prev) => prev + 1);
+        navigate(`/clinic/manage-patient/${id}/workflow/${activeStep === 1 ? 'review' : 'send'}`);
       } else {
-        navigate('/clinic/dashboard', { 
-          state: { message: 'Patient workflow completed successfully' } 
-        });
+        navigate('/clinic/dashboard', { state: { message: 'Workflow completed' } });
       }
     } catch (error) {
-      setError('Failed to save workflow step');
-      console.error('Error updating workflow:', error);
+      setError('Failed to update workflow.');
     }
   };
 
   const sendReportToPatient = async () => {
     try {
       if (!patient) return;
-      
-      const reportData = {
-        patientId: patient.id,
-        diagnosis: patient.diagnosis || "Not provided",
-        medications: patient.medications || "Not provided",
-        recommendations: patient.recommendations || "Not provided",
-        timestamp: new Date().toISOString(),
-      };
-      
-      await PatientService.sendPatientReport(reportData);
+      await PatientService.sendPatientReport({ patientId: patient.id, ...patient.treatmentPlan });
       alert("Report sent successfully!");
-      
-      // Navigate to patient dashboard so they can see their report
       navigate(`/patient/dashboard`);
     } catch (error) {
-      console.error("Error sending report:", error);
-      setError("Failed to send report to patient.");
+      setError("Failed to send report.");
     }
   };
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-red-500">
-          <p>Error: {error}</p>
-          <button 
-            onClick={() => navigate(-1)}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            Go Back
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <WorkflowLayout
       workflow={
         <div className="h-full flex flex-col">
           <div className="p-6 border-b">
-            <button 
-              onClick={() => navigate(-1)}
-              className="text-gray-600 hover:text-gray-900 flex items-center gap-2"
-            >
-              ← Back
-            </button>
+            <button onClick={() => navigate(-1)} className="text-gray-600 hover:text-gray-900">← Back</button>
             <h2 className="text-xl font-bold mt-4">{patient?.name || 'Patient Workflow'}</h2>
             <p className="text-gray-600">{patient?.phone || ''}</p>
           </div>
-          <div className="flex-1 overflow-y-auto">
-            <WorkflowSteps 
-              activeStep={activeStep}
-              onStepClick={(stepId) => {
-                setActiveStep(stepId);
-                const path = stepId === 1 ? 'information' : stepId === 2 ? 'review' : 'send';
-                navigate(`/clinic/manage-patient/${id}/workflow/${path}`);
-              }}
-              steps={[
-                { id: 1, label: 'Patient Information' },
-                { id: 2, label: 'Review & Finalize' },
-                { id: 3, label: 'Send to Patient' }
-              ]}
-            />
-          </div>
+          <WorkflowSteps
+            activeStep={activeStep}
+            onStepClick={(stepId) => {
+              setActiveStep(stepId);
+              navigate(`/clinic/manage-patient/${id}/workflow/${stepId === 1 ? 'information' : stepId === 2 ? 'review' : 'send'}`);
+            }}
+            steps={[
+              { id: 1, label: 'Patient Information' },
+              { id: 2, label: 'Review & Finalize' },
+              { id: 3, label: 'Send to Patient' },
+            ]}
+          />
         </div>
       }
       content={
         <div className="p-6">
-          <Outlet context={{ 
-            patient, 
-            onComplete: handleStepComplete,
-            error,
-            setError 
-          }} />
-
-          {/* Send Report Button (Only in Final Step) */}
+          <Outlet context={{ patient, onComplete: handleStepComplete, error, setError }} />
           {activeStep === 3 && (
             <div className="mt-6">
-              <button 
-                className="w-full py-2 text-white bg-green-500 rounded-lg hover:bg-green-600"
-                onClick={sendReportToPatient}
-              >
+              <button className="w-full py-2 text-white bg-green-500 rounded-lg hover:bg-green-600" onClick={sendReportToPatient}>
                 Send Report to Patient
               </button>
             </div>
