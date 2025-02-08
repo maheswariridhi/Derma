@@ -1,17 +1,36 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import PatientCard from "../../components/PatientCard";
+import PatientCard from "./PatientCard";
 import PatientService from '../../services/PatientService';
 
+interface TreatmentPlan {
+  diagnosis: string;
+  diagnosisDetails?: string;
+  medications?: Array<{ name: string; dosage: string }>;
+  nextSteps?: string[];
+  next_appointment?: string;
+  recommendations?: any[];
+  additional_notes?: string;
+}
 
-// pages/DashboardPage.jsx
-const DashboardPage = () => {
+interface Patient {
+  id: string | number;
+  name: string;
+  status: string;
+  treatmentValue?: string;
+  appointmentDate?: string;
+  phone: string;
+  email: string;
+  treatmentPlan?: TreatmentPlan;
+}
+
+const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const userName = "Ridhi Maheswari";
 
   // State for patients and search
-  const [patients, setPatients] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   useEffect(() => {
     const fetchPatients = async () => {
@@ -27,7 +46,7 @@ const DashboardPage = () => {
     fetchPatients();
   }, []);
 
-  const handlePatientClick = (patient) => {
+  const handlePatientClick = (patient: Patient) => {
     navigate(`/clinic/manage-patient/${patient.id}/workflow`, {
       state: { patient }
     });

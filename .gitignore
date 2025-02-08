@@ -1,20 +1,31 @@
-# Frontend-specific (for safety, if someone works at the root level)
+# Node.js dependencies
 frontend/node_modules/
+node_modules/
 
-# Backend-specific (if venv is in the backend folder)
+# Python-related
 backend/venv/
-
-# Python cache files
 *.pyc
 __pycache__/
 
-# Logs (applies to all subdirectories)
+# Logs
+logs
 *.log
 *.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Misc
-.DS_Store
+# Build files
+dist/
+dist-ssr/
+*.local
+
+# IDE and System files
 .vscode/
 .idea/
+.DS_Store
 
+# Environment variables
 .env

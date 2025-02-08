@@ -40,6 +40,7 @@ interface TreatmentPlan {
 interface Patient {
   id: string;
   name: string;
+  phone?: string;
   treatmentPlan?: TreatmentPlan;
 }
 
@@ -48,7 +49,7 @@ interface Props {
   onComplete: (updatedPatient: Patient) => void;
 }
 
-const ReviewAndFinalize = ({ patient, onComplete }: Props) => {
+const ReviewAndFinalize: React.FC<Props> = ({ patient, onComplete }) => {
   const [treatmentPlan, setTreatmentPlan] = useState<TreatmentPlan>({
     diagnosis: patient?.treatmentPlan?.diagnosis || '',
     diagnosisDetails: patient?.treatmentPlan?.diagnosisDetails || '',
@@ -58,8 +59,8 @@ const ReviewAndFinalize = ({ patient, onComplete }: Props) => {
     recommendations: patient?.treatmentPlan?.recommendations || [],
     additional_notes: patient?.treatmentPlan?.additional_notes || ''
   });
-  const [activeTab, setActiveTab] = useState('overview');
-  const [progress, setProgress] = useState(0);
+  const [activeTab, setActiveTab] = useState<'overview' | 'ai'>('overview');
+  const [progress, setProgress] = useState<number>(0);
 
   useEffect(() => {
     updateProgress();
@@ -174,14 +175,14 @@ const ReviewAndFinalize = ({ patient, onComplete }: Props) => {
   );
 };
 
-const PatientWorkflow = () => {
-  const { id } = useParams();
+const PatientWorkflow: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const navigate = useNavigate();
-  const [patient, setPatient] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [activeStep, setActiveStep] = useState(1);
-  const [error, setError] = useState(null);
+  const [patient, setPatient] = useState<Patient | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [activeStep, setActiveStep] = useState<number>(1);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadPatient = async () => {
@@ -196,7 +197,7 @@ const PatientWorkflow = () => {
         if (!patientData) throw new Error('Patient not found');
         setPatient(patientData);
       } catch (error) {
-        setError(error.message);
+        setError((error as Error).message);
       } finally {
         setLoading(false);
       }
@@ -205,8 +206,9 @@ const PatientWorkflow = () => {
     loadPatient();
   }, [id, location.state]);
 
-  const handleStepComplete = async (updatedPatient) => {
+  const handleStepComplete = async (updatedPatient: Patient) => {
     try {
+      if (!id) return;
       await PatientService.updateWorkflowStep(id, updatedPatient, activeStep);
       setPatient(updatedPatient);
 
@@ -243,7 +245,7 @@ const PatientWorkflow = () => {
           </div>
           <WorkflowSteps
             activeStep={activeStep}
-            onStepClick={(stepId) => {
+            onStepClick={(stepId: number) => {
               setActiveStep(stepId);
               navigate(`/clinic/manage-patient/${id}/workflow/${stepId === 1 ? 'information' : stepId === 2 ? 'review' : 'send'}`);
             }}
@@ -260,7 +262,10 @@ const PatientWorkflow = () => {
           <Outlet context={{ patient, onComplete: handleStepComplete, error, setError }} />
           {activeStep === 3 && (
             <div className="mt-6">
-              <button className="w-full py-2 text-white bg-green-500 rounded-lg hover:bg-green-600" onClick={sendReportToPatient}>
+              <button 
+                className="w-full py-2 text-white bg-green-500 rounded-lg hover:bg-green-600" 
+                onClick={sendReportToPatient}
+              >
                 Send Report to Patient
               </button>
             </div>

@@ -6,7 +6,7 @@ import PatientWorkflow from './pages/doctor/PatientWorkflow';
 import PatientDatabasePage from './pages/doctor/PatientDatabasePage';
 import PatientDetails from './pages/doctor/PatientDetails';
 import ClinicServicesPage from './pages/doctor/ClinicServicesPage';
-import Sidebar from './components/Sidebar';
+import Sidebar from './pages/doctor/Sidebar';
 import PatientInformation from './components/workflow/PatientInformation';
 import ReviewAndFinalize from './components/workflow/ReviewAndFinalize';
 import SendToPatient from './components/workflow/SendToPatient';

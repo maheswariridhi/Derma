@@ -1,7 +1,33 @@
 import React from 'react';
 
-const PatientCard = ({ patient, onClick }) => {
-  const getStatusColor = (status) => {
+interface TreatmentPlan {
+  diagnosis: string;
+  diagnosisDetails?: string;
+  medications?: Array<{ name: string; dosage: string }>;
+  nextSteps?: string[];
+  next_appointment?: string;
+  recommendations?: any[];
+  additional_notes?: string;
+}
+
+interface Patient {
+  id: string | number;
+  name: string;
+  status: string;
+  treatmentValue?: string;
+  appointmentDate?: string;
+  phone: string;
+  email: string;
+  treatmentPlan?: TreatmentPlan;
+}
+
+interface PatientCardProps {
+  patient: Patient;
+  onClick: (path: string) => void;
+}
+
+const PatientCard: React.FC<PatientCardProps> = ({ patient, onClick }) => {
+  const getStatusColor = (status: string): string => {
     switch (status.toLowerCase()) {
       case 'confirmed':
         return 'bg-green-100 text-green-800';
