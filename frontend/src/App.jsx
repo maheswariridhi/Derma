@@ -1,11 +1,16 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { MantineProvider } from "@mantine/core"; // Ensure MantineProvider is imported
+import { MantineProvider, createTheme } from "@mantine/core";
+import '@mantine/core/styles.css';
 import DoctorApp from "./DoctorApp";
 import PatientApp from "./PatientApp";
 
+const theme = createTheme({
+  /** Put your theme override here */
+});
+
 const App = () => {
   return (
-    <MantineProvider withGlobalStyles withNormalizeCSS>
+    <MantineProvider theme={theme}>
       <BrowserRouter>
         <Routes>
           {/* Doctor/Clinic Routes */}

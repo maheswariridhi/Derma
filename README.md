@@ -7,21 +7,14 @@ An AI-powered dermatology application that simplifies patient workflows for derm
 ## Tech Stack
 
 ### Frontend
-- React + Vite
-- Tailwind CSS
+- Typescript
 - Axios for API calls
 
 ### Backend
 - Python (FastAPI/Flask/Django)
 - AI/ML Models (for personalization)--add more info
-- PostgreSQL/SQLite for database (if applicable)--i think will be firebase
-
----
-
-
-### Prerequisites
-- **Frontend**: Node.js v14+ and npm.
-- **Backend**: Python 3.9+ and `pip`.
+- PostgreSQL
+-Kubernetes
 
 ---
 

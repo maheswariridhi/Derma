@@ -4,10 +4,18 @@ import { resolve } from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react({
+      include: "**/*.{jsx,tsx}",
+    })
+  ],
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
     },
   },
+  server: {
+    port: 5173,
+    open: true
+  }
 })
