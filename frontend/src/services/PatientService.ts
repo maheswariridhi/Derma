@@ -10,12 +10,40 @@ import {
   where,
   orderBy,
   limit,
+  Timestamp,
 } from "firebase/firestore";
 import { COLLECTIONS, HOSPITAL } from "../models/constants";
 
+// Define interfaces based on the existing structure
+interface Patient {
+  id: string;
+  name?: string;
+  phone?: string;
+  status: string;
+  priority?: boolean;
+  created_at?: Timestamp;
+  updated_at?: Timestamp;
+}
+
+interface QueueEntry {
+  id: string;
+  patientId: string;
+  queueType: string;
+  tokenNumber: number;
+  status: string;
+  date: string;
+  checkInTime: Timestamp;
+  estimatedWaitTime?: number;
+}
+
+interface PatientFilters {
+  status?: string;
+  sortBy?: string;
+  sortDirection?: "asc" | "desc";
+}
+
 const PatientService = {
-  // Get all patients with optional filters
-  async getPatients(filters = {}) {
+  async getPatients(filters: PatientFilters = {}): Promise<Patient[]> {
     try {
       const patientsRef = collection(
         db,
@@ -25,7 +53,6 @@ const PatientService = {
       );
       let q = query(patientsRef);
 
-      // Add filters if provided
       if (filters.status) {
         q = query(q, where("status", "==", filters.status));
       }
@@ -37,21 +64,18 @@ const PatientService = {
       return snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
-        created_at: doc.data().created_at?.toDate(), // Convert Firestore timestamp
-      }));
+        created_at: doc.data().created_at?.toDate(),
+      })) as Patient[];
     } catch (error) {
       console.error("Error fetching patients:", error);
-      throw new Error(`Failed to fetch patients: ${error.message}`);
+      throw new Error(`Failed to fetch patients: ${(error as Error).message}`);
     }
   },
 
-  // Get queue patients (not completed)
-  async getQueuePatients() {
+  async getQueuePatients(): Promise<QueueEntry[]> {
     try {
-      // Add debug logging
       console.log("Fetching queue patients...");
-
-      const patientsRef = collection(db, "patients"); // Simplified path
+      const patientsRef = collection(db, "patients");
       const q = query(
         patientsRef,
         where("status", "==", "pending"),
@@ -62,23 +86,19 @@ const PatientService = {
       const snapshot = await getDocs(q);
 
       console.log("Docs fetched, processing data...");
-      const patients = snapshot.docs.map((doc, index) => ({
+      return snapshot.docs.map((doc, index) => ({
         id: doc.id,
         ...doc.data(),
         token: index + 1,
-        timeWaiting: this.calculateWaitingTime(doc.data().created_at?.toDate()),
-      }));
-
-      console.log("Processed patients:", patients);
-      return patients;
+        timeWaiting: this.calculateWaitingTime(doc.data().created_at),
+      })) as QueueEntry[];
     } catch (error) {
       console.error("Detailed queue error:", error);
-      throw new Error(`Failed to fetch queue: ${error.message}`);
+      throw new Error(`Failed to fetch queue: ${(error as Error).message}`);
     }
   },
 
-  // Update patient status
-  async updatePatientStatus(patientId, newStatus) {
+  async updatePatientStatus(patientId: string, newStatus: string): Promise<boolean> {
     try {
       const docRef = doc(
         db,
@@ -89,17 +109,16 @@ const PatientService = {
       );
       await updateDoc(docRef, {
         status: newStatus,
-        updated_at: new Date(),
+        updated_at: Timestamp.now(),
       });
       return true;
     } catch (error) {
       console.error("Error updating patient status:", error);
-      throw new Error(`Failed to update patient status: ${error.message}`);
+      throw new Error(`Failed to update patient status: ${(error as Error).message}`);
     }
   },
 
-  // Prioritize patient
-  async prioritizePatient(patientId) {
+  async prioritizePatient(patientId: string): Promise<boolean> {
     try {
       const docRef = doc(
         db,
@@ -110,22 +129,20 @@ const PatientService = {
       );
       await updateDoc(docRef, {
         priority: true,
-        updated_at: new Date(),
+        updated_at: Timestamp.now(),
       });
       return true;
     } catch (error) {
       console.error("Error prioritizing patient:", error);
-      throw new Error(`Failed to prioritize patient: ${error.message}`);
+      throw new Error(`Failed to prioritize patient: ${(error as Error).message}`);
     }
   },
 
-  // Check-in a new patient to queue
-  async checkInPatient(patientId, queueType = "check-up") {
+  async checkInPatient(patientId: string, queueType: string = "check-up"): Promise<number> {
     try {
       const queueRef = collection(db, "queues");
       const today = new Date().toISOString().split("T")[0];
 
-      // Get current queue number for today
       const queueSnapshot = await getDocs(
         query(
           queueRef,
@@ -139,15 +156,14 @@ const PatientService = {
       const lastToken = queueSnapshot.docs[0]?.data()?.tokenNumber || 0;
       const newToken = lastToken + 1;
 
-      // Add to queue collection
       await addDoc(queueRef, {
         patientId,
         tokenNumber: newToken,
         queueType,
         status: "waiting",
         date: today,
-        checkInTime: new Date(),
-        estimatedWaitTime: 15, // minutes
+        checkInTime: Timestamp.now(),
+        estimatedWaitTime: 15,
       });
 
       return newToken;
@@ -157,8 +173,7 @@ const PatientService = {
     }
   },
 
-  // Get queue status for each type
-  async getQueueStatus() {
+  async getQueueStatus(): Promise<Record<string, QueueEntry[]>> {
     try {
       const today = new Date().toISOString().split("T")[0];
       const queueRef = collection(
@@ -167,14 +182,6 @@ const PatientService = {
         HOSPITAL.ID,
         COLLECTIONS.QUEUES
       );
-      const queueTypes = ["check-up", "treatment", "billing"];
-
-      // Initialize empty queues object with all queue types
-      const queues = {
-        "check-up": [],
-        treatment: [],
-        billing: [],
-      };
 
       const snapshot = await getDocs(
         query(
@@ -185,88 +192,30 @@ const PatientService = {
         )
       );
 
-      // If no documents found, return the initialized empty queues
       if (snapshot.empty) {
-        return queues;
+        return { "check-up": [], treatment: [], billing: [] };
       }
 
-      // Group queues by type
-      const queuesByType = snapshot.docs.reduce((acc, doc) => {
-        const data = doc.data();
-        const type = data.queueType || "check-up"; // Provide default type if missing
-        if (!acc[type]) acc[type] = [];
-        acc[type].push({ id: doc.id, ...data });
+      return snapshot.docs.reduce((acc, doc) => {
+        const data = doc.data() as QueueEntry;
+        acc[data.queueType] = acc[data.queueType] || [];
+        acc[data.queueType].push({ id: doc.id, ...data });
         return acc;
-      }, {});
-
-      // Get all unique patient IDs
-      const patientIds = [
-        ...new Set(snapshot.docs.map((doc) => doc.data().patientId)),
-      ];
-
-      // Fetch all patient data in one batch using correct path
-      const patientDocs = await Promise.all(
-        patientIds.map((id) =>
-          getDoc(
-            doc(
-              db,
-              COLLECTIONS.HOSPITALS,
-              HOSPITAL.ID,
-              COLLECTIONS.PATIENTS,
-              id
-            )
-          )
-        )
-      );
-
-      // Create patient lookup map
-      const patientMap = patientDocs.reduce((acc, doc) => {
-        if (!doc.exists()) return acc;
-        const data = doc.data();
-        acc[doc.id] = {
-          id: doc.id,
-          name: data.name,
-          phone: data.phone,
-        };
-        return acc;
-      }, {});
-
-      // Update queues object with found data
-      queueTypes.forEach((type) => {
-        if (queuesByType[type]) {
-          queues[type] = queuesByType[type].map((queue) => ({
-            id: queue.id,
-            ...queue,
-            patient: patientMap[queue.patientId] || {
-              name: "Unknown",
-              phone: "N/A",
-            },
-            timeWaiting: this.calculateWaitingTime(queue.checkInTime),
-          }));
-        }
-      });
-
-      return queues;
+      }, {} as Record<string, QueueEntry[]>);
     } catch (error) {
       console.error("Error fetching queue status:", error);
-      // Return empty queues object instead of throwing
-      return {
-        "check-up": [],
-        treatment: [],
-        billing: [],
-      };
+      return { "check-up": [], treatment: [], billing: [] };
     }
   },
 
-  // Update patient queue status
-  async updateQueueStatus(queueId, newStatus) {
+  async updateQueueStatus(queueId: string, newStatus: string): Promise<void> {
     try {
       const queueRef = doc(db, "queues", queueId);
       await updateDoc(queueRef, {
         status: newStatus,
-        statusUpdatedAt: new Date(),
-        ...(newStatus === "in-progress" ? { startTime: new Date() } : {}),
-        ...(newStatus === "completed" ? { endTime: new Date() } : {}),
+        statusUpdatedAt: Timestamp.now(),
+        ...(newStatus === "in-progress" ? { startTime: Timestamp.now() } : {}),
+        ...(newStatus === "completed" ? { endTime: Timestamp.now() } : {}),
       });
     } catch (error) {
       console.error("Error updating queue status:", error);
@@ -274,11 +223,11 @@ const PatientService = {
     }
   },
 
-  // Calculate waiting time
-  calculateWaitingTime(checkInTime) {
+  calculateWaitingTime(checkInTime?: Timestamp): string {
     if (!checkInTime) return "0 min";
     const now = new Date();
-    const diffMs = now - checkInTime.toDate();
+    const checkInDate = checkInTime.toDate();
+    const diffMs = now.getTime() - checkInDate.getTime();
     const minutes = Math.floor(diffMs / 60000);
 
     if (minutes < 60) {
@@ -289,8 +238,7 @@ const PatientService = {
     return `${hours}h ${remainingMinutes}m`;
   },
 
-  // Get patient by ID
-  async getPatientById(patientId) {
+  async getPatientById(patientId: string): Promise<Patient> {
     try {
       const docRef = doc(
         db,
@@ -309,15 +257,11 @@ const PatientService = {
         id: docSnap.id,
         ...docSnap.data(),
         created_at: docSnap.data().created_at?.toDate(),
-      };
+      } as Patient;
     } catch (error) {
       console.error("Error fetching patient:", error);
-      throw new Error(`Failed to fetch patient: ${error.message}`);
+      throw new Error(`Failed to fetch patient: ${(error as Error).message}`);
     }
-  },
-
-  async getPatientDashboardData() {
-    throw new Error("Not implemented");
   },
 };
 
