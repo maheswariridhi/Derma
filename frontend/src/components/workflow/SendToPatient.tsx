@@ -1,5 +1,13 @@
 import React, { useState } from "react";
 import { useOutletContext } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
+import { Label } from "../ui/label";
+import { Textarea } from "../ui/textarea";
+import { Checkbox } from "../ui/checkbox";
+import { Button } from "../ui/button";
+import { Alert, AlertDescription } from "../ui/alert";
+import { Badge } from "../ui/badge";
 
 // Define Treatment Plan interface
 interface TreatmentPlan {
@@ -46,87 +54,83 @@ const SendToPatient: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Send to Patient</h2>
+      {/* Communication Method */}
+      <div className="space-y-4">
+        <Label className="text-lg font-medium">Preferred Communication Method</Label>
+        <RadioGroup
+          value={communicationMethod}
+          onValueChange={(value) => setCommunicationMethod(value as "email" | "sms")}
+          className="flex gap-6"
+        >
+          <div className="flex items-center space-x-3">
+            <RadioGroupItem value="email" id="email" />
+            <Label htmlFor="email" className="text-base">Email</Label>
+          </div>
+          <div className="flex items-center space-x-3">
+            <RadioGroupItem value="sms" id="sms" />
+            <Label htmlFor="sms" className="text-base">SMS</Label>
+          </div>
+        </RadioGroup>
+      </div>
 
-      <div className="bg-white p-6 rounded-lg shadow space-y-6">
-        {/* Communication Method */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Preferred Communication Method
-          </label>
-          <div className="space-x-4">
-            <label className="inline-flex items-center">
-              <input
-                type="radio"
-                value="email"
-                checked={communicationMethod === "email"}
-                onChange={(e) => setCommunicationMethod(e.target.value as "email" | "sms")}
-                className="form-radio"
-              />
-              <span className="ml-2">Email</span>
-            </label>
-            <label className="inline-flex items-center">
-              <input
-                type="radio"
-                value="sms"
-                checked={communicationMethod === "sms"}
-                onChange={(e) => setCommunicationMethod(e.target.value as "email" | "sms")}
-                className="form-radio"
-              />
-              <span className="ml-2">SMS</span>
-            </label>
+      {/* Treatment Summary */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium">Treatment Summary</h3>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between py-2 border-b">
+            <span className="text-slate-600">Diagnosis:</span>
+            <span className="font-medium">{patient?.treatmentPlan?.diagnosis || "Not specified"}</span>
+          </div>
+          <div className="flex items-center justify-between py-2 border-b">
+            <span className="text-slate-600">Status:</span>
+            <span className="font-medium">{patient?.treatmentPlan?.currentStatus || "Not specified"}</span>
+          </div>
+          <div className="flex items-center justify-between py-2">
+            <span className="text-slate-600">Medications:</span>
+            <span className="font-medium">{patient?.treatmentPlan?.medications?.length ? 
+              patient.treatmentPlan.medications.map(med => med.name).join(", ") : 
+              "None prescribed"}</span>
           </div>
         </div>
-
-        {/* Treatment Summary */}
-        <div className="bg-gray-50 p-4 rounded">
-          <h3 className="font-medium mb-2">Treatment Summary</h3>
-          <p>Diagnosis: {patient?.treatmentPlan?.diagnosis || "Not specified"}</p>
-          <p>Status: {patient?.treatmentPlan?.currentStatus || "Not specified"}</p>
-          <p>
-            Medications:{" "}
-            {patient?.treatmentPlan?.medications?.map((m) => m.name).join(", ") || "None prescribed"}
-          </p>
-        </div>
-
-        {/* Additional Notes */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Additional Notes
-          </label>
-          <textarea
-            value={additionalNotes}
-            onChange={(e) => setAdditionalNotes(e.target.value)}
-            className="w-full p-2 border rounded h-32"
-            placeholder="Add any additional notes for the patient..."
-          />
-        </div>
-
-        {/* Confirmation */}
-        <div>
-          <label className="inline-flex items-center">
-            <input
-              type="checkbox"
-              checked={isConfirmed}
-              onChange={(e) => setIsConfirmed(e.target.checked)}
-              className="form-checkbox"
-            />
-            <span className="ml-2">I confirm that all information is correct</span>
-          </label>
-        </div>
-
-        <button
-          onClick={handleSubmit}
-          disabled={!isConfirmed}
-          className={`w-full py-2 rounded ${
-            isConfirmed
-              ? "bg-blue-600 text-white hover:bg-blue-700"
-              : "bg-gray-300 text-gray-500 cursor-not-allowed"
-          }`}
-        >
-          Send to Patient
-        </button>
       </div>
+
+      {/* Additional Notes */}
+      <div className="space-y-3">
+        <Label htmlFor="notes" className="text-lg font-medium">Additional Notes</Label>
+        <Textarea
+          id="notes"
+          value={additionalNotes}
+          onChange={(e) => setAdditionalNotes(e.target.value)}
+          placeholder="Add any additional notes for the patient..."
+          className="min-h-[120px] text-base"
+        />
+      </div>
+
+      {/* Confirmation */}
+      <div className="pt-4 border-t">
+        <div className="flex items-center space-x-3">
+          <Checkbox
+            id="confirm"
+            checked={isConfirmed}
+            onCheckedChange={(checked) => setIsConfirmed(checked as boolean)}
+          />
+          <Label htmlFor="confirm" className="text-base">
+            I confirm that all information is correct
+          </Label>
+        </div>
+      </div>
+
+      <Button
+        onClick={handleSubmit}
+        disabled={!isConfirmed}
+        className={`w-full py-6 text-lg font-medium ${
+          isConfirmed 
+            ? 'bg-emerald-500 hover:bg-emerald-600 text-white' 
+            : 'bg-slate-100 text-slate-400'
+        }`}
+      >
+        Send Report to Patient
+      </Button>
     </div>
   );
 };
