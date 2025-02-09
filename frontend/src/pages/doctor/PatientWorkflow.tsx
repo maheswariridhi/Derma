@@ -88,7 +88,7 @@ const ReviewAndFinalize: React.FC<Props> = ({ patient, onComplete }) => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col">
       <div className="bg-white border-b px-6 py-4">
         <Group position="apart" mb="xs">
           <Title order={3}>Treatment Plan Review</Title>
@@ -237,33 +237,58 @@ const PatientWorkflow: React.FC = () => {
   return (
     <WorkflowLayout
       workflow={
-        <div className="h-full flex flex-col">
+        <div className="h-full bg-white">
           <div className="p-6 border-b">
-            <button onClick={() => navigate(-1)} className="text-gray-600 hover:text-gray-900">← Back</button>
-            <h2 className="text-xl font-bold mt-4">{patient?.name || 'Patient Workflow'}</h2>
-            <p className="text-gray-600">{patient?.phone || ''}</p>
+            <button 
+              onClick={() => navigate(-1)} 
+              className="text-gray-600 hover:text-gray-900 flex items-center gap-2 mb-4"
+            >
+              ← Back
+            </button>
+            <div className="space-y-1">
+              <h2 className="text-xl font-semibold">{patient?.name}</h2>
+              <p className="text-gray-600">{patient?.phone}</p>
+            </div>
           </div>
-          <WorkflowSteps
-            activeStep={activeStep}
-            onStepClick={(stepId: number) => {
-              setActiveStep(stepId);
-              navigate(`/clinic/manage-patient/${id}/workflow/${stepId === 1 ? 'information' : stepId === 2 ? 'review' : 'send'}`);
-            }}
-            steps={[
-              { id: 1, label: 'Patient Information' },
-              { id: 2, label: 'Review & Finalize' },
-              { id: 3, label: 'Send to Patient' },
-            ]}
-          />
+          
+          <div className="p-4">
+            <WorkflowSteps
+              activeStep={activeStep}
+              onStepClick={(stepId: number) => {
+                setActiveStep(stepId);
+                navigate(`/clinic/manage-patient/${id}/workflow/${
+                  stepId === 1 ? 'information' : 
+                  stepId === 2 ? 'review' : 'send'
+                }`);
+              }}
+              steps={[
+                { 
+                  id: 1, 
+                  label: 'Patient Information',
+                  description: 'Basic patient details'
+                },
+                { 
+                  id: 2, 
+                  label: 'Review & Finalize',
+                  description: 'Review treatment plan'
+                },
+                { 
+                  id: 3, 
+                  label: 'Send to Patient',
+                  description: 'Send report to patient'
+                },
+              ]}
+            />
+          </div>
         </div>
       }
       content={
-        <div className="p-6">
+        <div className="h-full bg-white p-6">
           <Outlet context={{ patient, onComplete: handleStepComplete, error, setError }} />
           {activeStep === 3 && (
-            <div className="mt-6">
+            <div className="mt-auto pt-6 border-t">
               <button 
-                className="w-full py-2 text-white bg-green-500 rounded-lg hover:bg-green-600" 
+                className="w-full py-3 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
                 onClick={sendReportToPatient}
               >
                 Send Report to Patient

@@ -10,12 +10,12 @@ const WorkflowLayout: React.FC<WorkflowLayoutProps> = ({ workflow, content }) =>
   return (
     <div className="flex h-full">
       {/* Workflow Steps Panel */}
-      <div className="w-[400px] border-r flex flex-col bg-white">
+      <div className="w-[320px] border-r">
         {workflow}
       </div>
 
       {/* Content Panel */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1">
         {content}
       </div>
     </div>

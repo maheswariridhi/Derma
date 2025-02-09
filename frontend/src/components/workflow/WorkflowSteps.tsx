@@ -5,6 +5,7 @@ import { Link, useLocation } from "react-router-dom";
 interface Step {
   id: number;
   label: string;
+  description: string;
 }
 
 // Define Props interface
@@ -23,36 +24,32 @@ const WorkflowSteps: React.FC<WorkflowStepsProps> = ({
   const patientId = location.pathname.split("/")[3] || "";
 
   return (
-    <div className="p-6">
-      <div className="space-y-4">
-        {steps.map((step) => (
-          <Link
-            key={step.id}
-            to={`/clinic/manage-patient/${patientId}/workflow/${
-              step.id === 1 ? "information" : step.id === 2 ? "review" : "send"
-            }`}
-            className={`block p-4 rounded-lg border ${
-              activeStep === step.id
-                ? "bg-blue-50 border-blue-500"
-                : "bg-white hover:bg-gray-50"
-            }`}
-            onClick={() => onStepClick(step.id)}
+    <div className="space-y-2">
+      {steps.map((step) => (
+        <div
+          key={step.id}
+          onClick={() => onStepClick(step.id)}
+          className={`flex items-center p-4 cursor-pointer rounded-lg transition-colors
+            ${activeStep === step.id ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+        >
+          <div
+            className={`flex items-center justify-center w-8 h-8 rounded-full mr-3 
+              ${activeStep === step.id 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-gray-100 text-gray-500'}`}
           >
-            <div className="flex items-center">
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  activeStep === step.id
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-200"
-                }`}
-              >
-                {step.id}
-              </div>
-              <span className="ml-3 font-medium">{step.label}</span>
+            {step.id}
+          </div>
+          <div>
+            <div className={`font-medium ${activeStep === step.id ? 'text-blue-600' : 'text-gray-900'}`}>
+              {step.label}
             </div>
-          </Link>
-        ))}
-      </div>
+            <div className="text-sm text-gray-500">
+              {step.description}
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 };
