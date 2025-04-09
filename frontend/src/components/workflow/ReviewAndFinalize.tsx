@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Paper,
   Title,
@@ -19,6 +19,32 @@ import {
 } from "@tabler/icons-react";
 import AIRecommendations from "../ai/AIRecommendations";
 import AIChatbot from "../ai/AIChatbot";
+import MedicationDropdown from "../services/MedicationDropdown";
+import TreatmentDropdown from "../services/TreatmentDropdown";
+
+// Define interfaces for treatments and medicines
+interface Treatment {
+  id: number;
+  name: string;
+  description: string;
+  duration: string;
+  cost: string;
+}
+
+interface Medicine {
+  id: number;
+  name: string;
+  type: string;
+  usage: string;
+  dosage: string;
+  stock: number;
+}
+
+// Define Services structure
+interface Services {
+  treatments: Treatment[];
+  medicines: Medicine[];
+}
 
 // Define Treatment Plan interface
 interface TreatmentPlan {
@@ -29,6 +55,8 @@ interface TreatmentPlan {
   next_appointment: string;
   recommendations: string[];
   additional_notes: string;
+  selectedTreatments?: Treatment[];
+  selectedMedicines?: Medicine[];
 }
 
 // Define Patient interface
@@ -44,6 +72,59 @@ interface ReviewAndFinalizeProps {
   onComplete: (updatedPatient: Patient) => void;
 }
 
+// Initial services data
+const initialServices: Services = {
+  treatments: [
+    {
+      id: 1,
+      name: "Chemical Peel",
+      description: "Exfoliating treatment to improve skin texture and tone",
+      duration: "30-45 minutes",
+      cost: "$150-300",
+    },
+    {
+      id: 2,
+      name: "Laser Hair Removal",
+      description: "Permanent hair reduction using laser technology",
+      duration: "15-60 minutes",
+      cost: "$200-800",
+    },
+    {
+      id: 3,
+      name: "Acne Treatment",
+      description: "Comprehensive treatment for active acne and scarring",
+      duration: "45-60 minutes",
+      cost: "$150-400",
+    },
+  ],
+  medicines: [
+    {
+      id: 1,
+      name: "Tretinoin",
+      type: "Retinoid",
+      usage: "Acne and anti-aging",
+      dosage: "0.025%",
+      stock: 75,
+    },
+    {
+      id: 2,
+      name: "Hyaluronic Acid",
+      type: "Moisturizer",
+      usage: "Hydration",
+      dosage: "2%",
+      stock: 80,
+    },
+    {
+      id: 3,
+      name: "Benzoyl Peroxide",
+      type: "Antibacterial",
+      usage: "Acne treatment",
+      dosage: "5%",
+      stock: 60,
+    },
+  ],
+};
+
 const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
   patient,
   onComplete,
@@ -56,7 +137,11 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
     next_appointment: patient?.treatmentPlan?.next_appointment || "",
     recommendations: patient?.treatmentPlan?.recommendations || [],
     additional_notes: patient?.treatmentPlan?.additional_notes || "",
+    selectedTreatments: patient?.treatmentPlan?.selectedTreatments || [],
+    selectedMedicines: patient?.treatmentPlan?.selectedMedicines || [],
   });
+  
+  const [services] = useState<Services>(initialServices);
 
   const [activeSection, setActiveSection] = useState<
     "diagnosis" | "medications" | "next-steps"
@@ -92,6 +177,25 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
     } else if (progress === 100) {
       onComplete({ ...patient, treatmentPlan });
     }
+  };
+
+  const handleTreatmentSelect = (treatment: Treatment) => {
+    setTreatmentPlan((prev) => ({
+      ...prev,
+      selectedTreatments: [...(prev.selectedTreatments || []), treatment]
+    }));
+  };
+
+  const handleMedicineSelect = (medicine: Medicine) => {
+    setTreatmentPlan((prev) => ({
+      ...prev,
+      selectedMedicines: [...(prev.selectedMedicines || []), medicine],
+      medications: [
+        ...prev.medications, 
+        { name: medicine.name, dosage: medicine.dosage }
+      ]
+    }));
+    updateProgress();
   };
 
   return (
@@ -157,13 +261,58 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
                 )}
 
                 {activeSection === "medications" && (
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <Title order={4}>Prescribed Medications</Title>
-                    {treatmentPlan.medications.map((med, index) => (
-                      <Text key={index}>
-                        {med.name} - {med.dosage}
-                      </Text>
-                    ))}
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <TreatmentDropdown 
+                          treatments={services.treatments}
+                          onSelect={handleTreatmentSelect}
+                          label="Select Treatment"
+                        />
+                      </div>
+                      <div>
+                        <MedicationDropdown 
+                          medicines={services.medicines}
+                          onSelect={handleMedicineSelect}
+                          label="Select Medication"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4">
+                      <Title order={5} className="mb-2">Selected Treatments</Title>
+                      {treatmentPlan.selectedTreatments && treatmentPlan.selectedTreatments.length > 0 ? (
+                        <div className="space-y-2">
+                          {treatmentPlan.selectedTreatments.map((treatment, index) => (
+                            <div key={index} className="p-3 bg-gray-50 rounded-md">
+                              <div className="font-medium">{treatment.name}</div>
+                              <div className="text-sm text-gray-500">{treatment.description}</div>
+                              <div className="text-sm">Duration: {treatment.duration}</div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <Text color="gray">No treatments selected yet</Text>
+                      )}
+                    </div>
+                    
+                    <div className="mt-4">
+                      <Title order={5} className="mb-2">Selected Medications</Title>
+                      {treatmentPlan.medications.length > 0 ? (
+                        <div className="space-y-2">
+                          {treatmentPlan.medications.map((med, index) => (
+                            <div key={index} className="p-3 bg-gray-50 rounded-md">
+                              <div className="font-medium">{med.name}</div>
+                              <div className="text-sm">Dosage: {med.dosage}</div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <Text color="gray">No medications selected yet</Text>
+                      )}
+                    </div>
                   </div>
                 )}
 

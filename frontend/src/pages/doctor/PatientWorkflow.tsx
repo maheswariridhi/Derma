@@ -26,6 +26,30 @@ import {
 } from '@tabler/icons-react';
 import AIRecommendations from "../../components/ai/AIRecommendations";
 import AIChatbot from "../../components/ai/AIChatbot";
+import MedicationDropdown from "../../components/services/MedicationDropdown";
+import TreatmentDropdown from "../../components/services/TreatmentDropdown";
+
+interface Treatment {
+  id: number;
+  name: string;
+  description: string;
+  duration: string;
+  cost: string;
+}
+
+interface Medicine {
+  id: number;
+  name: string;
+  type: string;
+  usage: string;
+  dosage: string;
+  stock: number;
+}
+
+interface Services {
+  treatments: Treatment[];
+  medicines: Medicine[];
+}
 
 interface TreatmentPlan {
   diagnosis: string;
@@ -35,6 +59,8 @@ interface TreatmentPlan {
   next_appointment: string;
   recommendations: any[];
   additional_notes: string;
+  selectedTreatments?: Treatment[];
+  selectedMedicines?: Medicine[];
 }
 
 interface Patient {
@@ -49,6 +75,58 @@ interface Props {
   onComplete: (updatedPatient: Patient) => void;
 }
 
+const initialServices: Services = {
+  treatments: [
+    {
+      id: 1,
+      name: "Chemical Peel",
+      description: "Exfoliating treatment to improve skin texture and tone",
+      duration: "30-45 minutes",
+      cost: "$150-300",
+    },
+    {
+      id: 2,
+      name: "Laser Hair Removal",
+      description: "Permanent hair reduction using laser technology",
+      duration: "15-60 minutes",
+      cost: "$200-800",
+    },
+    {
+      id: 3,
+      name: "Acne Treatment",
+      description: "Comprehensive treatment for active acne and scarring",
+      duration: "45-60 minutes",
+      cost: "$150-400",
+    },
+  ],
+  medicines: [
+    {
+      id: 1,
+      name: "Tretinoin",
+      type: "Retinoid",
+      usage: "Acne and anti-aging",
+      dosage: "0.025%",
+      stock: 75,
+    },
+    {
+      id: 2,
+      name: "Hyaluronic Acid",
+      type: "Moisturizer",
+      usage: "Hydration",
+      dosage: "2%",
+      stock: 80,
+    },
+    {
+      id: 3,
+      name: "Benzoyl Peroxide",
+      type: "Antibacterial",
+      usage: "Acne treatment",
+      dosage: "5%",
+      stock: 60,
+    },
+  ],
+};
+
 const ReviewAndFinalize: React.FC<Props> = ({ patient, onComplete }) => {
   const [treatmentPlan, setTreatmentPlan] = useState<TreatmentPlan>({
     diagnosis: patient?.treatmentPlan?.diagnosis || '',
@@ -57,10 +135,13 @@ const ReviewAndFinalize: React.FC<Props> = ({ patient, onComplete }) => {
     nextSteps: patient?.treatmentPlan?.nextSteps || [],
     next_appointment: patient?.treatmentPlan?.next_appointment || '',
     recommendations: patient?.treatmentPlan?.recommendations || [],
-    additional_notes: patient?.treatmentPlan?.additional_notes || ''
+    additional_notes: patient?.treatmentPlan?.additional_notes || '',
+    selectedTreatments: patient?.treatmentPlan?.selectedTreatments || [],
+    selectedMedicines: patient?.treatmentPlan?.selectedMedicines || [],
   });
   const [activeTab, setActiveTab] = useState<'overview' | 'ai'>('overview');
   const [progress, setProgress] = useState<number>(0);
+  const [services] = useState<Services>(initialServices);
 
   useEffect(() => {
     updateProgress();
@@ -79,6 +160,25 @@ const ReviewAndFinalize: React.FC<Props> = ({ patient, onComplete }) => {
       ...prev,
       [section]: value
     }));
+  };
+
+  const handleTreatmentSelect = (treatment: Treatment) => {
+    setTreatmentPlan((prev) => ({
+      ...prev,
+      selectedTreatments: [...(prev.selectedTreatments || []), treatment]
+    }));
+  };
+
+  const handleMedicineSelect = (medicine: Medicine) => {
+    setTreatmentPlan((prev) => ({
+      ...prev,
+      selectedMedicines: [...(prev.selectedMedicines || []), medicine],
+      medications: [
+        ...prev.medications, 
+        { name: medicine.name, dosage: medicine.dosage }
+      ]
+    }));
+    updateProgress();
   };
 
   const handleComplete = () => {
@@ -129,9 +229,47 @@ const ReviewAndFinalize: React.FC<Props> = ({ patient, onComplete }) => {
 
                 <Card shadow="sm" p="lg" radius="md" withBorder>
                   <Title order={4} mb="md">Prescribed Medications</Title>
-                  {treatmentPlan.medications?.map((med, index) => (
-                    <Text key={index} mb="xs">• {med.name} - {med.dosage}</Text>
-                  ))}
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <TreatmentDropdown 
+                        treatments={services.treatments}
+                        onSelect={handleTreatmentSelect}
+                        label="Select Treatment"
+                      />
+                    </div>
+                    <div>
+                      <MedicationDropdown 
+                        medicines={services.medicines}
+                        onSelect={handleMedicineSelect}
+                        label="Select Medication"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <h5 className="font-medium mb-2">Selected Treatments</h5>
+                    {treatmentPlan.selectedTreatments && treatmentPlan.selectedTreatments.length > 0 ? (
+                      <div className="space-y-2">
+                        {treatmentPlan.selectedTreatments.map((treatment, index) => (
+                          <div key={index} className="p-3 bg-gray-50 rounded-md">
+                            <div className="font-medium">{treatment.name}</div>
+                            <div className="text-sm text-gray-500">{treatment.description}</div>
+                            <div className="text-sm">Duration: {treatment.duration}</div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <Text color="dimmed">No treatments selected yet</Text>
+                    )}
+                  </div>
+
+                  <div className="mt-4">
+                    <h5 className="font-medium mb-2">Selected Medications</h5>
+                    {treatmentPlan.medications?.map((med, index) => (
+                      <Text key={index} mb="xs">• {med.name} - {med.dosage}</Text>
+                    ))}
+                  </div>
                 </Card>
 
                 <Card shadow="sm" p="lg" radius="md" withBorder>
