@@ -6,6 +6,7 @@ import PatientWorkflow from "./pages/doctor/PatientWorkflow";
 import PatientDatabasePage from "./pages/doctor/PatientDatabasePage";
 import PatientDetails from "./pages/doctor/PatientDetails";
 import ClinicServicesPage from "./pages/doctor/ClinicServicesPage";
+import ReportPage from "./pages/doctor/ReportPage";
 import Sidebar from "./pages/doctor/Sidebar";
 import PatientInformation from "./components/workflow/PatientInformation";
 import ReviewAndFinalize from "./components/workflow/ReviewAndFinalize";
@@ -29,6 +30,7 @@ const DoctorApp: React.FC = () => {
           <Route path="appointments" element={<AppointmentsPage />} />
           <Route path="manage-patients" element={<PatientDatabasePage />} />
           <Route path="manage-patient/:id" element={<PatientDetails />} />
+          <Route path="reports/:reportId" element={<ReportPage />} />
           <Route path="manage-patient/:id/workflow" element={<PatientWorkflow />}>
             <Route index element={<Navigate to="information" replace />} />
             <Route path="information" element={<PatientInformation />} />

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import PatientService from "../../services/PatientService";
 
 // Define QueueStatus interface
@@ -42,6 +42,7 @@ interface DashboardData {
 }
 
 const PatientDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [dashboardData, setDashboardData] = useState<DashboardData>({
@@ -67,6 +68,10 @@ const PatientDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleReportClick = (reportId: string) => {
+    navigate(`/patient/report/${reportId}`);
   };
 
   if (loading) {
@@ -187,7 +192,11 @@ const PatientDashboard: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {dashboardData.recentVisits.map((visit) => (
-                  <tr key={visit.id}>
+                  <tr 
+                    key={visit.id}
+                    onClick={() => handleReportClick(visit.id)}
+                    className="hover:bg-gray-50 cursor-pointer transition-colors"
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       {new Date(visit.date).toLocaleDateString()}
                     </td>

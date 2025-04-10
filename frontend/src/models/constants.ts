@@ -26,4 +26,6 @@ export const COLLECTIONS = {
   PATIENTS: "patients",
   APPOINTMENTS: "appointments",
   VISITS: "visits",
+  REPORTS: "reports",
+  QUEUES: "queues",
 } as const;

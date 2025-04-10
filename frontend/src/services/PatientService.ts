@@ -42,6 +42,29 @@ interface PatientFilters {
   sortDirection?: "asc" | "desc";
 }
 
+// Define the PatientReport interface
+interface PatientReport {
+  id?: string;
+  patientId: string;
+  diagnosis?: string;
+  diagnosisDetails?: string;
+  medications?: Array<{ name: string; dosage: string }>;
+  nextSteps?: string[];
+  next_appointment?: string;
+  recommendations?: any[];
+  additional_notes?: string;
+  selectedTreatments?: any[];
+  selectedMedicines?: any[];
+  created_at?: Timestamp;
+  doctor?: string;
+  messages?: {
+    id: string;
+    sender: 'patient' | 'doctor';
+    content: string;
+    timestamp: Timestamp;
+  }[];
+}
+
 const PatientService = {
   async getPatients(filters: PatientFilters = {}): Promise<Patient[]> {
     try {
@@ -261,6 +284,285 @@ const PatientService = {
     } catch (error) {
       console.error("Error fetching patient:", error);
       throw new Error(`Failed to fetch patient: ${(error as Error).message}`);
+    }
+  },
+
+  async getPatientDashboardData() {
+    try {
+      // For demo purposes, we'll just show all reports
+      // In a real app with authentication, you would filter by the current user's ID
+      const reports = await this.getAllReports();
+      
+      // Convert reports to Visit format for the dashboard
+      const recentVisits = reports.map(report => ({
+        id: report.id || '',
+        date: report.created_at ? report.created_at.toDate().toISOString() : new Date().toISOString(),
+        type: 'Consultation',
+        doctor: report.doctor || 'Dr. Smith',
+        status: 'completed'
+      }));
+      
+      // Mock data for the dashboard
+      return {
+        activeQueue: null,
+        upcomingAppointment: null,
+        recentVisits,
+        notifications: [],
+      };
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      throw new Error(`Failed to fetch dashboard data: ${(error as Error).message}`);
+    }
+  },
+
+  async getAllReports(): Promise<PatientReport[]> {
+    try {
+      const reportsRef = collection(
+        db,
+        COLLECTIONS.HOSPITALS,
+        HOSPITAL.ID,
+        COLLECTIONS.REPORTS
+      );
+      
+      const snapshot = await getDocs(reportsRef);
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as PatientReport[];
+    } catch (error) {
+      console.error('Error fetching all reports:', error);
+      return [];
+    }
+  },
+
+  async sendPatientReport(reportData: PatientReport): Promise<boolean> {
+    try {
+      const reportsRef = collection(
+        db,
+        COLLECTIONS.HOSPITALS,
+        HOSPITAL.ID,
+        COLLECTIONS.REPORTS
+      );
+      
+      // Create a new report with the current timestamp and empty messages array
+      await addDoc(reportsRef, {
+        ...reportData,
+        created_at: Timestamp.now(),
+        doctor: reportData.doctor || 'Doctor',
+        messages: [] // Initialize empty messages array for chat functionality
+      });
+      
+      // Update patient's status to indicate a report was sent
+      if (reportData.patientId) {
+        const patientRef = doc(
+          db, 
+          COLLECTIONS.HOSPITALS, 
+          HOSPITAL.ID, 
+          COLLECTIONS.PATIENTS, 
+          reportData.patientId
+        );
+        
+        await updateDoc(patientRef, {
+          lastReportDate: Timestamp.now(),
+          status: 'report-sent',
+          updated_at: Timestamp.now()
+        });
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error sending patient report:', error);
+      throw new Error(`Failed to send patient report: ${(error as Error).message}`);
+    }
+  },
+  
+  async getPatientReports(patientId: string): Promise<PatientReport[]> {
+    try {
+      const reportsRef = collection(
+        db,
+        COLLECTIONS.HOSPITALS,
+        HOSPITAL.ID,
+        COLLECTIONS.REPORTS
+      );
+      
+      const q = query(
+        reportsRef,
+        where('patientId', '==', patientId),
+        orderBy('created_at', 'desc')
+      );
+      
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as PatientReport[];
+    } catch (error) {
+      console.error('Error fetching patient reports:', error);
+      throw new Error(`Failed to fetch patient reports: ${(error as Error).message}`);
+    }
+  },
+  
+  async getReportById(reportId: string): Promise<PatientReport> {
+    try {
+      const reportRef = doc(
+        db,
+        COLLECTIONS.HOSPITALS,
+        HOSPITAL.ID,
+        COLLECTIONS.REPORTS,
+        reportId
+      );
+      
+      const snapshot = await getDoc(reportRef);
+      if (!snapshot.exists()) {
+        throw new Error('Report not found');
+      }
+      
+      return {
+        id: snapshot.id,
+        ...snapshot.data()
+      } as PatientReport;
+    } catch (error) {
+      console.error('Error fetching report:', error);
+      throw new Error(`Failed to fetch report: ${(error as Error).message}`);
+    }
+  },
+  
+  async sendMessageToReport(reportId: string, message: string, sender: 'patient' | 'doctor'): Promise<boolean> {
+    try {
+      const reportRef = doc(
+        db,
+        COLLECTIONS.HOSPITALS,
+        HOSPITAL.ID,
+        COLLECTIONS.REPORTS,
+        reportId
+      );
+      
+      // Get the current messages
+      const reportSnap = await getDoc(reportRef);
+      if (!reportSnap.exists()) {
+        throw new Error('Report not found');
+      }
+      
+      const report = reportSnap.data();
+      const messages = report.messages || [];
+      
+      // Add the new message
+      const newMessage = {
+        id: crypto.randomUUID(), // Generate a unique ID for the message
+        sender,
+        content: message,
+        timestamp: Timestamp.now(),
+        readByDoctor: sender === 'doctor', // If doctor sent it, mark as read by doctor
+        readByPatient: sender === 'patient' // If patient sent it, mark as read by patient
+      };
+      
+      // Update the report with the new message
+      await updateDoc(reportRef, {
+        messages: [...messages, newMessage]
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error sending message:', error);
+      throw new Error(`Failed to send message: ${(error as Error).message}`);
+    }
+  },
+
+  async getReportsWithUnreadMessages(): Promise<PatientReport[]> {
+    try {
+      const reportsRef = collection(
+        db,
+        COLLECTIONS.HOSPITALS,
+        HOSPITAL.ID,
+        COLLECTIONS.REPORTS
+      );
+      
+      // First, get all reports
+      const snapshot = await getDocs(reportsRef);
+      
+      // Go through each report and check for unread messages
+      const reportsWithUnread = [];
+      
+      for (const doc of snapshot.docs) {
+        const reportData = doc.data();
+        const messages = reportData.messages || [];
+        
+        // Get the patient name for the report
+        let patientName = 'Unknown';
+        try {
+          if (reportData.patientId) {
+            const patientDoc = await getDoc(
+              doc(db, COLLECTIONS.HOSPITALS, HOSPITAL.ID, COLLECTIONS.PATIENTS, reportData.patientId)
+            );
+            if (patientDoc.exists()) {
+              patientName = patientDoc.data().name || 'Unknown';
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching patient name:', error);
+        }
+        
+        // Calculate unread messages (from patient that doctor hasn't seen)
+        const unreadMessages = messages.filter(
+          (msg: any) => msg.sender === 'patient' && !msg.readByDoctor
+        ).length;
+        
+        // Get timestamp of latest message
+        let lastMessageTime = null;
+        if (messages.length > 0) {
+          const latestMessage = messages[messages.length - 1];
+          lastMessageTime = latestMessage.timestamp?.toDate();
+        }
+        
+        // If there are unread messages or recent messages (within last 7 days)
+        if (unreadMessages > 0 || 
+            (lastMessageTime && (new Date().getTime() - lastMessageTime.getTime()) < 7 * 24 * 60 * 60 * 1000)) {
+          reportsWithUnread.push({
+            id: doc.id,
+            patientId: reportData.patientId,
+            patientName,
+            diagnosis: reportData.diagnosis,
+            created_at: reportData.created_at,
+            doctor: reportData.doctor,
+            unreadMessages,
+            lastMessageTime
+          });
+        }
+      }
+      
+      // Sort by unread messages count (desc) and then by last message time (desc)
+      return reportsWithUnread.sort((a, b) => {
+        if (a.unreadMessages !== b.unreadMessages) {
+          return b.unreadMessages - a.unreadMessages;
+        }
+        
+        if (a.lastMessageTime && b.lastMessageTime) {
+          return b.lastMessageTime.getTime() - a.lastMessageTime.getTime();
+        }
+        
+        return 0;
+      });
+    } catch (error) {
+      console.error('Error fetching reports with unread messages:', error);
+      return [];
+    }
+  },
+
+  async updateReportMessages(reportId: string, messages: any[]): Promise<boolean> {
+    try {
+      const reportRef = doc(
+        db,
+        COLLECTIONS.HOSPITALS,
+        HOSPITAL.ID,
+        COLLECTIONS.REPORTS,
+        reportId
+      );
+      
+      await updateDoc(reportRef, { messages });
+      return true;
+    } catch (error) {
+      console.error('Error updating report messages:', error);
+      throw new Error(`Failed to update report messages: ${(error as Error).message}`);
     }
   },
 };
