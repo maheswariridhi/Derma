@@ -7,67 +7,76 @@ import { BsCalendarCheck } from "react-icons/bs"; // Bootstrap icons
 // Define Props interface
 interface MainLayoutProps {
   children: React.ReactNode;
+  showWorkflow?: boolean;
+  contentClassName?: string;
 }
 
 // Define NavigationItem interface
 interface NavigationItem {
   path: string;
   label: string;
-  icon: JSX.Element;
+  icon: React.ReactNode;
 }
 
-const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
+const MainLayout: React.FC<MainLayoutProps> = ({
+  children,
+  showWorkflow = false,
+  contentClassName = "",
+}) => {
   const location = useLocation();
-  console.log("Current location:", location.pathname); // Debug log
 
   const navigationItems: NavigationItem[] = [
     {
-      path: "/dashboard",
+      path: "/clinic/dashboard",
       label: "Dashboard",
-      icon: <MdDashboard className="w-6 h-6" />,
+      icon: <MdDashboard className="w-5 h-5" />,
     },
     {
-      path: "/patients",
+      path: "/clinic/manage-patients",
       label: "Patient Database",
-      icon: <FaUserInjured className="w-6 h-6" />,
+      icon: <FaUserInjured className="w-5 h-5" />,
     },
     {
-      path: "/appointments",
+      path: "/clinic/appointments",
       label: "Appointments",
-      icon: <BsCalendarCheck className="w-6 h-6" />,
+      icon: <BsCalendarCheck className="w-5 h-5" />,
     },
     {
-      path: "/clinic-services",
+      path: "/clinic/services",
       label: "Services",
-      icon: <MdMedicalServices className="w-6 h-6" />,
+      icon: <MdMedicalServices className="w-5 h-5" />,
     },
   ];
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      {/* Sidebar */}
-      <div className="w-64 bg-white border-r">
-        <div className="p-4 border-b">
-          <h1 className="text-xl font-bold text-blue-600">DermaAi</h1>
+    <div className="flex h-screen bg-gray-50">
+      {/* Main Sidebar - Fixed */}
+      <div className="w-64 fixed h-full z-20">
+        <div className="p-6">
+          <Link to="/clinic/dashboard" className="block">
+            <h1 className="text-2xl font-semibold text-teal-600">DermaAI</h1>
+          </Link>
         </div>
-        <nav className="p-4">
-          <ul className="space-y-2">
+        
+        <nav className="mt-2 px-3">
+          <ul className="space-y-1">
             {navigationItems.map((item) => {
-              const isActive = location.pathname === item.path;
-              console.log(`${item.label}: ${item.path} - Active: ${isActive}`); // Debug log
-
+              const isActive = location.pathname === item.path || 
+                             (item.path !== '/clinic/dashboard' && location.pathname.startsWith(item.path));
+              
               return (
                 <li key={item.path}>
                   <Link
                     to={item.path}
-                    className={`flex items-center px-4 py-2 rounded-lg ${
+                    className={`flex items-center px-4 py-3 rounded-lg transition-colors ${
                       isActive
-                        ? "bg-blue-50 text-blue-700"
-                        : "text-gray-700 hover:bg-gray-50"
+                        ? "text-teal-700 font-medium"
+                        : "text-gray-600 hover:text-gray-900"
                     }`}
-                    onClick={() => console.log("Clicked:", item.path)} // Debug log
                   >
-                    <span className="mr-3">{item.icon}</span>
+                    <span className={`mr-3 ${isActive ? "text-teal-500" : "text-gray-400"}`}>
+                      {item.icon}
+                    </span>
                     {item.label}
                   </Link>
                 </li>
@@ -77,8 +86,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </nav>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto">{children}</div>
+      {/* Main Content Area - With offset for fixed sidebar */}
+      <div className="flex-1 ml-64">
+        <div className={`h-full ${contentClassName}`}>
+          {children}
+        </div>
+      </div>
     </div>
   );
 };

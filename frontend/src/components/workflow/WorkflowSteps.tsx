@@ -24,32 +24,54 @@ const WorkflowSteps: React.FC<WorkflowStepsProps> = ({
   const patientId = location.pathname.split("/")[3] || "";
 
   return (
-    <div className="space-y-2">
-      {steps.map((step) => (
-        <div
-          key={step.id}
-          onClick={() => onStepClick(step.id)}
-          className={`flex items-center p-4 cursor-pointer rounded-lg transition-colors
-            ${activeStep === step.id ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
-        >
+    <div className="px-8 py-4">
+      <h2 className="text-2xl font-medium text-gray-800 mb-8">DJ Dental</h2>
+      
+      <div className="space-y-0 relative">
+        {/* Vertical connecting line */}
+        <div className="absolute left-4 top-6 bottom-6 w-0.5 bg-gray-200 z-0"></div>
+        
+        {steps.map((step, index) => (
           <div
-            className={`flex items-center justify-center w-8 h-8 rounded-full mr-3 
-              ${activeStep === step.id 
-                ? 'bg-blue-500 text-white' 
-                : 'bg-gray-100 text-gray-500'}`}
+            key={step.id}
+            onClick={() => onStepClick(step.id)}
+            className={`flex items-start p-4 cursor-pointer transition-colors relative z-10 mb-8
+              ${activeStep === step.id ? 'opacity-100' : 'opacity-70 hover:opacity-90'}`}
           >
-            {step.id}
-          </div>
-          <div>
-            <div className={`font-medium ${activeStep === step.id ? 'text-blue-600' : 'text-gray-900'}`}>
-              {step.label}
+            <div
+              className={`flex items-center justify-center w-8 h-8 rounded-full mr-5 flex-shrink-0
+                ${activeStep === step.id 
+                  ? 'bg-teal-500 text-white' 
+                  : activeStep > step.id
+                    ? 'bg-gray-300 text-white'
+                    : 'bg-gray-100 text-gray-500'}`}
+            >
+              {activeStep > step.id ? (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                step.id
+              )}
             </div>
-            <div className="text-sm text-gray-500">
-              {step.description}
+            <div>
+              <div className={`font-medium text-lg mb-1 ${activeStep === step.id ? 'text-teal-600' : 'text-gray-900'}`}>
+                {step.label}
+              </div>
+              <div className="text-sm text-gray-500">
+                {step.description}
+              </div>
+              
+              {/* Optional badge for active step */}
+              {activeStep === step.id && (
+                <div className="inline-block bg-teal-50 text-teal-700 text-xs px-2 py-1 rounded mt-2 font-medium">
+                  Current
+                </div>
+              )}
             </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 };

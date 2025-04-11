@@ -10,16 +10,19 @@ interface Patient {
   email?: string;
   condition?: string;
   lastVisit?: string;
+  treatmentPlan?: any;
 }
 
 // Define context interface
 interface OutletContext {
-  patient: Patient;
-  onComplete: () => void;
+  patient: Patient | null;
+  onComplete: (updatedPatient: Patient) => void;
+  error: string | null;
+  setError: (error: string | null) => void;
 }
 
 const PatientInformation: React.FC = () => {
-  const { patient, onComplete } = useOutletContext<OutletContext>();
+  const { patient, onComplete, setError } = useOutletContext<OutletContext>();
   const [editedPatient, setEditedPatient] = useState<Patient>(patient || {} as Patient);
 
   // Update editedPatient when patient data changes
@@ -31,10 +34,14 @@ const PatientInformation: React.FC = () => {
 
   const handleSubmit = async () => {
     try {
+      if (!editedPatient.id) {
+        throw new Error("Patient ID is required");
+      }
       await PatientService.updatePatient(editedPatient.id, editedPatient);
-      onComplete();
+      onComplete(editedPatient);
     } catch (error) {
       console.error("Failed to update patient:", error);
+      setError((error as Error).message);
     }
   };
 
@@ -120,7 +127,7 @@ const PatientInformation: React.FC = () => {
         <div className="mt-6">
           <button
             onClick={handleSubmit}
-            className="w-full py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="w-full py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
           >
             Save and Continue
           </button>

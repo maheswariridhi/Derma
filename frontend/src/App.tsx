@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { MantineProvider, createTheme, MantineThemeOverride } from "@mantine/core";
 import "@mantine/core/styles.css";
 import DoctorApp from "./DoctorApp";
@@ -12,18 +13,13 @@ const theme: MantineThemeOverride = createTheme({
 const App: React.FC = () => {
   return (
     <MantineProvider theme={theme}>
-      <BrowserRouter>
+      <Router>
         <Routes>
-          {/* Doctor/Clinic Routes */}
+          <Route path="/" element={<Navigate to="/clinic" replace />} />
           <Route path="/clinic/*" element={<DoctorApp />} />
-
-          {/* Patient Routes */}
           <Route path="/patient/*" element={<PatientApp />} />
-
-          {/* Default redirect */}
-          <Route path="/" element={<Navigate to="/patient" replace />} />
         </Routes>
-      </BrowserRouter>
+      </Router>
     </MantineProvider>
   );
 };

@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import PatientService from '../../services/PatientService';
-import WorkflowLayout from '../../layouts/WorkflowLayout';
 import WorkflowSteps from '../../components/workflow/WorkflowSteps';
 import { 
   Paper, 
@@ -321,20 +320,61 @@ const PatientWorkflow: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [activeStep, setActiveStep] = useState<number>(1);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<number>(0);
+  const [activeTab, setActiveTab] = useState<'overview' | 'ai'>('overview');
+
+  console.log('PatientWorkflow rendering with ID:', id); // Debug log
+
+  // Add scroll tracking to update active step
+  const [scrollRefs] = useState({
+    information: React.createRef<HTMLDivElement>(),
+    review: React.createRef<HTMLDivElement>(),
+    send: React.createRef<HTMLDivElement>()
+  });
+
+  // Track scroll position to update active step
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, clientHeight } = e.currentTarget;
+    const scrollPosition = scrollTop + clientHeight / 3; // Adjust trigger point
+    
+    // Find which section is currently most visible
+    if (scrollRefs.information.current && 
+        scrollRefs.review.current && 
+        scrollRefs.send.current) {
+      
+      const informationPos = scrollRefs.information.current.offsetTop;
+      const reviewPos = scrollRefs.review.current.offsetTop;
+      const sendPos = scrollRefs.send.current.offsetTop;
+      
+      if (scrollPosition < reviewPos) {
+        if (activeStep !== 1) setActiveStep(1);
+      } else if (scrollPosition < sendPos) {
+        if (activeStep !== 2) setActiveStep(2);
+      } else {
+        if (activeStep !== 3) setActiveStep(3);
+      }
+    }
+  };
 
   useEffect(() => {
     const loadPatient = async () => {
+      console.log('Loading patient data...'); // Debug log
       try {
         setLoading(true);
         setError(null);
 
         let patientData = location.state?.patient;
+        console.log('Patient data from location state:', patientData); // Debug log
+        
         if (!patientData) {
+          console.log('Fetching patient data from service...'); // Debug log
           patientData = await PatientService.getPatientById(id);
         }
         if (!patientData) throw new Error('Patient not found');
+        console.log('Patient data loaded:', patientData); // Debug log
         setPatient(patientData);
       } catch (error) {
+        console.error('Error loading patient:', error); // Debug log
         setError((error as Error).message);
       } finally {
         setLoading(false);
@@ -343,6 +383,37 @@ const PatientWorkflow: React.FC = () => {
 
     loadPatient();
   }, [id, location.state]);
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading patient data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 mb-4">⚠️</div>
+          <p className="text-gray-800 font-medium mb-2">Error Loading Patient</p>
+          <p className="text-gray-600">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-teal-500 text-white rounded hover:bg-teal-600"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const handleStepComplete = async (updatedPatient: Patient) => {
     try {
@@ -373,69 +444,108 @@ const PatientWorkflow: React.FC = () => {
   };
 
   return (
-    <WorkflowLayout
-      workflow={
-        <div className="h-full bg-white">
-          <div className="p-6 border-b">
-            <button 
-              onClick={() => navigate(-1)} 
-              className="text-gray-600 hover:text-gray-900 flex items-center gap-2 mb-4"
-            >
-              ← Back
-            </button>
-            <div className="space-y-1">
-              <h2 className="text-xl font-semibold">{patient?.name}</h2>
-              <p className="text-gray-600">{patient?.phone}</p>
+    <div className="flex h-full">
+      {/* Workflow Steps Panel (Middle) */}
+      <div className="w-[280px] border-x border-gray-200 bg-white overflow-y-auto">
+        <div className="border-b p-6">
+          <button 
+            onClick={() => navigate(-1)} 
+            className="text-gray-600 hover:text-gray-900 flex items-center gap-2 mb-4"
+          >
+            ← Back
+          </button>
+          <div className="space-y-1">
+            <h2 className="text-xl font-semibold">{patient?.name || 'Patient'}</h2>
+            <p className="text-gray-600">{patient?.phone || 'No phone number'}</p>
+          </div>
+        </div>
+        
+        <div className="flex-1">
+          <WorkflowSteps
+            activeStep={activeStep}
+            onStepClick={(stepId: number) => {
+              console.log('Step clicked:', stepId);
+              setActiveStep(stepId);
+              const section = stepId === 1 ? scrollRefs.information.current :
+                             stepId === 2 ? scrollRefs.review.current :
+                             scrollRefs.send.current;
+                             
+              if (section) {
+                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }
+            }}
+            steps={[
+              { 
+                id: 1, 
+                label: 'Tell us about the patient',
+                description: 'Basic patient details'
+              },
+              { 
+                id: 2, 
+                label: 'Review and Finalize',
+                description: 'Review treatment plan to edit it and send it to the patient'
+              },
+              { 
+                id: 3, 
+                label: 'Send to Patient',
+                description: 'Send the completed treatment plan to patient'
+              },
+            ]}
+          />
+        </div>
+      </div>
+
+      {/* Content Area (Right) */}
+      <div className="flex-1 overflow-y-auto bg-gray-50">
+        <div className="max-w-4xl mx-auto px-8 py-8">
+          {/* Section 1: Patient Information */}
+          <div ref={scrollRefs.information} className="mb-16">
+            <div className="bg-white rounded-lg shadow-sm">
+              <div className="p-6 border-b">
+                <h1 className="text-2xl font-medium text-gray-800">Patient Information</h1>
+              </div>
+              <div className="p-6">
+                <Outlet context={{ patient, onComplete: handleStepComplete, error, setError }} />
+              </div>
             </div>
           </div>
           
-          <div className="p-4">
-            <WorkflowSteps
-              activeStep={activeStep}
-              onStepClick={(stepId: number) => {
-                setActiveStep(stepId);
-                navigate(`/clinic/manage-patient/${id}/workflow/${
-                  stepId === 1 ? 'information' : 
-                  stepId === 2 ? 'review' : 'send'
-                }`);
-              }}
-              steps={[
-                { 
-                  id: 1, 
-                  label: 'Patient Information',
-                  description: 'Basic patient details'
-                },
-                { 
-                  id: 2, 
-                  label: 'Review & Finalize',
-                  description: 'Review treatment plan'
-                },
-                { 
-                  id: 3, 
-                  label: 'Send to Patient',
-                  description: 'Send report to patient'
-                },
-              ]}
-            />
+          {/* Section 2: Review & Finalize */}
+          <div ref={scrollRefs.review} className="mb-16">
+            <ReviewAndFinalize patient={patient} onComplete={handleStepComplete} />
+          </div>
+          
+          {/* Section 3: Send to Patient */}
+          <div ref={scrollRefs.send} className="mb-16">
+            <div className="bg-white rounded-lg shadow-sm">
+              <div className="p-6 border-b">
+                <h1 className="text-2xl font-medium text-gray-800">Send to Patient</h1>
+              </div>
+              <div className="p-6">
+                {activeStep === 3 && (
+                  <div className="space-y-8">
+                    <div className="bg-blue-50 p-6 rounded-lg">
+                      <h3 className="text-lg font-medium text-blue-800 mb-2">Ready to Send</h3>
+                      <p className="text-blue-700">
+                        The treatment plan is ready to be sent to {patient?.name}. 
+                        Please review all information once more before sending.
+                      </p>
+                    </div>
+                    
+                    <button 
+                      className="w-full py-4 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors text-lg font-medium"
+                      onClick={sendReportToPatient}
+                    >
+                      Send Treatment Plan to Patient
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-      }
-      content={
-        <div className="h-full bg-white p-6">
-          <Outlet context={{ patient, onComplete: handleStepComplete, error, setError }} />
-          {activeStep === 3 && (
-            <div className="mt-auto pt-6 border-t">
-              <button 
-                className="w-full py-3 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
-                onClick={sendReportToPatient}
-              >
-                Send Report to Patient
-              </button>
-            </div>
-          )}
-        </div>
-      }
-    />
+      </div>
+    </div>
   );
 };
 
