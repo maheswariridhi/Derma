@@ -12,7 +12,7 @@ const PatientApp: React.FC = () => {
       <PatientNavbar />
       <div className="container px-4 py-6 mx-auto">
         <Routes>
-          <Route path="/" element={<PatientDashboard />} />
+          <Route path="dashboard" element={<PatientDashboard />} />
           <Route path="queue/:tokenNumber?" element={<QueueView />} />
           <Route path="book" element={<AppointmentBooking />} />
           <Route path="profile" element={<PatientProfile />} />
