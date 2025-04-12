@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import AIRecommendationPanel from "../../components/ai/AIChatbot";
 import AIRecommendations from "../../components/ai/AIRecommendations";
 import PatientCard from "./PatientCard";
-import { api } from "../../utils/api"; // Fixed import path
+import { api } from "../../utils/api";
 
 // Define Patient interface
 interface Patient {
@@ -32,55 +32,84 @@ const PatientDetails: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        if (!patientData) return;
-
         setLoading(true);
+        // Simulate API call to get patient data
+        const mockPatientData: Patient = {
+          name: "John Doe",
+          age: 35,
+          condition: "Acne",
+          symptoms: ["Redness", "Inflammation"],
+          previousTreatments: ["Topical cream", "Oral medication"],
+          lastVisit: "2024-03-15",
+          allergies: ["Penicillin"],
+          currentMedications: ["Retinoid cream"]
+        };
+        
+        setPatientData(mockPatientData);
+
         const response = await api.post<AIResults>("/api/ai/analyze", {
-          patient_name: patientData.name,
-          age: patientData.age,
-          condition: patientData.condition,
-          symptoms: patientData.symptoms,
-          previous_treatments: patientData.previousTreatments,
-          last_visit: patientData.lastVisit,
-          allergies: patientData.allergies || [],
-          current_medications: patientData.currentMedications || [],
+          patient_name: mockPatientData.name,
+          age: mockPatientData.age,
+          condition: mockPatientData.condition,
+          symptoms: mockPatientData.symptoms,
+          previous_treatments: mockPatientData.previousTreatments,
+          last_visit: mockPatientData.lastVisit,
+          allergies: mockPatientData.allergies || [],
+          current_medications: mockPatientData.currentMedications || [],
         });
 
         setAiResults(response.data);
       } catch (err) {
-        setError("Failed to load AI analysis");
+        setError("Failed to load patient data");
         console.error(err);
       } finally {
         setLoading(false);
       }
     };
 
-    if (patientData) {
-      fetchData();
-    }
-  }, [patientData]);
+    fetchData();
+  }, []);
 
-  if (error) return <div>Error: {error}</div>;
-  if (!patientData || !aiResults) return null;
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+          Error: {error}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
       {/* Patient Info Section */}
       <section className="bg-white rounded-lg shadow p-6">
         <h2 className="text-xl font-semibold mb-4">Patient Information</h2>
-        <PatientCard patient={patientData} />
+        <PatientCard 
+          patient={patientData || {
+            id: "loading",
+            name: "",
+            status: "loading",
+            phone: "",
+            email: "",
+            condition: "",
+            lastVisit: ""
+          }} 
+          onClick={() => {}}
+          isLoading={loading}
+        />
       </section>
 
       {/* AI Analysis Section */}
-      <section className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold mb-4">AI Analysis</h2>
-        <div className="space-y-6">
-          {/* Pass only diagnosis data to Panel */}
-          <AIRecommendationPanel diagnosisData={aiResults.diagnosis} />
-          {/* Pass only treatment data to Recommendations */}
-          <AIRecommendations treatmentData={aiResults.treatment_plan} />
-        </div>
-      </section>
+      {!loading && aiResults && (
+        <section className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">AI Analysis</h2>
+          <div className="space-y-6">
+            <AIRecommendationPanel diagnosisData={aiResults.diagnosis} />
+            <AIRecommendations treatmentData={aiResults.treatment_plan} />
+          </div>
+        </section>
+      )}
     </div>
   );
 };

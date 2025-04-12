@@ -1,5 +1,11 @@
 import React from "react";
-import { Select } from "../ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 interface Treatment {
   id: number;
@@ -22,28 +28,40 @@ const TreatmentDropdown: React.FC<TreatmentDropdownProps> = ({
   label = "Select Treatment",
   placeholder = "Select a treatment...",
 }) => {
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedId = e.target.value;
-    const selectedTreatment = treatments.find(
-      (treatment) => treatment.id.toString() === selectedId
-    );
-    if (selectedTreatment) {
-      onSelect(selectedTreatment);
-    }
-  };
-
-  const options = treatments.map((treatment) => ({
-    value: treatment.id.toString(),
-    label: `${treatment.name} - ${treatment.duration}`,
-  }));
-
   return (
-    <Select
-      label={label}
-      options={options}
-      onChange={handleChange}
-      placeholder={placeholder}
-    />
+    <div className="space-y-2">
+      {label && <label className="text-sm font-medium">{label}</label>}
+      <Select
+        onValueChange={(value) => {
+          const selectedTreatment = treatments.find(
+            (treatment) => treatment.id.toString() === value
+          );
+          if (selectedTreatment) {
+            onSelect(selectedTreatment);
+          }
+        }}
+      >
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          {treatments.map((treatment) => (
+            <SelectItem
+              key={treatment.id}
+              value={treatment.id.toString()}
+              className="cursor-pointer"
+            >
+              <div className="flex flex-col">
+                <span className="font-medium">{treatment.name}</span>
+                <span className="text-sm text-gray-500">
+                  {treatment.duration} - {treatment.cost}
+                </span>
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 };
 
