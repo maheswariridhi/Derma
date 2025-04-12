@@ -4,25 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import PatientService from '../../services/PatientService';
 import WorkflowSteps from '../../components/workflow/WorkflowSteps';
-import { 
-  Paper, 
-  Title, 
-  Text, 
-  Stack, 
-  Card,
-  Container,
-  Group,
-  ThemeIcon,
-  ScrollArea,
-  Progress,
-  Tabs
-} from '@mantine/core';
-import { 
-  IconStethoscope, 
-  IconCalendar, 
-  IconClipboardCheck,
-  IconBrain
-} from '@tabler/icons-react';
+import { Card, Container, ThemeIcon } from '@mantine/core';
+import { IconStethoscope, IconBrain } from '@tabler/icons-react';
 import AIRecommendations from "../../components/ai/AIRecommendations";
 import AIChatbot from "../../components/ai/AIChatbot";
 import MedicationDropdown from "../../components/services/MedicationDropdown";
@@ -68,11 +51,6 @@ interface Patient {
   phone?: string;
   treatmentPlan?: TreatmentPlan;
   status?: string;
-}
-
-interface Props {
-  patient: Patient;
-  onComplete: (updatedPatient: Patient) => void;
 }
 
 const initialServices: Services = {
@@ -127,182 +105,49 @@ const initialServices: Services = {
   ],
 };
 
-const ReviewAndFinalize: React.FC<Props> = ({ patient, onComplete }) => {
-  const [treatmentPlan, setTreatmentPlan] = useState<TreatmentPlan>({
-    diagnosis: patient?.treatmentPlan?.diagnosis || '',
-    diagnosisDetails: patient?.treatmentPlan?.diagnosisDetails || '',
-    medications: patient?.treatmentPlan?.medications || [],
-    nextSteps: patient?.treatmentPlan?.nextSteps || [],
-    next_appointment: patient?.treatmentPlan?.next_appointment || '',
-    recommendations: patient?.treatmentPlan?.recommendations || [],
-    additional_notes: patient?.treatmentPlan?.additional_notes || '',
-    selectedTreatments: patient?.treatmentPlan?.selectedTreatments || [],
-    selectedMedicines: patient?.treatmentPlan?.selectedMedicines || [],
-  });
-  const [activeTab, setActiveTab] = useState<'overview' | 'ai'>('overview');
-  const [progress, setProgress] = useState<number>(0);
-  const [services] = useState<Services>(initialServices);
+const useScrollManager = (contentRef: React.RefObject<HTMLDivElement>, setActiveStep: (step: number) => void) => {
+  const [isScrolling, setIsScrolling] = React.useState(false);
+  const scrollTimeout = React.useRef<NodeJS.Timeout>();
 
-  useEffect(() => {
-    updateProgress();
-  }, [treatmentPlan]);
+  const handleScroll = React.useCallback(() => {
+    if (!contentRef.current || isScrolling) return;
 
-  const updateProgress = () => {
-    let completed = 0;
-    if (treatmentPlan.diagnosis) completed += 30;
-    if (treatmentPlan.medications?.length) completed += 30;
-    if (treatmentPlan.nextSteps?.length) completed += 40;
-    setProgress(completed);
-  };
-
-  const handleEdit = (section: keyof TreatmentPlan, value: any) => {
-    setTreatmentPlan(prev => ({
-      ...prev,
-      [section]: value
-    }));
-  };
-
-  const handleTreatmentSelect = (treatment: Treatment) => {
-    setTreatmentPlan((prev) => ({
-      ...prev,
-      selectedTreatments: [...(prev.selectedTreatments || []), treatment]
-    }));
-  };
-
-  const handleMedicineSelect = (medicine: Medicine) => {
-    setTreatmentPlan((prev) => ({
-      ...prev,
-      selectedMedicines: [...(prev.selectedMedicines || []), medicine],
-      medications: [
-        ...prev.medications, 
-        { name: medicine.name, dosage: medicine.dosage }
-      ]
-    }));
-    updateProgress();
-  };
-
-  const handleComplete = () => {
-    if (progress === 100) {
-      onComplete({ ...patient, treatmentPlan });
+    const { scrollTop, clientHeight } = contentRef.current;
+    const step = Math.round(scrollTop / clientHeight) + 1;
+    
+    if (step >= 1 && step <= 3) {
+      setActiveStep(step);
     }
-  };
+  }, [isScrolling, setActiveStep]);
 
-  return (
-    <div className="flex flex-col">
-      <ScrollArea className="flex-1">
-        <Container size="lg" className="py-6">
-          <Stack spacing="xl">
-            <Tabs value={activeTab} onChange={setActiveTab}>
-              <Tabs.List>
-                <Tabs.Tab value="overview" icon={<IconClipboardCheck size={16} />}>
-                  Overview
-                </Tabs.Tab>
-                <Tabs.Tab value="ai" icon={<IconBrain size={16} />}>
-                  AI Insights
-                </Tabs.Tab>
-              </Tabs.List>
-            </Tabs>
+  const scrollToStep = React.useCallback((step: number) => {
+    if (!contentRef.current) return;
 
-            {activeTab === 'overview' ? (
-              <>
-                <Card shadow="sm" p="lg" radius="md" withBorder>
-                  <Group mb="md">
-                    <ThemeIcon size={36} radius="xl">
-                      <IconStethoscope size={20} />
-                    </ThemeIcon>
-                    <div>
-                      <Title order={4}>Diagnosis</Title>
-                      <Text size="sm" color="dimmed">Review patient details</Text>
-                    </div>
-                  </Group>
-                  <Text>{treatmentPlan.diagnosis || 'Click to add diagnosis'}</Text>
-                  <Text mt="sm" color="dimmed">{treatmentPlan.diagnosisDetails}</Text>
-                </Card>
+    setIsScrolling(true);
+    if (scrollTimeout.current) {
+      clearTimeout(scrollTimeout.current);
+    }
 
-                <Card shadow="sm" p="lg" radius="md" withBorder>
-                  <Title order={4} mb="md">Prescribed Medications</Title>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <TreatmentDropdown 
-                        treatments={services.treatments}
-                        onSelect={handleTreatmentSelect}
-                        label="Select Treatment"
-                      />
-                    </div>
-                    <div>
-                      <MedicationDropdown 
-                        medicines={services.medicines}
-                        onSelect={handleMedicineSelect}
-                        label="Select Medication"
-                      />
-                    </div>
-                  </div>
+    contentRef.current.scrollTo({
+      top: (step - 1) * contentRef.current.clientHeight,
+      behavior: 'smooth'
+    });
 
-                  <div className="mt-4">
-                    <h5 className="font-medium mb-2">Selected Treatments</h5>
-                    {treatmentPlan.selectedTreatments && treatmentPlan.selectedTreatments.length > 0 ? (
-                      <div className="space-y-2">
-                        {treatmentPlan.selectedTreatments.map((treatment, index) => (
-                          <div key={index} className="p-3 bg-gray-50 rounded-md">
-                            <div className="font-medium">{treatment.name}</div>
-                            <div className="text-sm text-gray-500">{treatment.description}</div>
-                            <div className="text-sm">Duration: {treatment.duration}</div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <Text color="dimmed">No treatments selected yet</Text>
-                    )}
-                  </div>
+    // Reset scrolling flag after animation
+    scrollTimeout.current = setTimeout(() => {
+      setIsScrolling(false);
+    }, 1000);
+  }, []);
 
-                  <div className="mt-4">
-                    <h5 className="font-medium mb-2">Selected Medications</h5>
-                    {treatmentPlan.medications?.map((med, index) => (
-                      <Text key={index} mb="xs">• {med.name} - {med.dosage}</Text>
-                    ))}
-                  </div>
-                </Card>
+  React.useEffect(() => {
+    return () => {
+      if (scrollTimeout.current) {
+        clearTimeout(scrollTimeout.current);
+      }
+    };
+  }, []);
 
-                <Card shadow="sm" p="lg" radius="md" withBorder>
-                  <Group mb="md">
-                    <ThemeIcon size={36} radius="xl">
-                      <IconCalendar size={20} />
-                    </ThemeIcon>
-                    <div>
-                      <Title order={4}>Next Steps</Title>
-                      <Text size="sm" color="dimmed">Plan follow-up care</Text>
-                    </div>
-                  </Group>
-                  {treatmentPlan.nextSteps?.map((step, index) => (
-                    <Text key={index} mb="xs">{index + 1}. {step}</Text>
-                  ))}
-                </Card>
-              </>
-            ) : (
-              <>
-                <Card shadow="sm" p="lg" radius="md" withBorder>
-                  <AIRecommendations treatmentData={treatmentPlan} />
-                </Card>
-                <Card shadow="sm" p="lg" radius="md" withBorder>
-                  <AIChatbot context={treatmentPlan} />
-                </Card>
-              </>
-            )}
-
-            {progress === 100 && (
-              <button 
-                onClick={handleComplete}
-                className="w-full py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
-              >
-                Complete Review
-              </button>
-            )}
-          </Stack>
-        </Container>
-      </ScrollArea>
-    </div>
-  );
+  return { handleScroll, scrollToStep };
 };
 
 const PatientWorkflow: React.FC = () => {
@@ -310,99 +155,52 @@ const PatientWorkflow: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [patient, setPatient] = useState<Patient | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [activeStep, setActiveStep] = useState<number>(1);
+  const [loading, setLoading] = useState(true);
+  const [activeStep, setActiveStep] = useState(1);
   const [error, setError] = useState<string | null>(null);
-  const [progress, setProgress] = useState<number>(0);
-  const [activeTab, setActiveTab] = useState<'overview' | 'ai'>('overview');
-  const [hasLoaded, setHasLoaded] = useState<boolean>(false);
+  const [showAI, setShowAI] = useState(false);
 
-  console.log('PatientWorkflow rendering with ID:', id); // Debug log
+  const contentRef = React.useRef<HTMLDivElement>(null);
+  const stepRefs = {
+    1: React.useRef<HTMLDivElement>(null),
+    2: React.useRef<HTMLDivElement>(null),
+    3: React.useRef<HTMLDivElement>(null),
+  };
+  const { handleScroll, scrollToStep } = useScrollManager(contentRef, setActiveStep);
 
-  // Add scroll tracking to update active step
-  const [scrollRefs] = useState({
-    information: React.createRef<HTMLDivElement>(),
-    review: React.createRef<HTMLDivElement>(),
-    send: React.createRef<HTMLDivElement>()
-  });
-
-  // Track scroll position to update active step
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, clientHeight } = e.currentTarget;
-    const scrollPosition = scrollTop + clientHeight / 3; // Adjust trigger point
-    
-    // Find which section is currently most visible
-    if (scrollRefs.information.current && 
-        scrollRefs.review.current && 
-        scrollRefs.send.current) {
-      
-      const informationPos = scrollRefs.information.current.offsetTop;
-      const reviewPos = scrollRefs.review.current.offsetTop;
-      const sendPos = scrollRefs.send.current.offsetTop;
-      
-      if (scrollPosition < reviewPos) {
-        if (activeStep !== 1) setActiveStep(1);
-      } else if (scrollPosition < sendPos) {
-        if (activeStep !== 2) setActiveStep(2);
-      } else {
-        if (activeStep !== 3) setActiveStep(3);
-      }
-    }
+  // Handle step click from sidebar
+  const handleStepClick = (step: number) => {
+    setActiveStep(step);
+    scrollToStep(step);
   };
 
   useEffect(() => {
     const loadPatient = async () => {
-      // Prevent multiple loads
-      if (hasLoaded) return;
-      
-      console.log('Loading patient data...'); // Debug log
       try {
         setLoading(true);
         setError(null);
 
-        // If we have patient data in location state, use it directly
-        if (location.state?.patient) {
-          console.log('Using patient data from location state:', location.state.patient);
-          setPatient(location.state.patient);
-          setHasLoaded(true);
-          setLoading(false);
-          return;
-        }
-
-        // Only fetch from API if we don't have the data in location state
-        if (!id) {
-          throw new Error('Patient ID is required');
-        }
-
-        console.log('Fetching patient data from service...');
-        const patientData = await PatientService.getPatientById(id);
-        if (!patientData) throw new Error('Patient not found');
-        console.log('Patient data loaded:', patientData);
-        setPatient(patientData);
-        setHasLoaded(true);
-      } catch (error) {
-        console.error('Error loading patient:', error);
-        setError((error as Error).message);
+        const data = location.state?.patient || (id && await PatientService.getPatientById(id));
+        if (!data) throw new Error('Patient not found');
+        
+        setPatient(data);
+      } catch (err) {
+        setError((err as Error).message);
       } finally {
         setLoading(false);
       }
     };
 
     loadPatient();
-  }, [id, location.state, hasLoaded]);
+  }, [id, location.state]);
 
   const handleStepComplete = async (updatedPatient: Patient) => {
     try {
-      if (!id) {
-        throw new Error('Patient ID is required');
-      }
+      if (!id) throw new Error('Patient ID is required');
       
-      // Update the patient data in the backend
       await PatientService.updatePatientStatus(id, updatedPatient.status || 'active');
       setPatient(updatedPatient);
-      
-      // Don't automatically navigate to next step
-      // Let scrolling handle the step changes
+      setActiveStep(prev => Math.min(prev + 1, 3));
     } catch (error) {
       setError('Failed to update workflow.');
     }
@@ -410,54 +208,28 @@ const PatientWorkflow: React.FC = () => {
 
   const sendReportToPatient = async () => {
     try {
-      if (!patient) return;
+      if (!patient?.id || !patient.treatmentPlan) return;
       await PatientService.sendPatientReport({ patientId: patient.id, ...patient.treatmentPlan });
-      alert("Report sent successfully!");
-      navigate(`/patient/dashboard`);
+      navigate('/patient/dashboard');
     } catch (error) {
       setError("Failed to send report.");
     }
   };
 
-  // Show loading state
   if (loading) {
     return (
       <div className="h-full flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading patient data...</p>
-        </div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500"></div>
       </div>
     );
   }
 
-  // Show error state
-  if (error) {
+  if (error || !patient) {
     return (
       <div className="h-full flex items-center justify-center">
         <div className="text-center">
           <div className="text-red-500 mb-4">⚠️</div>
-          <p className="text-gray-800 font-medium mb-2">Error Loading Patient</p>
-          <p className="text-gray-600">{error}</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-teal-500 text-white rounded hover:bg-teal-600"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Show error if patient is null
-  if (!patient) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-500 mb-4">⚠️</div>
-          <p className="text-gray-800 font-medium mb-2">Patient Not Found</p>
-          <p className="text-gray-600">The requested patient could not be found.</p>
+          <p className="text-gray-800 font-medium mb-2">{error || 'Patient Not Found'}</p>
           <button 
             onClick={() => navigate('/clinic/dashboard')}
             className="mt-4 px-4 py-2 bg-teal-500 text-white rounded hover:bg-teal-600"
@@ -469,99 +241,203 @@ const PatientWorkflow: React.FC = () => {
     );
   }
 
+  const renderContent = () => (
+    <div className="flex flex-col space-y-0">
+      <section 
+        ref={stepRefs[1]} 
+        className="min-h-screen w-full flex items-center py-8 first:pt-0 last:pb-0"
+      >
+        <div className="w-full">
+          <div className="bg-white rounded-lg shadow-sm">
+            <div className="p-6 border-b">
+              <h1 className="text-2xl font-medium text-gray-800">Patient Information</h1>
+            </div>
+            <div className="p-6">
+              <Outlet context={{ patient, onComplete: handleStepComplete, error, setError }} />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section 
+        ref={stepRefs[2]} 
+        className="min-h-screen w-full flex items-center py-8"
+      >
+        <div className="w-full">
+          <div className="space-y-6">
+            <Card shadow="sm" p="lg" radius="md" withBorder>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-4">
+                  <ThemeIcon size={36} radius="xl">
+                    <IconStethoscope size={20} />
+                  </ThemeIcon>
+                  <h2 className="text-xl font-medium">Treatment Plan</h2>
+                </div>
+                <button
+                  onClick={() => setShowAI(!showAI)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"
+                >
+                  <IconBrain size={16} />
+                  {showAI ? 'Hide AI Insights' : 'Show AI Insights'}
+                </button>
+              </div>
+
+              {showAI ? (
+                <div className="space-y-4">
+                  <AIRecommendations 
+                    treatmentData={patient.treatmentPlan || {
+                      diagnosis: '',
+                      diagnosisDetails: '',
+                      medications: [],
+                      nextSteps: [],
+                      next_appointment: '',
+                      recommendations: [],
+                      additional_notes: ''
+                    }} 
+                  />
+                  <AIChatbot 
+                    context={patient.treatmentPlan || {
+                      diagnosis: '',
+                      diagnosisDetails: '',
+                      medications: [],
+                      nextSteps: [],
+                      next_appointment: '',
+                      recommendations: [],
+                      additional_notes: ''
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <TreatmentDropdown 
+                      treatments={initialServices.treatments}
+                      onSelect={(treatment) => handleStepComplete({
+                        ...patient,
+                        treatmentPlan: {
+                          ...patient.treatmentPlan!,
+                          selectedTreatments: [...(patient.treatmentPlan?.selectedTreatments || []), treatment]
+                        }
+                      })}
+                    />
+                    <MedicationDropdown 
+                      medicines={initialServices.medicines}
+                      onSelect={(medicine) => handleStepComplete({
+                        ...patient,
+                        treatmentPlan: {
+                          ...patient.treatmentPlan!,
+                          medications: [...(patient.treatmentPlan?.medications || []), { name: medicine.name, dosage: medicine.dosage }]
+                        }
+                      })}
+                    />
+                  </div>
+
+                  {patient.treatmentPlan?.selectedTreatments && patient.treatmentPlan.selectedTreatments.length > 0 && (
+                    <div className="mt-6">
+                      <h3 className="font-medium mb-3">Selected Treatments</h3>
+                      <div className="space-y-2">
+                        {patient.treatmentPlan.selectedTreatments.map((treatment, index) => (
+                          <div key={index} className="p-3 bg-gray-50 rounded-md">
+                            <div className="font-medium">{treatment.name}</div>
+                            <div className="text-sm text-gray-500">{treatment.description}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {patient.treatmentPlan?.medications && patient.treatmentPlan.medications.length > 0 && (
+                    <div className="mt-6">
+                      <h3 className="font-medium mb-3">Selected Medications</h3>
+                      <div className="space-y-2">
+                        {patient.treatmentPlan.medications.map((med, index) => (
+                          <div key={index} className="p-3 bg-gray-50 rounded-md">
+                            <div className="font-medium">{med.name}</div>
+                            <div className="text-sm text-gray-500">Dosage: {med.dosage}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      <section 
+        ref={stepRefs[3]} 
+        className="min-h-screen w-full flex items-center py-8"
+      >
+        <div className="w-full">
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="space-y-6">
+              <div className="bg-blue-50 p-6 rounded-lg">
+                <h3 className="text-lg font-medium text-blue-800 mb-2">Ready to Send</h3>
+                <p className="text-blue-700">
+                  Review the treatment plan for {patient.name} before sending.
+                </p>
+              </div>
+              
+              <button 
+                className="w-full py-4 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors text-lg font-medium"
+                onClick={sendReportToPatient}
+              >
+                Send Treatment Plan
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+
   return (
     <div className="flex h-full">
-      {/* Workflow Steps Panel (Middle) */}
-      <div className="w-[280px] border-x border-gray-200 bg-white overflow-y-auto">
+      {/* Workflow Steps Panel */}
+      <div className="w-[280px] border-x border-gray-200 bg-white">
         <div className="border-b p-6">
-          <div className="space-y-1">
-            <h2 className="text-xl font-semibold">{patient?.name || 'Patient'}</h2>
+          <div className="flex justify-center">
+            <h2 className="text-xl font-semibold text-center">{patient?.name}</h2>
           </div>
         </div>
         
-        <div className="flex-1">
-          <WorkflowSteps
-            activeStep={activeStep}
-            onStepClick={(stepId: number) => {
-              console.log('Step clicked:', stepId);
-              setActiveStep(stepId);
-              const section = stepId === 1 ? scrollRefs.information.current :
-                             stepId === 2 ? scrollRefs.review.current :
-                             scrollRefs.send.current;
-                             
-              if (section) {
-                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }
-            }}
-            steps={[
-              { 
-                id: 1, 
-                label: 'Tell us about the patient',
-                description: 'Basic patient details'
-              },
-              { 
-                id: 2, 
-                label: 'Review and Finalize',
-                description: 'Review treatment plan to edit it and send it to the patient'
-              },
-              { 
-                id: 3, 
-                label: 'Send to Patient',
-                description: 'Send the completed treatment plan to patient'
-              },
-            ]}
-          />
-        </div>
+        <WorkflowSteps
+          activeStep={activeStep}
+          onStepClick={handleStepClick}
+          steps={[
+            { 
+              id: 1, 
+              label: 'Patient Details',
+              description: 'Basic information'
+            },
+            { 
+              id: 2, 
+              label: 'Treatment Plan',
+              description: 'Review and edit plan'
+            },
+            { 
+              id: 3, 
+              label: 'Send to Patient',
+              description: 'Finalize and send'
+            },
+          ]}
+        />
       </div>
 
-      {/* Content Area (Right) */}
-      <div className="flex-1 overflow-y-auto bg-gray-50">
-        <div className="max-w-4xl mx-auto px-8 py-8">
-          {/* Section 1: Patient Information */}
-          <div ref={scrollRefs.information} className="mb-16">
-            <div className="bg-white rounded-lg shadow-sm">
-              <div className="p-6 border-b">
-                <h1 className="text-2xl font-medium text-gray-800">Patient Information</h1>
-              </div>
-              <div className="p-6">
-                <Outlet context={{ patient, onComplete: handleStepComplete, error, setError }} />
-              </div>
-            </div>
-          </div>
-          
-          {/* Section 2: Review & Finalize */}
-          <div ref={scrollRefs.review} className="mb-16">
-            <ReviewAndFinalize patient={patient} onComplete={handleStepComplete} />
-          </div>
-          
-          {/* Section 3: Send to Patient */}
-          <div ref={scrollRefs.send} className="mb-16">
-            <div className="bg-white rounded-lg shadow-sm">
-              <div className="p-6 border-b">
-                <h1 className="text-2xl font-medium text-gray-800">Send to Patient</h1>
-              </div>
-              <div className="p-6">
-                {activeStep === 3 && (
-                  <div className="space-y-8">
-                    <div className="bg-blue-50 p-6 rounded-lg">
-                      <h3 className="text-lg font-medium text-blue-800 mb-2">Ready to Send</h3>
-                      <p className="text-blue-700">
-                        The treatment plan is ready to be sent to {patient?.name}. 
-                        Please review all information once more before sending.
-                      </p>
-                    </div>
-                    
-                    <button 
-                      className="w-full py-4 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors text-lg font-medium"
-                      onClick={sendReportToPatient}
-                    >
-                      Send Treatment Plan to Patient
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+      {/* Content Area */}
+      <div 
+        ref={contentRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto bg-gray-50 scroll-smooth"
+        style={{
+          scrollBehavior: 'smooth',
+          WebkitOverflowScrolling: 'touch'
+        }}
+      >
+        <div className="container mx-auto px-8">
+          {renderContent()}
         </div>
       </div>
     </div>
