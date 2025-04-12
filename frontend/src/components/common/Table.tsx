@@ -11,11 +11,16 @@ interface TableProps<T> {
   headers: TableHeader[];
   data: T[];
   onRowClick: (row: T) => void;
+  actions?: (row: T) => React.ReactNode;
 }
 
-const Table = <T extends { id: string }>({ headers, data, onRowClick }: TableProps<T>) => {
+const Table = <T extends { id: string }>({ headers, data, onRowClick, actions }: TableProps<T>) => {
   const getCellValue = (row: T, key: string): string => {
     return key.split(".").reduce((obj, keyPart) => obj?.[keyPart as keyof T], row) as string || "";
+  };
+
+  const handleActionClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent row click when clicking action buttons
   };
 
   return (
@@ -28,6 +33,7 @@ const Table = <T extends { id: string }>({ headers, data, onRowClick }: TablePro
                 {header.label}
               </th>
             ))}
+            {actions && <th className="border px-4 py-2 text-left">Actions</th>}
           </tr>
         </thead>
         <tbody>
@@ -42,6 +48,11 @@ const Table = <T extends { id: string }>({ headers, data, onRowClick }: TablePro
                   {getCellValue(row, header.key)}
                 </td>
               ))}
+              {actions && (
+                <td className="border px-4 py-2" onClick={handleActionClick}>
+                  {actions(row)}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

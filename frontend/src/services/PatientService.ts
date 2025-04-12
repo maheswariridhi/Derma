@@ -6,6 +6,7 @@ import {
   getDoc,
   addDoc,
   updateDoc,
+  deleteDoc,
   query,
   where,
   orderBy,
@@ -63,6 +64,14 @@ interface PatientReport {
     content: string;
     timestamp: Timestamp;
   }[];
+}
+
+interface PatientProfileData {
+  name: string;
+  email: string;
+  phone: string;
+  dateOfBirth: string;
+  address: string;
 }
 
 const PatientService = {
@@ -565,6 +574,118 @@ const PatientService = {
       throw new Error(`Failed to update report messages: ${(error as Error).message}`);
     }
   },
+
+  async getPatientProfile(): Promise<PatientProfileData> {
+    try {
+      // Get the current user's ID from auth (you'll need to implement this)
+      const currentUserId = await this.getCurrentUserId();
+      
+      const docRef = doc(
+        db,
+        COLLECTIONS.HOSPITALS,
+        HOSPITAL.ID,
+        COLLECTIONS.PATIENTS,
+        currentUserId
+      );
+      const docSnap = await getDoc(docRef);
+
+      if (!docSnap.exists()) {
+        throw new Error("Patient profile not found");
+      }
+
+      const data = docSnap.data();
+      return {
+        name: data.name || "",
+        email: data.email || "",
+        phone: data.phone || "",
+        dateOfBirth: data.dateOfBirth || "",
+        address: data.address || "",
+      };
+    } catch (error) {
+      console.error("Error fetching patient profile:", error);
+      throw new Error(`Failed to fetch patient profile: ${(error as Error).message}`);
+    }
+  },
+
+  async updateProfile(profile: PatientProfileData): Promise<void> {
+    try {
+      // Get the current user's ID from auth (you'll need to implement this)
+      const currentUserId = await this.getCurrentUserId();
+      
+      const docRef = doc(
+        db,
+        COLLECTIONS.HOSPITALS,
+        HOSPITAL.ID,
+        COLLECTIONS.PATIENTS,
+        currentUserId
+      );
+
+      await updateDoc(docRef, {
+        ...profile,
+        updated_at: Timestamp.now(),
+      });
+    } catch (error) {
+      console.error("Error updating patient profile:", error);
+      throw new Error(`Failed to update patient profile: ${(error as Error).message}`);
+    }
+  },
+
+  // Helper method to get current user ID (you'll need to implement this based on your auth system)
+  async getCurrentUserId(): Promise<string> {
+    // TODO: Implement this method based on your authentication system
+    // For example, if using Firebase Auth:
+    // return auth.currentUser?.uid;
+    throw new Error("getCurrentUserId not implemented");
+  },
+
+  async registerPatient(patientData: { name: string; email: string; phone: string; }): Promise<string> {
+    try {
+      const patientsRef = collection(
+        db,
+        COLLECTIONS.HOSPITALS,
+        HOSPITAL.ID,
+        COLLECTIONS.PATIENTS
+      );
+
+      // Add the new patient document
+      const docRef = await addDoc(patientsRef, {
+        ...patientData,
+        status: 'active',
+        created_at: Timestamp.now(),
+        updated_at: Timestamp.now()
+      });
+
+      return docRef.id;
+    } catch (error) {
+      console.error("Error registering patient:", error);
+      throw new Error(`Failed to register patient: ${(error as Error).message}`);
+    }
+  },
+
+  async deletePatient(patientId: string): Promise<boolean> {
+    try {
+      const docRef = doc(
+        db,
+        COLLECTIONS.HOSPITALS,
+        HOSPITAL.ID,
+        COLLECTIONS.PATIENTS,
+        patientId
+      );
+      
+      // First, check if the patient exists
+      const docSnap = await getDoc(docRef);
+      if (!docSnap.exists()) {
+        throw new Error("Patient not found");
+      }
+
+      // Delete the patient document
+      await deleteDoc(docRef);
+      return true;
+    } catch (error) {
+      console.error("Error deleting patient:", error);
+      throw new Error(`Failed to delete patient: ${(error as Error).message}`);
+    }
+  }
 };
 
 export default PatientService;
