@@ -189,14 +189,6 @@ const ReviewAndFinalize: React.FC<Props> = ({ patient, onComplete }) => {
 
   return (
     <div className="flex flex-col">
-      <div className="bg-white border-b px-6 py-4">
-        <Group position="apart" mb="xs">
-          <Title order={3}>Treatment Plan Review</Title>
-          <Text color="dimmed">{progress}% Complete</Text>
-        </Group>
-        <Progress value={progress} size="sm" radius="xl" />
-      </div>
-
       <ScrollArea className="flex-1">
         <Container size="lg" className="py-6">
           <Stack spacing="xl">
@@ -408,13 +400,9 @@ const PatientWorkflow: React.FC = () => {
       // Update the patient data in the backend
       await PatientService.updatePatientStatus(id, updatedPatient.status || 'active');
       setPatient(updatedPatient);
-
-      if (activeStep < 3) {
-        setActiveStep((prev) => prev + 1);
-        navigate(`/clinic/manage-patient/${id}/workflow/${activeStep === 1 ? 'review' : 'send'}`);
-      } else {
-        navigate('/clinic/dashboard', { state: { message: 'Workflow completed' } });
-      }
+      
+      // Don't automatically navigate to next step
+      // Let scrolling handle the step changes
     } catch (error) {
       setError('Failed to update workflow.');
     }
@@ -486,15 +474,8 @@ const PatientWorkflow: React.FC = () => {
       {/* Workflow Steps Panel (Middle) */}
       <div className="w-[280px] border-x border-gray-200 bg-white overflow-y-auto">
         <div className="border-b p-6">
-          <button 
-            onClick={() => navigate(-1)} 
-            className="text-gray-600 hover:text-gray-900 flex items-center gap-2 mb-4"
-          >
-            ← Back
-          </button>
           <div className="space-y-1">
             <h2 className="text-xl font-semibold">{patient?.name || 'Patient'}</h2>
-            <p className="text-gray-600">{patient?.phone || 'No phone number'}</p>
           </div>
         </div>
         

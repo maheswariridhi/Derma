@@ -56,8 +56,6 @@ const PatientInformation: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Patient Information</h2>
-
       <div className="bg-white p-6 rounded-lg shadow">
         <div className="space-y-4">
           {/* Basic Information */}

@@ -25,8 +25,6 @@ const WorkflowSteps: React.FC<WorkflowStepsProps> = ({
 
   return (
     <div className="px-8 py-4">
-      <h2 className="text-2xl font-medium text-gray-800 mb-8">DJ Dental</h2>
-      
       <div className="space-y-0 relative">
         {/* Vertical connecting line */}
         <div className="absolute left-4 top-6 bottom-6 w-0.5 bg-gray-200 z-0"></div>
