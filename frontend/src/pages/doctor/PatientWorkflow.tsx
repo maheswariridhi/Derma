@@ -67,6 +67,7 @@ interface Patient {
   name: string;
   phone?: string;
   treatmentPlan?: TreatmentPlan;
+  status?: string;
 }
 
 interface Props {
@@ -322,6 +323,7 @@ const PatientWorkflow: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<'overview' | 'ai'>('overview');
+  const [hasLoaded, setHasLoaded] = useState<boolean>(false);
 
   console.log('PatientWorkflow rendering with ID:', id); // Debug log
 
@@ -358,23 +360,36 @@ const PatientWorkflow: React.FC = () => {
 
   useEffect(() => {
     const loadPatient = async () => {
+      // Prevent multiple loads
+      if (hasLoaded) return;
+      
       console.log('Loading patient data...'); // Debug log
       try {
         setLoading(true);
         setError(null);
 
-        let patientData = location.state?.patient;
-        console.log('Patient data from location state:', patientData); // Debug log
-        
-        if (!patientData) {
-          console.log('Fetching patient data from service...'); // Debug log
-          patientData = await PatientService.getPatientById(id);
+        // If we have patient data in location state, use it directly
+        if (location.state?.patient) {
+          console.log('Using patient data from location state:', location.state.patient);
+          setPatient(location.state.patient);
+          setHasLoaded(true);
+          setLoading(false);
+          return;
         }
+
+        // Only fetch from API if we don't have the data in location state
+        if (!id) {
+          throw new Error('Patient ID is required');
+        }
+
+        console.log('Fetching patient data from service...');
+        const patientData = await PatientService.getPatientById(id);
         if (!patientData) throw new Error('Patient not found');
-        console.log('Patient data loaded:', patientData); // Debug log
+        console.log('Patient data loaded:', patientData);
         setPatient(patientData);
+        setHasLoaded(true);
       } catch (error) {
-        console.error('Error loading patient:', error); // Debug log
+        console.error('Error loading patient:', error);
         setError((error as Error).message);
       } finally {
         setLoading(false);
@@ -382,7 +397,39 @@ const PatientWorkflow: React.FC = () => {
     };
 
     loadPatient();
-  }, [id, location.state]);
+  }, [id, location.state, hasLoaded]);
+
+  const handleStepComplete = async (updatedPatient: Patient) => {
+    try {
+      if (!id) {
+        throw new Error('Patient ID is required');
+      }
+      
+      // Update the patient data in the backend
+      await PatientService.updatePatientStatus(id, updatedPatient.status || 'active');
+      setPatient(updatedPatient);
+
+      if (activeStep < 3) {
+        setActiveStep((prev) => prev + 1);
+        navigate(`/clinic/manage-patient/${id}/workflow/${activeStep === 1 ? 'review' : 'send'}`);
+      } else {
+        navigate('/clinic/dashboard', { state: { message: 'Workflow completed' } });
+      }
+    } catch (error) {
+      setError('Failed to update workflow.');
+    }
+  };
+
+  const sendReportToPatient = async () => {
+    try {
+      if (!patient) return;
+      await PatientService.sendPatientReport({ patientId: patient.id, ...patient.treatmentPlan });
+      alert("Report sent successfully!");
+      navigate(`/patient/dashboard`);
+    } catch (error) {
+      setError("Failed to send report.");
+    }
+  };
 
   // Show loading state
   if (loading) {
@@ -415,33 +462,24 @@ const PatientWorkflow: React.FC = () => {
     );
   }
 
-  const handleStepComplete = async (updatedPatient: Patient) => {
-    try {
-      if (!id) return;
-      await PatientService.updateWorkflowStep(id, updatedPatient, activeStep);
-      setPatient(updatedPatient);
-
-      if (activeStep < 3) {
-        setActiveStep((prev) => prev + 1);
-        navigate(`/clinic/manage-patient/${id}/workflow/${activeStep === 1 ? 'review' : 'send'}`);
-      } else {
-        navigate('/clinic/dashboard', { state: { message: 'Workflow completed' } });
-      }
-    } catch (error) {
-      setError('Failed to update workflow.');
-    }
-  };
-
-  const sendReportToPatient = async () => {
-    try {
-      if (!patient) return;
-      await PatientService.sendPatientReport({ patientId: patient.id, ...patient.treatmentPlan });
-      alert("Report sent successfully!");
-      navigate(`/patient/dashboard`);
-    } catch (error) {
-      setError("Failed to send report.");
-    }
-  };
+  // Show error if patient is null
+  if (!patient) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 mb-4">⚠️</div>
+          <p className="text-gray-800 font-medium mb-2">Patient Not Found</p>
+          <p className="text-gray-600">The requested patient could not be found.</p>
+          <button 
+            onClick={() => navigate('/clinic/dashboard')}
+            className="mt-4 px-4 py-2 bg-teal-500 text-white rounded hover:bg-teal-600"
+          >
+            Return to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full">

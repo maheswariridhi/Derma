@@ -23,7 +23,7 @@ interface OutletContext {
 
 const PatientInformation: React.FC = () => {
   const { patient, onComplete, setError } = useOutletContext<OutletContext>();
-  const [editedPatient, setEditedPatient] = useState<Patient>(patient || {} as Patient);
+  const [editedPatient, setEditedPatient] = useState<Patient | null>(null);
 
   // Update editedPatient when patient data changes
   useEffect(() => {
@@ -31,6 +31,15 @@ const PatientInformation: React.FC = () => {
       setEditedPatient(patient);
     }
   }, [patient]);
+
+  // Add loading state
+  if (!editedPatient) {
+    return (
+      <div className="flex items-center justify-center p-6">
+        <div className="w-8 h-8 border-b-2 border-teal-500 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   const handleSubmit = async () => {
     try {
@@ -58,9 +67,9 @@ const PatientInformation: React.FC = () => {
             </label>
             <input
               type="text"
-              value={editedPatient.name || ""}
+              value={editedPatient?.name || ""}
               onChange={(e) =>
-                setEditedPatient({ ...editedPatient, name: e.target.value })
+                setEditedPatient(prev => prev ? { ...prev, name: e.target.value } : null)
               }
               className="w-full p-2.5 border border-gray-300 rounded-lg"
             />
