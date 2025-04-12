@@ -4,8 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import PatientService from '../../services/PatientService';
 import WorkflowSteps from '../../components/workflow/WorkflowSteps';
+import ReviewAndFinalize from '../../components/workflow/ReviewAndFinalize';
 import { Card, Container, ThemeIcon } from '@mantine/core';
-import { IconStethoscope, IconBrain } from '@tabler/icons-react';
+import { IconStethoscope, IconBrain } from '@tabler/icons-react'; 
 import AIRecommendations from "../../components/ai/AIRecommendations";
 import AIChatbot from "../../components/ai/AIChatbot";
 import MedicationDropdown from "../../components/services/MedicationDropdown";
@@ -49,7 +50,7 @@ interface Patient {
   id: string;
   name: string;
   phone?: string;
-  treatmentPlan?: TreatmentPlan;
+  treatmentPlan?: any; // We'll let ReviewAndFinalize handle the specific TreatmentPlan type
   status?: string;
 }
 
@@ -158,7 +159,6 @@ const PatientWorkflow: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activeStep, setActiveStep] = useState(1);
   const [error, setError] = useState<string | null>(null);
-  const [showAI, setShowAI] = useState(false);
 
   const contentRef = React.useRef<HTMLDivElement>(null);
   const stepRefs = {
@@ -200,7 +200,9 @@ const PatientWorkflow: React.FC = () => {
       
       await PatientService.updatePatientStatus(id, updatedPatient.status || 'active');
       setPatient(updatedPatient);
-      setActiveStep(prev => Math.min(prev + 1, 3));
+      const nextStep = Math.min(activeStep + 1, 3);
+      setActiveStep(nextStep);
+      scrollToStep(nextStep);
     } catch (error) {
       setError('Failed to update workflow.');
     }
@@ -264,105 +266,10 @@ const PatientWorkflow: React.FC = () => {
         className="min-h-screen w-full flex items-center py-8"
       >
         <div className="w-full">
-          <div className="space-y-6">
-            <Card shadow="sm" p="lg" radius="md" withBorder>
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-4">
-                  <ThemeIcon size={36} radius="xl">
-                    <IconStethoscope size={20} />
-                  </ThemeIcon>
-                  <h2 className="text-xl font-medium">Treatment Plan</h2>
-                </div>
-                <button
-                  onClick={() => setShowAI(!showAI)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"
-                >
-                  <IconBrain size={16} />
-                  {showAI ? 'Hide AI Insights' : 'Show AI Insights'}
-                </button>
-              </div>
-
-              {showAI ? (
-                <div className="space-y-4">
-                  <AIRecommendations 
-                    treatmentData={patient.treatmentPlan || {
-                      diagnosis: '',
-                      diagnosisDetails: '',
-                      medications: [],
-                      nextSteps: [],
-                      next_appointment: '',
-                      recommendations: [],
-                      additional_notes: ''
-                    }} 
-                  />
-                  <AIChatbot 
-                    context={patient.treatmentPlan || {
-                      diagnosis: '',
-                      diagnosisDetails: '',
-                      medications: [],
-                      nextSteps: [],
-                      next_appointment: '',
-                      recommendations: [],
-                      additional_notes: ''
-                    }}
-                  />
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <TreatmentDropdown 
-                      treatments={initialServices.treatments}
-                      onSelect={(treatment) => handleStepComplete({
-                        ...patient,
-                        treatmentPlan: {
-                          ...patient.treatmentPlan!,
-                          selectedTreatments: [...(patient.treatmentPlan?.selectedTreatments || []), treatment]
-                        }
-                      })}
-                    />
-                    <MedicationDropdown 
-                      medicines={initialServices.medicines}
-                      onSelect={(medicine) => handleStepComplete({
-                        ...patient,
-                        treatmentPlan: {
-                          ...patient.treatmentPlan!,
-                          medications: [...(patient.treatmentPlan?.medications || []), { name: medicine.name, dosage: medicine.dosage }]
-                        }
-                      })}
-                    />
-                  </div>
-
-                  {patient.treatmentPlan?.selectedTreatments && patient.treatmentPlan.selectedTreatments.length > 0 && (
-                    <div className="mt-6">
-                      <h3 className="font-medium mb-3">Selected Treatments</h3>
-                      <div className="space-y-2">
-                        {patient.treatmentPlan.selectedTreatments.map((treatment, index) => (
-                          <div key={index} className="p-3 bg-gray-50 rounded-md">
-                            <div className="font-medium">{treatment.name}</div>
-                            <div className="text-sm text-gray-500">{treatment.description}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {patient.treatmentPlan?.medications && patient.treatmentPlan.medications.length > 0 && (
-                    <div className="mt-6">
-                      <h3 className="font-medium mb-3">Selected Medications</h3>
-                      <div className="space-y-2">
-                        {patient.treatmentPlan.medications.map((med, index) => (
-                          <div key={index} className="p-3 bg-gray-50 rounded-md">
-                            <div className="font-medium">{med.name}</div>
-                            <div className="text-sm text-gray-500">Dosage: {med.dosage}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </Card>
-          </div>
+          <ReviewAndFinalize 
+            patient={patient} 
+            onComplete={handleStepComplete}
+          />
         </div>
       </section>
 

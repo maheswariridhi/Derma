@@ -16,6 +16,7 @@ import {
   IconStethoscope,
   IconCalendar,
   IconClipboardCheck,
+  IconBrain,
 } from "@tabler/icons-react";
 import AIRecommendations from "../ai/AIRecommendations";
 import AIChatbot from "../ai/AIChatbot";
@@ -140,204 +141,120 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
     selectedTreatments: patient?.treatmentPlan?.selectedTreatments || [],
     selectedMedicines: patient?.treatmentPlan?.selectedMedicines || [],
   });
-  
-  const [services] = useState<Services>(initialServices);
-
-  const [activeSection, setActiveSection] = useState<
-    "diagnosis" | "medications" | "next-steps"
-  >("diagnosis");
-  const [progress, setProgress] = useState<number>(0);
-
-  const handleEdit = (section: keyof TreatmentPlan, value: any) => {
-    setTreatmentPlan((prev) => ({
-      ...prev,
-      [section]: value,
-    }));
-    updateProgress();
-  };
-
-  const updateProgress = () => {
-    let completed = 0;
-    if (treatmentPlan.diagnosis) completed += 30;
-    if (treatmentPlan.medications.length) completed += 30;
-    if (treatmentPlan.nextSteps.length) completed += 40;
-    setProgress(completed);
-  };
-
-  const handleSectionComplete = (section: keyof TreatmentPlan) => {
-    const nextSection =
-      section === "diagnosis"
-        ? "medications"
-        : section === "medications"
-        ? "next-steps"
-        : null;
-
-    if (nextSection) {
-      setActiveSection(nextSection);
-    } else if (progress === 100) {
-      onComplete({ ...patient, treatmentPlan });
-    }
-  };
+  const [showAI, setShowAI] = useState(false);
 
   const handleTreatmentSelect = (treatment: Treatment) => {
-    setTreatmentPlan((prev) => ({
-      ...prev,
-      selectedTreatments: [...(prev.selectedTreatments || []), treatment]
-    }));
+    const updatedPlan = {
+      ...treatmentPlan,
+      selectedTreatments: [...(treatmentPlan.selectedTreatments || []), treatment]
+    };
+    setTreatmentPlan(updatedPlan);
+    onComplete({ ...patient, treatmentPlan: updatedPlan });
   };
 
   const handleMedicineSelect = (medicine: Medicine) => {
-    setTreatmentPlan((prev) => ({
-      ...prev,
-      selectedMedicines: [...(prev.selectedMedicines || []), medicine],
+    const updatedPlan = {
+      ...treatmentPlan,
+      selectedMedicines: [...(treatmentPlan.selectedMedicines || []), medicine],
       medications: [
-        ...prev.medications, 
+        ...treatmentPlan.medications,
         { name: medicine.name, dosage: medicine.dosage }
       ]
-    }));
-    updateProgress();
+    };
+    setTreatmentPlan(updatedPlan);
+    onComplete({ ...patient, treatmentPlan: updatedPlan });
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      {/* Progress Header */}
-      <div className="bg-white border-b px-6 py-4">
-        <Group position="apart" mb="xs">
-          <Title order={3}>Treatment Plan Review</Title>
-          <Text color="dimmed">{progress}% Complete</Text>
-        </Group>
-        <Progress value={progress} size="sm" radius="xl" />
-      </div>
+    <div className="space-y-6">
+      <Card shadow="sm" p="lg" radius="md" withBorder>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <ThemeIcon size={36} radius="xl">
+              <IconStethoscope size={20} />
+            </ThemeIcon>
+            <h2 className="text-xl font-medium">Treatment Plan</h2>
+          </div>
+          <button
+            onClick={() => setShowAI(!showAI)}
+            className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"
+          >
+            <IconBrain size={16} />
+            {showAI ? 'Hide AI Insights' : 'Show AI Insights'}
+          </button>
+        </div>
 
-      <ScrollArea className="flex-1 p-6">
-        <Container size="lg">
-          <Stack spacing="xl">
-            <Stepper
-              active={
-                activeSection === "diagnosis"
-                  ? 0
-                  : activeSection === "medications"
-                  ? 1
-                  : 2
-              }
-              onStepClick={(step) => {
-                const sections: ("diagnosis" | "medications" | "next-steps")[] =
-                  ["diagnosis", "medications", "next-steps"];
-                setActiveSection(sections[step]);
+        {showAI ? (
+          <div className="space-y-4">
+            <AIRecommendations 
+              treatmentData={treatmentPlan || {
+                diagnosis: '',
+                diagnosisDetails: '',
+                medications: [],
+                nextSteps: [],
+                next_appointment: '',
+                recommendations: [],
+                additional_notes: ''
+              }} 
+            />
+            <AIChatbot 
+              context={treatmentPlan || {
+                diagnosis: '',
+                diagnosisDetails: '',
+                medications: [],
+                nextSteps: [],
+                next_appointment: '',
+                recommendations: [],
+                additional_notes: ''
               }}
-            >
-              <Stepper.Step
-                label="Diagnosis"
-                description="Review patient details"
-                icon={<IconClipboardCheck size={18} />}
+            />
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <TreatmentDropdown 
+                treatments={initialServices.treatments}
+                onSelect={handleTreatmentSelect}
+                label="Select Treatment"
               />
-              <Stepper.Step
-                label="Medications"
-                description="Confirm medications"
-                icon={<IconStethoscope size={18} />}
+              <MedicationDropdown 
+                medicines={initialServices.medicines}
+                onSelect={handleMedicineSelect}
+                label="Select Medication"
               />
-              <Stepper.Step
-                label="Next Steps"
-                description="Plan follow-up"
-                icon={<IconCalendar size={18} />}
-              />
-            </Stepper>
+            </div>
 
-            {/* Dynamic Content */}
-            <Card shadow="sm" p="lg" radius="md" withBorder>
-              {/* Content sections remain the same but with smooth transitions */}
-              <div className="transition-all duration-300">
-                {activeSection === "diagnosis" && (
-                  <div className="space-y-4">
-                    <Title order={4}>Diagnosis Details</Title>
-                    <Text>
-                      {treatmentPlan.diagnosis || "Click to add diagnosis"}
-                    </Text>
-                    <Text>
-                      {treatmentPlan.diagnosisDetails ||
-                        "Add additional details..."}
-                    </Text>
-                  </div>
-                )}
-
-                {activeSection === "medications" && (
-                  <div className="space-y-6">
-                    <Title order={4}>Prescribed Medications</Title>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <TreatmentDropdown 
-                          treatments={services.treatments}
-                          onSelect={handleTreatmentSelect}
-                          label="Select Treatment"
-                        />
-                      </div>
-                      <div>
-                        <MedicationDropdown 
-                          medicines={services.medicines}
-                          onSelect={handleMedicineSelect}
-                          label="Select Medication"
-                        />
-                      </div>
+            {treatmentPlan.selectedTreatments && treatmentPlan.selectedTreatments.length > 0 && (
+              <div className="mt-6">
+                <h3 className="font-medium mb-3">Selected Treatments</h3>
+                <div className="space-y-2">
+                  {treatmentPlan.selectedTreatments.map((treatment, index) => (
+                    <div key={index} className="p-3 bg-gray-50 rounded-md">
+                      <div className="font-medium">{treatment.name}</div>
+                      <div className="text-sm text-gray-500">{treatment.description}</div>
+                      <div className="text-sm">Duration: {treatment.duration}</div>
                     </div>
-                    
-                    <div className="mt-4">
-                      <Title order={5} className="mb-2">Selected Treatments</Title>
-                      {treatmentPlan.selectedTreatments && treatmentPlan.selectedTreatments.length > 0 ? (
-                        <div className="space-y-2">
-                          {treatmentPlan.selectedTreatments.map((treatment, index) => (
-                            <div key={index} className="p-3 bg-gray-50 rounded-md">
-                              <div className="font-medium">{treatment.name}</div>
-                              <div className="text-sm text-gray-500">{treatment.description}</div>
-                              <div className="text-sm">Duration: {treatment.duration}</div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <Text color="gray">No treatments selected yet</Text>
-                      )}
-                    </div>
-                    
-                    <div className="mt-4">
-                      <Title order={5} className="mb-2">Selected Medications</Title>
-                      {treatmentPlan.medications.length > 0 ? (
-                        <div className="space-y-2">
-                          {treatmentPlan.medications.map((med, index) => (
-                            <div key={index} className="p-3 bg-gray-50 rounded-md">
-                              <div className="font-medium">{med.name}</div>
-                              <div className="text-sm">Dosage: {med.dosage}</div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <Text color="gray">No medications selected yet</Text>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {activeSection === "next-steps" && (
-                  <div className="space-y-4">
-                    <Title order={4}>Treatment Timeline</Title>
-                    {treatmentPlan.nextSteps.map((step, index) => (
-                      <Text key={index}>{step}</Text>
-                    ))}
-                  </div>
-                )}
+                  ))}
+                </div>
               </div>
-            </Card>
+            )}
 
-            {/* AI Recommendations - Always visible */}
-            <Card shadow="sm" p="lg" radius="md" withBorder>
-              <AIRecommendations treatmentData={treatmentPlan} />
-            </Card>
-
-            <Card shadow="sm" p="lg" radius="md" withBorder>
-              <AIChatbot context={treatmentPlan} />
-            </Card>
-          </Stack>
-        </Container>
-      </ScrollArea>
+            {treatmentPlan.medications && treatmentPlan.medications.length > 0 && (
+              <div className="mt-6">
+                <h3 className="font-medium mb-3">Selected Medications</h3>
+                <div className="space-y-2">
+                  {treatmentPlan.medications.map((med, index) => (
+                    <div key={index} className="p-3 bg-gray-50 rounded-md">
+                      <div className="font-medium">{med.name}</div>
+                      <div className="text-sm text-gray-500">Dosage: {med.dosage}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </Card>
     </div>
   );
 };
