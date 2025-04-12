@@ -280,4 +280,4 @@ const DoctorReportViewer: React.FC = () => {
   );
 };
 
-export default DoctorReportViewer; 
+export default DoctorReportViewer;
