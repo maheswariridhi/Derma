@@ -10,7 +10,7 @@ const theme: MantineThemeOverride = createTheme({
   /** Put your theme override here */
 });
 
-const App: React.FC = () => {
+function App() {
   return (
     <MantineProvider theme={theme}>
       <Router>
@@ -22,6 +22,6 @@ const App: React.FC = () => {
       </Router>
     </MantineProvider>
   );
-};
+}
 
 export default App;

@@ -5,12 +5,6 @@ import { useParams, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import PatientService from '../../services/PatientService';
 import WorkflowSteps from '../../components/workflow/WorkflowSteps';
 import ReviewAndFinalize from '../../components/workflow/ReviewAndFinalize';
-import { Card, Container, ThemeIcon } from '@mantine/core';
-import { IconStethoscope, IconBrain } from '@tabler/icons-react'; 
-import AIRecommendations from "../../components/ai/AIRecommendations";
-import AIChatbot from "../../components/ai/AIChatbot";
-import MedicationDropdown from "../../components/services/MedicationDropdown";
-import TreatmentDropdown from "../../components/services/TreatmentDropdown";
 
 interface Treatment {
   id: number;
@@ -151,6 +145,17 @@ const useScrollManager = (contentRef: React.RefObject<HTMLDivElement>, setActive
   return { handleScroll, scrollToStep };
 };
 
+const LoadingSkeleton = () => (
+  <div className="animate-pulse">
+    <div className="h-8 bg-gray-200 rounded w-3/4 mb-4"></div>
+    <div className="space-y-3">
+      <div className="h-4 bg-gray-200 rounded w-full"></div>
+      <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+      <div className="h-4 bg-gray-200 rounded w-4/6"></div>
+    </div>
+  </div>
+);
+
 const PatientWorkflow: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
@@ -220,8 +225,15 @@ const PatientWorkflow: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500"></div>
+      <div className="flex h-full">
+        <div className="w-[280px] border-x border-gray-200 bg-white p-6">
+          <LoadingSkeleton />
+        </div>
+        <div className="flex-1 overflow-y-auto bg-gray-50 p-8">
+          <div className="max-w-4xl mx-auto">
+            <LoadingSkeleton />
+          </div>
+        </div>
       </div>
     );
   }

@@ -32,18 +32,9 @@ const PatientInformation: React.FC = () => {
     }
   }, [patient]);
 
-  // Add loading state
-  if (!editedPatient) {
-    return (
-      <div className="flex items-center justify-center p-6">
-        <div className="w-8 h-8 border-b-2 border-teal-500 rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
   const handleSubmit = async () => {
     try {
-      if (!editedPatient.id) {
+      if (!editedPatient?.id) {
         throw new Error("Patient ID is required");
       }
       await PatientService.updatePatient(editedPatient.id, editedPatient);
@@ -53,6 +44,14 @@ const PatientInformation: React.FC = () => {
       setError((error as Error).message);
     }
   };
+
+  if (!editedPatient) {
+    return (
+      <div className="flex items-center justify-center p-6">
+        <div className="w-8 h-8 border-b-2 border-teal-500 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -65,7 +64,7 @@ const PatientInformation: React.FC = () => {
             </label>
             <input
               type="text"
-              value={editedPatient?.name || ""}
+              value={editedPatient.name || ""}
               onChange={(e) =>
                 setEditedPatient(prev => prev ? { ...prev, name: e.target.value } : null)
               }
@@ -81,7 +80,7 @@ const PatientInformation: React.FC = () => {
               type="text"
               value={editedPatient.phone || ""}
               onChange={(e) =>
-                setEditedPatient({ ...editedPatient, phone: e.target.value })
+                setEditedPatient(prev => prev ? { ...prev, phone: e.target.value } : null)
               }
               className="w-full p-2.5 border border-gray-300 rounded-lg"
             />
@@ -95,7 +94,7 @@ const PatientInformation: React.FC = () => {
               type="email"
               value={editedPatient.email || ""}
               onChange={(e) =>
-                setEditedPatient({ ...editedPatient, email: e.target.value })
+                setEditedPatient(prev => prev ? { ...prev, email: e.target.value } : null)
               }
               className="w-full p-2.5 border border-gray-300 rounded-lg"
             />
@@ -110,7 +109,7 @@ const PatientInformation: React.FC = () => {
               type="text"
               value={editedPatient.condition || ""}
               onChange={(e) =>
-                setEditedPatient({ ...editedPatient, condition: e.target.value })
+                setEditedPatient(prev => prev ? { ...prev, condition: e.target.value } : null)
               }
               className="w-full p-2.5 border border-gray-300 rounded-lg"
             />
@@ -124,7 +123,7 @@ const PatientInformation: React.FC = () => {
               type="date"
               value={editedPatient.lastVisit || ""}
               onChange={(e) =>
-                setEditedPatient({ ...editedPatient, lastVisit: e.target.value })
+                setEditedPatient(prev => prev ? { ...prev, lastVisit: e.target.value } : null)
               }
               className="w-full p-2.5 border border-gray-300 rounded-lg"
             />
