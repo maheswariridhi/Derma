@@ -1,27 +1,13 @@
-import React, { useState, useEffect } from "react";
-import {
-  Paper,
-  Title,
-  Text,
-  Stack,
-  Card,
-  Container,
-  Group,
-  ThemeIcon,
-  ScrollArea,
-  Progress,
-  Stepper,
-} from "@mantine/core";
-import {
-  IconStethoscope,
-  IconCalendar,
-  IconClipboardCheck,
-  IconBrain,
-} from "@tabler/icons-react";
+import React, { useState } from "react";
+import { Card, CardHeader, CardContent } from "../ui/card";
+import { Button } from "../ui/button";
+import { ScrollArea } from "../ui/scroll-area";
+import { Progress } from "../ui/progress";
 import AIRecommendations from "../ai/AIRecommendations";
 import AIChatbot from "../ai/AIChatbot";
 import MedicationDropdown from "../services/MedicationDropdown";
 import TreatmentDropdown from "../services/TreatmentDropdown";
+import { MdMedicalServices, MdPsychology } from "react-icons/md";
 
 // Define interfaces for treatments and medicines
 interface Treatment {
@@ -48,7 +34,7 @@ interface Services {
 }
 
 // Define Treatment Plan interface
-interface TreatmentPlan {
+export interface TreatmentPlan {
   diagnosis: string;
   diagnosisDetails: string;
   medications: { name: string; dosage: string }[];
@@ -167,93 +153,102 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
 
   return (
     <div className="space-y-6">
-      <Card shadow="sm" p="lg" radius="md" withBorder>
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <ThemeIcon size={36} radius="xl">
-              <IconStethoscope size={20} />
-            </ThemeIcon>
-            <h2 className="text-xl font-medium">Treatment Plan</h2>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-2 rounded-full bg-blue-100">
+                <MdMedicalServices className="w-5 h-5 text-blue-600" />
+              </div>
+              <h2 className="text-xl font-medium">Treatment Plan</h2>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setShowAI(!showAI)}
+              className="flex items-center gap-2"
+            >
+              <MdPsychology className="w-4 h-4" />
+              {showAI ? 'Hide AI Insights' : 'Show AI Insights'}
+            </Button>
           </div>
-          <button
-            onClick={() => setShowAI(!showAI)}
-            className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"
-          >
-            <IconBrain size={16} />
-            {showAI ? 'Hide AI Insights' : 'Show AI Insights'}
-          </button>
-        </div>
-
-        {showAI ? (
-          <div className="space-y-4">
-            <AIRecommendations 
-              treatmentData={treatmentPlan || {
-                diagnosis: '',
-                diagnosisDetails: '',
-                medications: [],
-                nextSteps: [],
-                next_appointment: '',
-                recommendations: [],
-                additional_notes: ''
-              }} 
-            />
-            <AIChatbot 
-              context={treatmentPlan || {
-                diagnosis: '',
-                diagnosisDetails: '',
-                medications: [],
-                nextSteps: [],
-                next_appointment: '',
-                recommendations: [],
-                additional_notes: ''
-              }}
-            />
-          </div>
-        ) : (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <TreatmentDropdown 
-                treatments={initialServices.treatments}
-                onSelect={handleTreatmentSelect}
-                label="Select Treatment"
+        </CardHeader>
+        <CardContent>
+          {showAI ? (
+            <div className="space-y-4">
+              <AIRecommendations 
+                treatmentData={treatmentPlan || {
+                  diagnosis: '',
+                  diagnosisDetails: '',
+                  medications: [],
+                  nextSteps: [],
+                  next_appointment: '',
+                  recommendations: [],
+                  additional_notes: ''
+                }} 
               />
-              <MedicationDropdown 
-                medicines={initialServices.medicines}
-                onSelect={handleMedicineSelect}
-                label="Select Medication"
+              <AIChatbot 
+                treatmentPlan={treatmentPlan}
+                onUpdate={(updatedTreatment: TreatmentPlan) => {
+                  setTreatmentPlan(updatedTreatment);
+                  onComplete({ ...patient, treatmentPlan: updatedTreatment });
+                }}
               />
             </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Selected Treatments</h3>
+                  <TreatmentDropdown
+                    treatments={initialServices.treatments}
+                    onSelect={handleTreatmentSelect}
+                  />
+                  <div className="mt-4">
+                    {treatmentPlan.selectedTreatments?.map((treatment) => (
+                      <div
+                        key={treatment.id}
+                        className="p-4 bg-gray-50 rounded-lg mb-2"
+                      >
+                        <h4 className="font-medium">{treatment.name}</h4>
+                        <p className="text-sm text-gray-600">
+                          {treatment.description}
+                        </p>
+                        <div className="flex justify-between mt-2 text-sm text-gray-500">
+                          <span>{treatment.duration}</span>
+                          <span>{treatment.cost}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-            {treatmentPlan.selectedTreatments && treatmentPlan.selectedTreatments.length > 0 && (
-              <div className="mt-6">
-                <h3 className="font-medium mb-3">Selected Treatments</h3>
-                <div className="space-y-2">
-                  {treatmentPlan.selectedTreatments.map((treatment, index) => (
-                    <div key={index} className="p-3 bg-gray-50 rounded-md">
-                      <div className="font-medium">{treatment.name}</div>
-                      <div className="text-sm text-gray-500">{treatment.description}</div>
-                      <div className="text-sm">Duration: {treatment.duration}</div>
-                    </div>
-                  ))}
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Selected Medications</h3>
+                  <MedicationDropdown
+                    medicines={initialServices.medicines}
+                    onSelect={handleMedicineSelect}
+                  />
+                  <div className="mt-4">
+                    {treatmentPlan.selectedMedicines?.map((medicine) => (
+                      <div
+                        key={medicine.id}
+                        className="p-4 bg-gray-50 rounded-lg mb-2"
+                      >
+                        <h4 className="font-medium">{medicine.name}</h4>
+                        <p className="text-sm text-gray-600">
+                          {medicine.type} - {medicine.usage}
+                        </p>
+                        <div className="mt-2 text-sm text-gray-500">
+                          Dosage: {medicine.dosage}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-            )}
-
-            {treatmentPlan.medications && treatmentPlan.medications.length > 0 && (
-              <div className="mt-6">
-                <h3 className="font-medium mb-3">Selected Medications</h3>
-                <div className="space-y-2">
-                  {treatmentPlan.medications.map((med, index) => (
-                    <div key={index} className="p-3 bg-gray-50 rounded-md">
-                      <div className="font-medium">{med.name}</div>
-                      <div className="text-sm text-gray-500">Dosage: {med.dosage}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </CardContent>
       </Card>
     </div>
   );

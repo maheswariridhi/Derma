@@ -1,5 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
+import { TreatmentPlan } from "../workflow/ReviewAndFinalize";
 
 // Define Message interface
 interface Message {
@@ -9,10 +10,11 @@ interface Message {
 
 // Define Props interface
 interface ChatbotProps {
-  context: string | object;
+  treatmentPlan: TreatmentPlan;
+  onUpdate: (updatedTreatment: TreatmentPlan) => void;
 }
 
-const Chatbot: React.FC<ChatbotProps> = ({ context }) => {
+const Chatbot: React.FC<ChatbotProps> = ({ treatmentPlan, onUpdate }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState<string>("");
 
@@ -26,7 +28,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ context }) => {
     try {
       const response = await axios.post<{ answer: string }>("/api/chat", {
         messages: newMessages,
-        context: context, // Send report data to AI model
+        treatmentPlan: treatmentPlan, // Send treatment plan data to AI model
       });
 
       setMessages([...newMessages, { role: "assistant", content: response.data.answer }]);
