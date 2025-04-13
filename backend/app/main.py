@@ -66,6 +66,42 @@ class Report(BaseModel):
     selectedMedicines: Optional[List[Any]] = None
     doctor: Optional[str] = None
 
+# New Models for Treatments and Medicines
+class TreatmentCreate(BaseModel):
+    name: str
+    description: str
+    duration: int
+    price: float
+    category: str
+
+class TreatmentUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    duration: Optional[int] = None
+    price: Optional[float] = None
+    category: Optional[str] = None
+    isActive: Optional[bool] = None
+
+class MedicineCreate(BaseModel):
+    name: str
+    description: str
+    dosage: str
+    price: float
+    unit: str
+    stock: int
+
+class MedicineUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    dosage: Optional[str] = None
+    price: Optional[float] = None
+    unit: Optional[str] = None
+    stock: Optional[int] = None
+    isActive: Optional[bool] = None
+
+class StockUpdate(BaseModel):
+    quantity: int
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
@@ -216,6 +252,162 @@ async def get_current_user():
     if not user_id:
         raise HTTPException(status_code=401, detail="Not authenticated")
     return {"userId": user_id}
+
+# Treatment Endpoints
+@app.post("/api/treatments")
+async def create_treatment(treatment: TreatmentCreate):
+    """Create a new treatment."""
+    result = await firebase_service.create_treatment(treatment.dict())
+    return result
+
+@app.get("/api/treatments/{treatment_id}")
+async def get_treatment(treatment_id: str):
+    """Get a treatment by ID."""
+    treatment = await firebase_service.get_treatment(treatment_id)
+    if not treatment:
+        raise HTTPException(status_code=404, detail="Treatment not found")
+    return treatment
+
+@app.get("/api/treatments")
+async def get_all_treatments():
+    """Get all active treatments."""
+    return await firebase_service.get_all_treatments()
+
+@app.put("/api/treatments/{treatment_id}")
+async def update_treatment(treatment_id: str, treatment: TreatmentUpdate):
+    """Update a treatment."""
+    result = await firebase_service.update_treatment(treatment_id, treatment.dict(exclude_unset=True))
+    if not result:
+        raise HTTPException(status_code=404, detail="Treatment not found")
+    return result
+
+@app.delete("/api/treatments/{treatment_id}")
+async def delete_treatment(treatment_id: str):
+    """Soft delete a treatment."""
+    result = await firebase_service.delete_treatment(treatment_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Treatment not found")
+    return {"success": True}
+
+# Medicine Endpoints
+@app.post("/api/medicines")
+async def create_medicine(medicine: MedicineCreate):
+    """Create a new medicine."""
+    result = await firebase_service.create_medicine(medicine.dict())
+    return result
+
+@app.get("/api/medicines/{medicine_id}")
+async def get_medicine(medicine_id: str):
+    """Get a medicine by ID."""
+    medicine = await firebase_service.get_medicine(medicine_id)
+    if not medicine:
+        raise HTTPException(status_code=404, detail="Medicine not found")
+    return medicine
+
+@app.get("/api/medicines")
+async def get_all_medicines():
+    """Get all active medicines."""
+    return await firebase_service.get_all_medicines()
+
+@app.put("/api/medicines/{medicine_id}")
+async def update_medicine(medicine_id: str, medicine: MedicineUpdate):
+    """Update a medicine."""
+    result = await firebase_service.update_medicine(medicine_id, medicine.dict(exclude_unset=True))
+    if not result:
+        raise HTTPException(status_code=404, detail="Medicine not found")
+    return result
+
+@app.delete("/api/medicines/{medicine_id}")
+async def delete_medicine(medicine_id: str):
+    """Soft delete a medicine."""
+    result = await firebase_service.delete_medicine(medicine_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Medicine not found")
+    return {"success": True}
+
+@app.put("/api/medicines/{medicine_id}/stock")
+async def update_medicine_stock(medicine_id: str, stock_update: StockUpdate):
+    """Update medicine stock quantity."""
+    result = await firebase_service.update_medicine_stock(medicine_id, stock_update.quantity)
+    if not result:
+        raise HTTPException(status_code=404, detail="Medicine not found or invalid stock update")
+    return {"success": True}
+
+# Test endpoint to add initial data
+@app.post("/api/initialize-data")
+async def initialize_data():
+    try:
+        # Check if data already exists
+        existing_treatments = await firebase_service.get_all_treatments()
+        existing_medicines = await firebase_service.get_all_medicines()
+        
+        if len(existing_treatments) > 0 or len(existing_medicines) > 0:
+            return {"message": "Data already exists"}
+
+        # Initial treatments
+        treatments = [
+            {
+                "name": "Chemical Peel",
+                "description": "Exfoliating treatment to improve skin texture and tone",
+                "duration": 45,
+                "price": 250.00,
+                "category": "treatment"
+            },
+            {
+                "name": "Laser Hair Removal",
+                "description": "Permanent hair reduction using laser technology",
+                "duration": 45,
+                "price": 500.00,
+                "category": "procedure"
+            },
+            {
+                "name": "Acne Treatment",
+                "description": "Comprehensive treatment for active acne and scarring",
+                "duration": 60,
+                "price": 275.00,
+                "category": "treatment"
+            }
+        ]
+
+        # Initial medicines
+        medicines = [
+            {
+                "name": "Tretinoin",
+                "description": "Retinoid medication for acne and anti-aging treatment",
+                "dosage": "0.025%",
+                "price": 45.99,
+                "unit": "tube",
+                "stock": 75
+            },
+            {
+                "name": "Hyaluronic Acid",
+                "description": "Moisturizing serum for skin hydration",
+                "dosage": "2%",
+                "price": 29.99,
+                "unit": "bottle",
+                "stock": 80
+            },
+            {
+                "name": "Benzoyl Peroxide",
+                "description": "Antibacterial medication for acne treatment",
+                "dosage": "5%",
+                "price": 19.99,
+                "unit": "tube",
+                "stock": 60
+            }
+        ]
+
+        # Add treatments
+        for treatment in treatments:
+            await firebase_service.create_treatment(treatment)
+
+        # Add medicines
+        for medicine in medicines:
+            await firebase_service.create_medicine(medicine)
+
+        return {"message": "Initial data added successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn

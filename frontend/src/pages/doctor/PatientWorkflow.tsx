@@ -100,51 +100,6 @@ const initialServices: Services = {
   ],
 };
 
-const useScrollManager = (contentRef: React.RefObject<HTMLDivElement>, setActiveStep: (step: number) => void) => {
-  const [isScrolling, setIsScrolling] = React.useState(false);
-  const scrollTimeout = React.useRef<NodeJS.Timeout>();
-
-  const handleScroll = React.useCallback(() => {
-    if (!contentRef.current || isScrolling) return;
-
-    const { scrollTop, clientHeight } = contentRef.current;
-    const step = Math.round(scrollTop / clientHeight) + 1;
-    
-    if (step >= 1 && step <= 3) {
-      setActiveStep(step);
-    }
-  }, [isScrolling, setActiveStep]);
-
-  const scrollToStep = React.useCallback((step: number) => {
-    if (!contentRef.current) return;
-
-    setIsScrolling(true);
-    if (scrollTimeout.current) {
-      clearTimeout(scrollTimeout.current);
-    }
-
-    contentRef.current.scrollTo({
-      top: (step - 1) * contentRef.current.clientHeight,
-      behavior: 'smooth'
-    });
-
-    // Reset scrolling flag after animation
-    scrollTimeout.current = setTimeout(() => {
-      setIsScrolling(false);
-    }, 1000);
-  }, []);
-
-  React.useEffect(() => {
-    return () => {
-      if (scrollTimeout.current) {
-        clearTimeout(scrollTimeout.current);
-      }
-    };
-  }, []);
-
-  return { handleScroll, scrollToStep };
-};
-
 const LoadingSkeleton = () => (
   <div className="animate-pulse">
     <div className="h-8 bg-gray-200 rounded w-3/4 mb-4"></div>
@@ -160,10 +115,12 @@ const PatientWorkflow: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const navigate = useNavigate();
-  const [patient, setPatient] = useState<Patient | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [patient, setPatient] = useState<Patient | null>(location.state?.patient || null);
+  const [loading, setLoading] = useState(!location.state?.patient);
+  const [loadingDetails, setLoadingDetails] = useState(true);
   const [activeStep, setActiveStep] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [isScrolling, setIsScrolling] = useState(false);
 
   const contentRef = React.useRef<HTMLDivElement>(null);
   const stepRefs = {
@@ -171,33 +128,65 @@ const PatientWorkflow: React.FC = () => {
     2: React.useRef<HTMLDivElement>(null),
     3: React.useRef<HTMLDivElement>(null),
   };
-  const { handleScroll, scrollToStep } = useScrollManager(contentRef, setActiveStep);
 
-  // Handle step click from sidebar
-  const handleStepClick = (step: number) => {
+  // Handle scroll synchronization
+  const handleScroll = React.useCallback(() => {
+    if (!contentRef.current || isScrolling) return;
+
+    const { scrollTop, clientHeight } = contentRef.current;
+    const step = Math.round(scrollTop / clientHeight) + 1;
+    
+    if (step >= 1 && step <= 3) {
+      setActiveStep(step);
+    }
+  }, [isScrolling]);
+
+  // Handle step click and smooth scroll
+  const handleStepClick = React.useCallback((step: number) => {
+    setIsScrolling(true);
     setActiveStep(step);
-    scrollToStep(step);
-  };
+
+    if (contentRef.current) {
+      contentRef.current.scrollTo({
+        top: (step - 1) * contentRef.current.clientHeight,
+        behavior: 'smooth'
+      });
+
+      // Reset scrolling flag after animation
+      setTimeout(() => {
+        setIsScrolling(false);
+      }, 1000);
+    }
+  }, []);
 
   useEffect(() => {
-    const loadPatient = async () => {
+    const loadPatientDetails = async () => {
+      if (!id || (patient?.treatmentPlan && !loading)) {
+        setLoadingDetails(false);
+        return;
+      }
+
       try {
-        setLoading(true);
+        setLoadingDetails(true);
         setError(null);
 
-        const data = location.state?.patient || (id && await PatientService.getPatientById(id));
+        const data = await PatientService.getPatientById(id);
         if (!data) throw new Error('Patient not found');
         
-        setPatient(data);
+        setPatient(prevPatient => ({
+          ...prevPatient,
+          ...data,
+        }));
       } catch (err) {
         setError((err as Error).message);
       } finally {
+        setLoadingDetails(false);
         setLoading(false);
       }
     };
 
-    loadPatient();
-  }, [id, location.state]);
+    loadPatientDetails();
+  }, [id, patient?.treatmentPlan, loading]);
 
   const handleStepComplete = async (updatedPatient: Patient) => {
     try {
@@ -207,7 +196,7 @@ const PatientWorkflow: React.FC = () => {
       setPatient(updatedPatient);
       const nextStep = Math.min(activeStep + 1, 3);
       setActiveStep(nextStep);
-      scrollToStep(nextStep);
+      handleStepClick(nextStep);
     } catch (error) {
       setError('Failed to update workflow.');
     }
@@ -226,7 +215,7 @@ const PatientWorkflow: React.FC = () => {
   if (loading) {
     return (
       <div className="flex h-full">
-        <div className="w-[280px] border-x border-gray-200 bg-white p-6">
+        <div className="w-[280px] border-x border-gray-200 bg-white">
           <LoadingSkeleton />
         </div>
         <div className="flex-1 overflow-y-auto bg-gray-50 p-8">
@@ -238,125 +227,84 @@ const PatientWorkflow: React.FC = () => {
     );
   }
 
-  if (error || !patient) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-500 mb-4">⚠️</div>
-          <p className="text-gray-800 font-medium mb-2">{error || 'Patient Not Found'}</p>
-          <button 
-            onClick={() => navigate('/clinic/dashboard')}
-            className="mt-4 px-4 py-2 bg-teal-500 text-white rounded hover:bg-teal-600"
-          >
-            Return to Dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const renderContent = () => (
-    <div className="flex flex-col space-y-0">
-      <section 
-        ref={stepRefs[1]} 
-        className="min-h-screen w-full flex items-center py-8 first:pt-0 last:pb-0"
-      >
-        <div className="w-full">
-          <div className="bg-white rounded-lg shadow-sm">
-            <div className="p-6 border-b">
-              <h1 className="text-2xl font-medium text-gray-800">Patient Information</h1>
-            </div>
-            <div className="p-6">
-              <Outlet context={{ patient, onComplete: handleStepComplete, error, setError }} />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section 
-        ref={stepRefs[2]} 
-        className="min-h-screen w-full flex items-center py-8"
-      >
-        <div className="w-full">
-          <ReviewAndFinalize 
-            patient={patient} 
-            onComplete={handleStepComplete}
-          />
-        </div>
-      </section>
-
-      <section 
-        ref={stepRefs[3]} 
-        className="min-h-screen w-full flex items-center py-8"
-      >
-        <div className="w-full">
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="space-y-6">
-              <div className="bg-blue-50 p-6 rounded-lg">
-                <h3 className="text-lg font-medium text-blue-800 mb-2">Ready to Send</h3>
-                <p className="text-blue-700">
-                  Review the treatment plan for {patient.name} before sending.
-                </p>
-              </div>
-              
-              <button 
-                className="w-full py-4 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors text-lg font-medium"
-                onClick={sendReportToPatient}
-              >
-                Send Treatment Plan
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-    </div>
-  );
-
   return (
     <div className="flex h-full">
-      {/* Workflow Steps Panel */}
       <div className="w-[280px] border-x border-gray-200 bg-white">
-        <div className="border-b p-6">
-          <div className="flex justify-center">
-            <h2 className="text-xl font-semibold text-center">{patient?.name}</h2>
-          </div>
-        </div>
-        
         <WorkflowSteps
           activeStep={activeStep}
           onStepClick={handleStepClick}
-          steps={[
-            { 
-              id: 1, 
-              label: 'Patient Details',
-              description: 'Basic information'
-            },
-            { 
-              id: 2, 
-              label: 'Treatment Plan',
-              description: 'Review and edit plan'
-            },
-            { 
-              id: 3, 
-              label: 'Send to Patient',
-              description: 'Finalize and send'
-            },
-          ]}
+          patient={patient}
+          loading={loadingDetails}
+          stepRefs={stepRefs}
         />
       </div>
-
-      {/* Content Area */}
       <div 
-        ref={contentRef}
-        onScroll={handleScroll}
+        ref={contentRef} 
         className="flex-1 overflow-y-auto bg-gray-50 scroll-smooth"
-        style={{
-          scrollBehavior: 'smooth',
-          WebkitOverflowScrolling: 'touch'
-        }}
+        onScroll={handleScroll}
       >
-        <div className="container mx-auto px-8">
-          {renderContent()}
+        <div className="max-w-4xl mx-auto p-8">
+          <div className="space-y-0">
+            <section 
+              ref={stepRefs[1]} 
+              className="min-h-screen w-full flex items-center py-8 first:pt-0 last:pb-0"
+            >
+              <div className="w-full">
+                <div className="bg-white rounded-lg shadow-sm">
+                  <div className="p-6 border-b">
+                    <h1 className="text-2xl font-medium text-gray-800">Patient Information</h1>
+                  </div>
+                  <div className="p-6">
+                    <Outlet context={{ 
+                      patient,
+                      loading: loadingDetails,
+                      onStepComplete: handleStepComplete,
+                      onFinish: sendReportToPatient,
+                      stepRefs,
+                      services: initialServices
+                    }} />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section 
+              ref={stepRefs[2]} 
+              className="min-h-screen w-full flex items-center py-8"
+            >
+              <div className="w-full">
+                <ReviewAndFinalize 
+                  patient={patient} 
+                  onComplete={handleStepComplete}
+                />
+              </div>
+            </section>
+
+            <section 
+              ref={stepRefs[3]} 
+              className="min-h-screen w-full flex items-center py-8"
+            >
+              <div className="w-full">
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                  <div className="space-y-6">
+                    <div className="bg-blue-50 p-6 rounded-lg">
+                      <h3 className="text-lg font-medium text-blue-800 mb-2">Ready to Send</h3>
+                      <p className="text-blue-700">
+                        Review the treatment plan for {patient?.name} before sending.
+                      </p>
+                    </div>
+                    
+                    <button 
+                      className="w-full py-4 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors text-lg font-medium"
+                      onClick={sendReportToPatient}
+                    >
+                      Send Treatment Plan
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
         </div>
       </div>
     </div>
