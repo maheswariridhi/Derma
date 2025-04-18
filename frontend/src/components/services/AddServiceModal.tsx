@@ -11,29 +11,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-
-interface Treatment {
-  name: string;
-  description: string;
-  duration: number;
-  price: number;
-  category: string;
-}
-
-interface Medicine {
-  name: string;
-  description: string;
-  dosage: string;
-  price: number;
-  unit: string;
-  stock: number;
-}
+import { Treatment } from "@/services/TreatmentService";
+import { Medicine } from "@/services/MedicineService";
 
 interface AddServiceModalProps {
   isOpen: boolean;
   onClose: () => void;
-  type: "treatments" | "medicines";
-  onSubmit: (data: any) => void;
+  type: "treatment" | "medicine";
+  onSubmit: (data: Treatment | Medicine) => void;
 }
 
 const AddServiceModal: React.FC<AddServiceModalProps> = ({
@@ -51,7 +36,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
 
   const onFormSubmit = (data: any) => {
     // Convert numeric fields from string to number
-    if (type === "treatments") {
+    if (type === "treatment") {
       data.duration = Number(data.duration);
       data.price = Number(data.price);
     } else {
@@ -68,7 +53,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
-            Add New {type === "treatments" ? "Treatment" : "Medicine"}
+            Add New {type === "treatment" ? "Treatment" : "Medicine"}
           </DialogTitle>
         </DialogHeader>
 
@@ -78,7 +63,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
             <Input
               id="name"
               {...register("name", { required: "Name is required" })}
-              placeholder={`Enter ${type === "treatments" ? "treatment" : "medicine"} name`}
+              placeholder={`Enter ${type === "treatment" ? "treatment" : "medicine"} name`}
             />
             {errors.name && (
               <p className="text-sm text-destructive">
@@ -94,7 +79,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
               {...register("description", {
                 required: "Description is required",
               })}
-              placeholder={`Enter ${type === "treatments" ? "treatment" : "medicine"} description`}
+              placeholder={`Enter ${type === "treatment" ? "treatment" : "medicine"} description`}
               rows={3}
             />
             {errors.description && (
@@ -104,7 +89,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
             )}
           </div>
 
-          {type === "treatments" ? (
+          {type === "treatment" ? (
             <>
               <div className="space-y-2">
                 <Label htmlFor="duration">Duration (minutes)</Label>
@@ -115,7 +100,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                     required: "Duration is required",
                     min: { value: 1, message: "Duration must be at least 1 minute" },
                   })}
-                  placeholder="e.g., 30"
+                  placeholder="Enter duration in minutes"
                 />
                 {errors.duration && (
                   <p className="text-sm text-destructive">
@@ -125,30 +110,11 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="price">Price</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  step="0.01"
-                  {...register("price", {
-                    required: "Price is required",
-                    min: { value: 0, message: "Price cannot be negative" },
-                  })}
-                  placeholder="e.g., 100.00"
-                />
-                {errors.price && (
-                  <p className="text-sm text-destructive">
-                    {errors.price.message as string}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
                 <Input
                   id="category"
                   {...register("category", { required: "Category is required" })}
-                  placeholder="e.g., consultation, treatment, procedure"
+                  placeholder="Enter treatment category"
                 />
                 {errors.category && (
                   <p className="text-sm text-destructive">
@@ -164,7 +130,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                 <Input
                   id="dosage"
                   {...register("dosage", { required: "Dosage is required" })}
-                  placeholder="e.g., 500mg twice daily"
+                  placeholder="Enter medicine dosage"
                 />
                 {errors.dosage && (
                   <p className="text-sm text-destructive">
@@ -174,30 +140,11 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="price">Price</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  step="0.01"
-                  {...register("price", {
-                    required: "Price is required",
-                    min: { value: 0, message: "Price cannot be negative" },
-                  })}
-                  placeholder="e.g., 25.00"
-                />
-                {errors.price && (
-                  <p className="text-sm text-destructive">
-                    {errors.price.message as string}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="unit">Unit</Label>
                 <Input
                   id="unit"
                   {...register("unit", { required: "Unit is required" })}
-                  placeholder="e.g., tablet, bottle, tube"
+                  placeholder="Enter unit (e.g., tablets, ml)"
                 />
                 {errors.unit && (
                   <p className="text-sm text-destructive">
@@ -226,12 +173,31 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
             </>
           )}
 
+          <div className="space-y-2">
+            <Label htmlFor="price">Price</Label>
+            <Input
+              id="price"
+              type="number"
+              step="0.01"
+              {...register("price", {
+                required: "Price is required",
+                min: { value: 0, message: "Price cannot be negative" },
+              })}
+              placeholder="Enter price"
+            />
+            {errors.price && (
+              <p className="text-sm text-destructive">
+                {errors.price.message as string}
+              </p>
+            )}
+          </div>
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
             <Button type="submit">
-              Add {type === "treatments" ? "Treatment" : "Medicine"}
+              Add {type === "treatment" ? "Treatment" : "Medicine"}
             </Button>
           </DialogFooter>
         </form>

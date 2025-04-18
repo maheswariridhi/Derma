@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PatientService from '../../services/PatientService';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp } from '../../types/common';
 
 interface Message {
   id: string;

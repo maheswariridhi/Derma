@@ -59,59 +59,6 @@ interface ReviewAndFinalizeProps {
   onComplete: (updatedPatient: Patient) => void;
 }
 
-// Initial services data
-const initialServices: Services = {
-  treatments: [
-    {
-      id: 1,
-      name: "Chemical Peel",
-      description: "Exfoliating treatment to improve skin texture and tone",
-      duration: "30-45 minutes",
-      cost: "$150-300",
-    },
-    {
-      id: 2,
-      name: "Laser Hair Removal",
-      description: "Permanent hair reduction using laser technology",
-      duration: "15-60 minutes",
-      cost: "$200-800",
-    },
-    {
-      id: 3,
-      name: "Acne Treatment",
-      description: "Comprehensive treatment for active acne and scarring",
-      duration: "45-60 minutes",
-      cost: "$150-400",
-    },
-  ],
-  medicines: [
-    {
-      id: 1,
-      name: "Tretinoin",
-      type: "Retinoid",
-      usage: "Acne and anti-aging",
-      dosage: "0.025%",
-      stock: 75,
-    },
-    {
-      id: 2,
-      name: "Hyaluronic Acid",
-      type: "Moisturizer",
-      usage: "Hydration",
-      dosage: "2%",
-      stock: 80,
-    },
-    {
-      id: 3,
-      name: "Benzoyl Peroxide",
-      type: "Antibacterial",
-      usage: "Acne treatment",
-      dosage: "5%",
-      stock: 60,
-    },
-  ],
-};
-
 const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
   patient,
   onComplete,

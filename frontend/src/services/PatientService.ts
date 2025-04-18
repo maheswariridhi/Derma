@@ -1,4 +1,4 @@
-import { Timestamp } from "firebase/firestore";
+import { Timestamp } from '../types/common';
 import axios from "axios";
 
 const API_BASE_URL = "http://localhost:8000/api"; // FastAPI backend URL with /api prefix
