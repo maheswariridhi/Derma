@@ -2,26 +2,36 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PatientCard from "./PatientCard";
 import PatientService from '../../services/PatientService';
+import { Timestamp } from '../../types/common';
 
-interface TreatmentPlan {
-  diagnosis: string;
-  diagnosisDetails?: string;
-  medications?: Array<{ name: string; dosage: string }>;
-  nextSteps?: string[];
-  next_appointment?: string;
-  recommendations?: any[];
-  additional_notes?: string;
+// Import Patient interface from PatientService to ensure consistency
+// This prevents type mismatches between components
+interface ServicePatient {
+  id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  status: string;
+  priority?: boolean;
+  condition?: string;
+  lastVisit?: string;
+  created_at?: Timestamp;
+  updated_at?: Timestamp;
+  treatmentPlan?: {
+    diagnosis?: string;
+    currentStatus?: string;
+    medications?: Array<{ name: string; dosage: string }>;
+    nextSteps?: string[];
+    next_appointment?: string;
+    recommendations?: any[];
+    additional_notes?: string;
+  };
 }
 
-interface Patient {
-  id: string | number;
-  name: string;
-  status: string;
+// Local interface that extends ServicePatient but adds fields needed locally
+interface Patient extends ServicePatient {
   treatmentValue?: string;
   appointmentDate?: string;
-  phone: string;
-  email: string;
-  treatmentPlan?: TreatmentPlan;
 }
 
 const DashboardPage: React.FC = () => {
@@ -36,7 +46,16 @@ const DashboardPage: React.FC = () => {
     const fetchPatients = async () => {
       try {
         const data = await PatientService.getPatients();
-        setPatients(Array.isArray(data) ? data : []);
+        // Transform data if needed to match local Patient interface
+        const formattedData: Patient[] = Array.isArray(data) 
+          ? data.map(p => ({
+              ...p,
+              id: p.id.toString(), // Ensure id is always string
+              phone: p.phone || '', // Ensure required fields have defaults
+              email: p.email || '',
+            }))
+          : [];
+        setPatients(formattedData);
       } catch (error) {
         console.error('Error fetching patients:', error);
         setPatients([]);
@@ -47,7 +66,11 @@ const DashboardPage: React.FC = () => {
   }, []);
 
   const handlePatientClick = (patient: Patient) => {
-    navigate(`/clinic/manage-patient/${patient.id}/workflow`, {
+    // Set a loading indicator in localStorage before navigation
+    localStorage.setItem('patientWorkflowLoading', 'true');
+    
+    // Navigate with patient data
+    navigate(`../manage-patient/${patient.id}/workflow`, {
       state: { patient }
     });
   };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useOutletContext } from "react-router-dom";
 import PatientService from "../../services/PatientService";
+import { toast } from "react-toastify";
 
 // Define Patient interface
 interface Patient {
@@ -13,16 +13,24 @@ interface Patient {
   treatmentPlan?: any;
 }
 
-// Define context interface
-interface OutletContext {
-  patient: Patient | null;
-  onComplete: (updatedPatient: Patient) => void;
-  error: string | null;
-  setError: (error: string | null) => void;
+interface Services {
+  treatments: any[];
+  medicines: any[];
 }
 
-const PatientInformation: React.FC = () => {
-  const { patient, onComplete, setError } = useOutletContext<OutletContext>();
+interface PatientInformationProps {
+  patient: Patient | null;
+  onStepComplete: (updatedPatient: Patient) => void;
+  loading: boolean;
+  services: Services;
+}
+
+const PatientInformation: React.FC<PatientInformationProps> = ({ 
+  patient, 
+  onStepComplete, 
+  loading,
+  services
+}) => {
   const [editedPatient, setEditedPatient] = useState<Patient | null>(null);
 
   // Update editedPatient when patient data changes
@@ -38,14 +46,15 @@ const PatientInformation: React.FC = () => {
         throw new Error("Patient ID is required");
       }
       await PatientService.updatePatient(editedPatient.id, editedPatient);
-      onComplete(editedPatient);
+      onStepComplete(editedPatient);
+      toast.success("Patient information saved successfully");
     } catch (error) {
       console.error("Failed to update patient:", error);
-      setError((error as Error).message);
+      toast.error("Failed to update patient information");
     }
   };
 
-  if (!editedPatient) {
+  if (loading || !editedPatient) {
     return (
       <div className="flex items-center justify-center p-6">
         <div className="w-8 h-8 border-b-2 border-teal-500 rounded-full animate-spin"></div>

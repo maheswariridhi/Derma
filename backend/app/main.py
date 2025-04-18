@@ -35,6 +35,22 @@ class PatientCreate(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
 
+class PatientUpdate(BaseModel):
+    status: str
+
+class Report(BaseModel):
+    patientId: str
+    diagnosis: Optional[str] = None
+    diagnosisDetails: Optional[str] = None
+    medications: Optional[List[Dict[str, str]]] = None
+    nextSteps: Optional[List[str]] = None
+    next_appointment: Optional[str] = None
+    recommendations: Optional[List[Any]] = None
+    additional_notes: Optional[str] = None
+    selectedTreatments: Optional[List[Any]] = None
+    selectedMedicines: Optional[List[Any]] = None
+    doctor: Optional[str] = None
+
 # Models for Treatments and Medicines
 class TreatmentCreate(BaseModel):
     name: str
@@ -112,11 +128,33 @@ async def get_all_patients():
         print(f"Error in get_all_patients endpoint: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# Queue Endpoints
-@app.get("/api/queue/status")
-async def get_queue_status():
-    """Get the current queue status."""
-    return await firebase_service.get_queue_status()
+@app.put("/api/patients/{patient_id}")
+async def update_patient(patient_id: str, patient_data: dict):
+    """Update a patient's data."""
+    result = await firebase_service.update_patient(patient_id, patient_data)
+    if not result:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    return result
+
+# Report Endpoints
+@app.post("/api/reports")
+async def create_report(report: Report):
+    """Create a new report."""
+    result = await firebase_service.create_report(report.dict())
+    return {"id": result}
+
+@app.get("/api/reports/{report_id}")
+async def get_report(report_id: str):
+    """Get a report by ID."""
+    report = await firebase_service.get_report(report_id)
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    return report
+
+@app.get("/api/patients/{patient_id}/reports")
+async def get_patient_reports(patient_id: str):
+    """Get all reports for a specific patient."""
+    return await firebase_service.get_patient_reports(patient_id)
 
 # Treatment Endpoints
 @app.post("/api/treatments")

@@ -157,10 +157,17 @@ const PatientService = {
 
   async getPatientById(patientId: string): Promise<Patient> {
     try {
+      console.log(`PatientService: Fetching patient with ID: ${patientId}`);
+      console.log(`PatientService: API URL: ${API_BASE_URL}/patients/${patientId}`);
       const response = await axios.get(`${API_BASE_URL}/patients/${patientId}`);
+      console.log('PatientService: Received response:', response);
       return response.data;
     } catch (error) {
       console.error("Error fetching patient:", error);
+      if (axios.isAxiosError(error)) {
+        console.error("API Error Response:", error.response?.data);
+        console.error("API Error Status:", error.response?.status);
+      }
       throw new Error(`Failed to fetch patient: ${(error as Error).message}`);
     }
   },

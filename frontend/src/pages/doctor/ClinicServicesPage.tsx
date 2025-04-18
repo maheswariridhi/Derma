@@ -49,9 +49,10 @@ const ClinicServicesPage: React.FC = () => {
     itemName: "",
   });
 
-  const fetchServices = async () => {
-    setIsLoading(true);
-    setError(null);
+  const fetchServices = async (isInitialLoad: boolean = false) => {
+    if (isInitialLoad) {
+      setIsLoading(true);
+    }
     try {
       const [treatmentsData, medicinesData] = await Promise.all([
         axios.get(`${API_BASE_URL}/treatments`).then(res => res.data),
@@ -59,48 +60,75 @@ const ClinicServicesPage: React.FC = () => {
       ]);
       setTreatments(treatmentsData);
       setMedicines(medicinesData);
+      setError(null);
     } catch (err: any) {
-      const errorMessage = err.message || "Failed to fetch services";
+      const errorMessage = err.response?.data?.detail || err.message || "Failed to fetch services";
       console.error("Error fetching services:", errorMessage);
-      setError(errorMessage);
-      // Only show error toast if it's not a background refresh
-      if (!treatments.length && !medicines.length) {
+      // Only set error and show toast if it's an initial load and we have no data
+      if (isInitialLoad && !treatments.length && !medicines.length) {
+        setError(errorMessage);
         toast.error(errorMessage);
       }
     } finally {
-      setIsLoading(false);
+      if (isInitialLoad) {
+        setIsLoading(false);
+      }
     }
   };
 
   const handleAddService = async (data: Treatment | Medicine) => {
     try {
       if (activeTab === "treatments") {
+        // Create a temporary ID for optimistic update
+        const tempId = `temp-${Date.now()}`;
+        const tempTreatment = { ...data, id: tempId };
+        
+        // Update local state immediately with temp data
+        setTreatments(prev => [...prev, tempTreatment as Treatment]);
+        
+        // Make API call
         const response = await axios.post(`${API_BASE_URL}/treatments`, data);
-        // Update local state immediately
-        setTreatments(prev => [...prev, response.data]);
+        
+        // Replace temp data with real data
+        setTreatments(prev => prev.map(t => 
+          t.id === tempId ? response.data : t
+        ));
+        
         toast.success("Treatment added successfully");
       } else {
+        // Create a temporary ID for optimistic update
+        const tempId = `temp-${Date.now()}`;
+        const tempMedicine = { ...data, id: tempId };
+        
+        // Update local state immediately with temp data
+        setMedicines(prev => [...prev, tempMedicine as Medicine]);
+        
+        // Make API call
         const response = await axios.post(`${API_BASE_URL}/medicines`, data);
-        // Update local state immediately
-        setMedicines(prev => [...prev, response.data]);
+        
+        // Replace temp data with real data
+        setMedicines(prev => prev.map(m => 
+          m.id === tempId ? response.data : m
+        ));
+        
         toast.success("Medicine added successfully");
       }
       setIsModalOpen(false);
       
-      // Fetch in background without showing loading state
-      try {
-        const [treatmentsData, medicinesData] = await Promise.all([
-          axios.get(`${API_BASE_URL}/treatments`).then(res => res.data),
-          axios.get(`${API_BASE_URL}/medicines`).then(res => res.data)
-        ]);
-        setTreatments(treatmentsData);
-        setMedicines(medicinesData);
-      } catch (err) {
-        // Silently handle background refresh errors
+      // Silently refresh in background without loading state
+      fetchServices(false).catch(err => {
         console.error("Background refresh error:", err);
-      }
+      });
     } catch (err: any) {
-      const errorMessage = err.message || `Failed to add ${activeTab.slice(0, -1)}`;
+      // If API call fails, remove the temp item
+      const tempId = `temp-${Date.now()}`;
+      if (activeTab === "treatments") {
+        setTreatments(prev => prev.filter(t => t.id !== tempId));
+      } else {
+        setMedicines(prev => prev.filter(m => m.id !== tempId));
+      }
+      
+      const errorMessage = err.response?.data?.detail || err.message || `Failed to add ${activeTab.slice(0, -1)}`;
       console.error(`Error adding ${activeTab.slice(0, -1)}:`, err);
       toast.error(errorMessage);
     }
@@ -134,7 +162,8 @@ const ClinicServicesPage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchServices();
+    // Only show loading state on initial load
+    fetchServices(true);
   }, []);
 
   if (error) {

@@ -14,8 +14,8 @@ interface Patient {
   id: string;
   name: string;
   status: string;
-  phone: string;
-  email: string;
+  phone?: string;
+  email?: string;
   condition?: string;
   lastVisit?: string;
   treatmentPlan?: TreatmentPlan;
@@ -23,7 +23,7 @@ interface Patient {
 
 interface PatientCardProps {
   patient: Patient;
-  onClick: (path: string) => void;
+  onClick: (patient: Patient) => void;
   isLoading?: boolean;
 }
 
@@ -64,8 +64,15 @@ const PatientCard: React.FC<PatientCardProps> = ({ patient, onClick, isLoading =
 
   return (
     <div 
-      onClick={() => onClick(`/clinic/manage-patient/${patient.id}`)}
+      onClick={() => onClick(patient)}
       className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer border border-gray-100 hover:border-pink-200 transform hover:scale-[1.02]"
+      role="button"
+      tabIndex={0}
+      onKeyPress={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          onClick(patient);
+        }
+      }}
     >
       {/* Header Section */}
       <div className="flex justify-between items-start mb-4">

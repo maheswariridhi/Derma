@@ -39,7 +39,7 @@ class FirebaseService:
             
             # Initialize collections
             self.patients_collection = self.db.collection('hospitals').document(self.hospital_id).collection('patients')
-            self.queues_collection = self.db.collection('hospitals').document(self.hospital_id).collection('queues')
+            self.reports_collection = self.db.collection('hospitals').document(self.hospital_id).collection('reports')
             self.treatments_collection = self.db.collection('hospitals').document(self.hospital_id).collection('treatments')
             self.medicines_collection = self.db.collection('hospitals').document(self.hospital_id).collection('medicines')
             
@@ -84,29 +84,59 @@ class FirebaseService:
             print(f"Error getting all patients: {e}")
             return []
 
-    # Queue Methods
-    async def get_queue_status(self) -> Dict[str, List[Dict[str, Any]]]:
-        """Get the current queue status."""
+    async def update_patient(self, patient_id: str, patient_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Update a patient document."""
         try:
-            today = datetime.now().strftime("%Y-%m-%d")
-            docs = self.queues_collection.where('date', '==', today).where('status', 'in', ['waiting', 'in-progress']).order_by('checkInTime').stream()
+            doc_ref = self.patients_collection.document(patient_id)
+            # Remove any None values from the update data
+            update_data = {k: v for k, v in patient_data.items() if v is not None}
+            update_data['updated_at'] = firestore.SERVER_TIMESTAMP
             
-            result: Dict[str, List[Dict[str, Any]]] = {
-                'check-up': [],
-                'treatment': [],
-                'billing': []
-            }
+            doc_ref.update(update_data)
             
-            for doc in docs:
-                data = doc.to_dict()
-                queue_type = data.get('queueType', 'check-up')
-                if queue_type in result:
-                    result[queue_type].append({"id": doc.id, **data})
-            
-            return result
+            # Get and return the updated document
+            updated_doc = doc_ref.get()
+            if updated_doc.exists:
+                return {"id": updated_doc.id, **updated_doc.to_dict()}
+            return None
         except Exception as e:
-            print(f"Error getting queue status: {e}")
-            return {'check-up': [], 'treatment': [], 'billing': []}
+            print(f"Error updating patient: {e}")
+            return None
+
+    # Report Methods
+    async def create_report(self, report_data: Dict[str, Any]) -> str:
+        """Create a new report."""
+        try:
+            doc_ref = self.reports_collection.document()
+            report_data.update({
+                'created_at': firestore.SERVER_TIMESTAMP,
+                'updated_at': firestore.SERVER_TIMESTAMP
+            })
+            doc_ref.set(report_data)
+            return doc_ref.id
+        except Exception as e:
+            print(f"Error creating report: {e}")
+            raise e
+
+    async def get_report(self, report_id: str) -> Optional[Dict[str, Any]]:
+        """Get a report by ID."""
+        try:
+            doc = self.reports_collection.document(report_id).get()
+            if doc.exists:
+                return {"id": doc.id, **doc.to_dict()}
+            return None
+        except Exception as e:
+            print(f"Error getting report: {e}")
+            return None
+
+    async def get_patient_reports(self, patient_id: str) -> List[Dict[str, Any]]:
+        """Get all reports for a specific patient."""
+        try:
+            docs = self.reports_collection.where('patientId', '==', patient_id).order_by('created_at', direction=firestore.Query.DESCENDING).stream()
+            return [{"id": doc.id, **doc.to_dict()} for doc in docs]
+        except Exception as e:
+            print(f"Error getting patient reports: {e}")
+            return []
 
     # Treatment Methods
     async def create_treatment(self, treatment_data: Dict[str, Any]) -> Dict[str, Any]:

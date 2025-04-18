@@ -57,11 +57,16 @@ interface Patient {
 interface ReviewAndFinalizeProps {
   patient: Patient;
   onComplete: (updatedPatient: Patient) => void;
+  services?: Services; // Make services optional for backward compatibility
 }
 
 const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
   patient,
   onComplete,
+  services = {
+    treatments: [],
+    medicines: []
+  }
 }) => {
   const [treatmentPlan, setTreatmentPlan] = useState<TreatmentPlan>({
     diagnosis: patient?.treatmentPlan?.diagnosis || "",
@@ -147,7 +152,7 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
                 <div>
                   <h3 className="text-lg font-medium mb-4">Selected Treatments</h3>
                   <TreatmentDropdown
-                    treatments={initialServices.treatments}
+                    treatments={services.treatments}
                     onSelect={handleTreatmentSelect}
                   />
                   <div className="mt-4">
@@ -172,7 +177,7 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
                 <div>
                   <h3 className="text-lg font-medium mb-4">Selected Medications</h3>
                   <MedicationDropdown
-                    medicines={initialServices.medicines}
+                    medicines={services.medicines}
                     onSelect={handleMedicineSelect}
                   />
                   <div className="mt-4">

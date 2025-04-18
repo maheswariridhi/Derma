@@ -1,163 +1,187 @@
-import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import React, { useState, useCallback, useRef, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 
-interface Patient {
+export interface Patient {
   id: string;
   name: string;
+  treatmentPlan?: any;
   status?: string;
 }
 
 // Define Step interface
-interface Step {
+export interface Step {
   id: number;
   label: string;
   description: string;
-  completed?: boolean;
+  component: React.ComponentType<any>;
 }
 
 // Define Props interface
-interface WorkflowStepsProps {
+export interface WorkflowStepsProps {
   activeStep: number;
-  onStepClick: (stepId: number) => void;
+  onStepClick: (step: number) => void;
   patient: Patient | null;
-  loading?: boolean;
-  onScroll?: () => void;
-  stepRefs?: {
-    [key: number]: React.RefObject<HTMLDivElement>;
-  };
+  loading: boolean;
+  stepRefs?: Record<number, React.RefObject<HTMLDivElement>>;
+  stepOptions: Step[];
 }
-
-const defaultSteps: Step[] = [
-  { 
-    id: 1, 
-    label: 'Patient Details',
-    description: 'Basic information'
-  },
-  { 
-    id: 2, 
-    label: 'Treatment Plan',
-    description: 'Review and edit plan'
-  },
-  { 
-    id: 3, 
-    label: 'Send to Patient',
-    description: 'Finalize and send'
-  },
-];
-
-const LoadingSkeleton = () => (
-  <div className="animate-pulse space-y-4">
-    <div className="h-6 bg-gray-200 rounded w-3/4"></div>
-    <div className="space-y-3">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="flex items-center space-x-4">
-          <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
-          <div className="flex-1">
-            <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-            <div className="h-3 bg-gray-200 rounded w-3/4"></div>
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-);
 
 const WorkflowSteps: React.FC<WorkflowStepsProps> = ({
   activeStep,
   onStepClick,
   patient,
-  loading = false,
-  onScroll,
-  stepRefs
+  loading,
+  stepRefs,
+  stepOptions
 }) => {
   const location = useLocation();
-  const steps = defaultSteps.map(step => ({
-    ...step,
-    completed: step.id < activeStep
-  }));
+  const [isScrolling, setIsScrolling] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+  
+  // Determine the patient name for display
+  const patientName = patient?.name || 'Patient';
 
-  const handleStepClick = (step: number) => {
-    onStepClick(step);
-    if (stepRefs?.[step]?.current) {
-      stepRefs[step].current?.scrollIntoView({ 
-        behavior: 'smooth',
-        block: 'start'
-      });
+  // Handle scroll synchronization
+  const handleScroll = useCallback(() => {
+    if (!contentRef.current || isScrolling) return;
+
+    const { scrollTop, clientHeight } = contentRef.current;
+    const step = Math.round(scrollTop / clientHeight) + 1;
+    
+    if (step >= 1 && step <= stepOptions.length) {
+      onStepClick(step);
     }
-  };
+  }, [isScrolling, onStepClick, stepOptions.length]);
 
-  if (loading && !patient) {
+  // Handle step click and smooth scroll
+  const handleStepClick = useCallback((step: number) => {
+    setIsScrolling(true);
+    onStepClick(step);
+
+    if (contentRef.current && stepRefs && stepRefs[step]) {
+      const targetRef = stepRefs[step];
+      if (targetRef.current) {
+        targetRef.current.scrollIntoView({
+          behavior: 'smooth'
+        });
+      }
+
+      // Reset scrolling flag after animation
+      setTimeout(() => {
+        setIsScrolling(false);
+      }, 1000);
+    } else {
+      setIsScrolling(false);
+    }
+  }, [onStepClick, stepRefs]);
+
+  // If loading, show skeleton UI from PatientWorkflow
+  if (loading) {
     return (
-      <div className="p-8">
-        <LoadingSkeleton />
+      <div className="flex h-full animate-fade-in">
+        <div className="w-[280px] border-x border-gray-200 bg-white">
+          <div className="p-6">
+            <div className="animate-pulse">
+              <div className="h-8 bg-gray-200 rounded w-3/4 mb-4"></div>
+              <div className="space-y-3">
+                <div className="h-4 bg-gray-200 rounded w-full"></div>
+                <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                <div className="h-4 bg-gray-200 rounded w-4/6"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto bg-gray-50 p-8">
+          <div className="max-w-4xl mx-auto">
+            <div className="animate-pulse">
+              <div className="h-8 bg-gray-200 rounded w-3/4 mb-4"></div>
+              <div className="space-y-3">
+                <div className="h-4 bg-gray-200 rounded w-full"></div>
+                <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                <div className="h-4 bg-gray-200 rounded w-4/6"></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="border-b px-8 py-6">
-        <div className="flex justify-center">
-          <h2 className="text-xl font-semibold text-center">
-            {loading ? (
-              <div className="animate-pulse h-6 bg-gray-200 rounded w-32"></div>
-            ) : (
-              patient?.name || 'Patient'
-            )}
-          </h2>
-        </div>
+    <div className="h-full p-6">
+      <div className="mb-8">
+        <h2 className="text-lg font-medium text-gray-900">Patient Workflow</h2>
+        <p className="text-sm text-gray-500 mt-1">
+          {patient ? patientName : 'Loading patient data...'}
+        </p>
       </div>
-
-      <div className="px-8 py-6 flex-1">
-        <div className="space-y-8 relative">
-          {/* Vertical connecting line */}
-          <div className="absolute left-4 top-8 bottom-8 w-0.5 bg-gray-200 z-0"></div>
-          
-          {steps.map((step) => (
-            <div
-              key={step.id}
-              onClick={() => handleStepClick(step.id)}
-              className={`flex items-start relative z-10 group cursor-pointer
-                ${loading ? 'opacity-50 pointer-events-none' : ''}
-                ${activeStep === step.id ? 'opacity-100' : 'opacity-70 hover:opacity-90'}`}
-            >
-              <div
-                className={`flex items-center justify-center w-8 h-8 rounded-full mr-4 flex-shrink-0 transition-colors
-                  ${step.completed 
-                    ? 'bg-teal-500 text-white'
-                    : activeStep === step.id
-                      ? 'bg-teal-500 text-white' 
-                      : 'bg-gray-100 text-gray-500 group-hover:bg-gray-200'}`}
-              >
-                {step.completed ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                ) : (
-                  step.id
-                )}
-              </div>
-              <div className="min-h-[4rem]">
-                <div className={`font-medium text-lg mb-2
-                  ${activeStep === step.id ? 'text-teal-600' : 'text-gray-900'}
-                  ${loading ? 'text-gray-400' : ''}`}
+      
+      <nav aria-label="Workflow Steps">
+        <ul className="space-y-1">
+          {stepOptions.map((step) => {
+            const isActive = activeStep === step.id;
+            const isCompleted = activeStep > step.id;
+            
+            return (
+              <li key={step.id}>
+                <button
+                  type="button"
+                  onClick={() => handleStepClick(step.id)}
+                  className={`flex items-start w-full rounded-md p-3 text-left transition-colors ${
+                    isActive
+                      ? 'bg-blue-50 text-blue-700'
+                      : isCompleted
+                      ? 'text-gray-500 hover:bg-gray-50'
+                      : 'text-gray-400 cursor-not-allowed'
+                  }`}
+                  disabled={loading || (!isActive && !isCompleted)}
+                  aria-current={isActive ? 'step' : undefined}
                 >
-                  {step.label}
-                </div>
-                <div className={`text-sm ${loading ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {step.description}
-                </div>
-                
-                {/* Optional badge for active step */}
-                {activeStep === step.id && !loading && (
-                  <div className="inline-block bg-teal-50 text-teal-700 text-xs px-2 py-1 rounded mt-3 font-medium">
-                    Current
+                  <div className="flex-shrink-0 flex h-6 items-center">
+                    <div
+                      className={`h-6 w-6 rounded-full flex items-center justify-center ${
+                        isActive
+                          ? 'bg-blue-100 text-blue-700 border-2 border-blue-500'
+                          : isCompleted
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-gray-100 text-gray-400'
+                      }`}
+                    >
+                      {isCompleted ? (
+                        <svg
+                          className="h-4 w-4"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      ) : (
+                        <span>{step.id}</span>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+                  <div className="ml-3 text-sm">
+                    <div className="font-medium">{step.label}</div>
+                    <p className={`mt-1 ${isActive ? 'text-blue-600' : 'text-gray-500'}`}>
+                      {step.description}
+                    </p>
+                  </div>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+
+      {/* Help text */}
+      <div className="mt-8 text-xs text-gray-500">
+        <p>Click on a completed step to review it, or click on the current step to continue.</p>
+        <p className="mt-2">Your progress is automatically saved at each step.</p>
       </div>
     </div>
   );
