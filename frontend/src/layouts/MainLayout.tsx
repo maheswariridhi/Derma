@@ -1,6 +1,6 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
-import { MdDashboard, MdMedicalServices } from "react-icons/md"; // Material Design icons
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { MdDashboard, MdMedicalServices, MdSettings, MdLogout } from "react-icons/md"; // Material Design icons
 import { FaUserInjured } from "react-icons/fa"; // Font Awesome icons
 import { BsCalendarCheck } from "react-icons/bs"; // Bootstrap icons
 
@@ -24,6 +24,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   contentClassName = "",
 }) => {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const navigationItems: NavigationItem[] = [
     {
@@ -46,19 +47,32 @@ const MainLayout: React.FC<MainLayoutProps> = ({
       label: "Services",
       icon: <MdMedicalServices className="w-5 h-5" />,
     },
+    {
+      path: "/clinic/settings",
+      label: "Settings",
+      icon: <MdSettings className="w-5 h-5" />,
+    },
   ];
+
+  const handleLogout = () => {
+    // Here you would clear any authentication tokens/state
+    localStorage.clear();
+    sessionStorage.clear();
+    // Navigate to login page or root
+    navigate("/");
+  };
 
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Main Sidebar - Fixed */}
-      <div className="w-64 fixed h-full z-20">
+      <div className="w-64 fixed h-full z-20 flex flex-col bg-white shadow-sm">
         <div className="p-6">
           <Link to="/clinic/dashboard" className="block">
             <h1 className="text-2xl font-semibold text-teal-600">DermaAI</h1>
           </Link>
         </div>
         
-        <nav className="mt-2 px-3">
+        <nav className="mt-2 px-3 flex-1">
           <ul className="space-y-1">
             {navigationItems.map((item) => {
               const isActive = location.pathname === item.path || 
@@ -84,6 +98,17 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             })}
           </ul>
         </nav>
+
+        {/* Logout button at bottom of sidebar */}
+        <div className="p-4 border-t">
+          <button
+            onClick={handleLogout}
+            className="flex items-center w-full px-4 py-2 text-gray-600 hover:text-red-600 rounded-lg transition-colors"
+          >
+            <MdLogout className="w-5 h-5 mr-3" />
+            <span>Logout</span>
+          </button>
+        </div>
       </div>
 
       {/* Main Content Area - With offset for fixed sidebar */}

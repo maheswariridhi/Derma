@@ -10,6 +10,7 @@ import ReportPage from "./pages/doctor/ReportPage";
 import PatientRegistration from "./PatientRegistration";
 import PatientInfoRoute from "./components/workflow/PatientInfoRoute";
 import MainLayout from "./layouts/MainLayout";
+import SettingsPage from "./pages/doctor/SettingsPage";
 
 const DoctorApp: React.FC = () => {
   const location = useLocation();
@@ -33,6 +34,7 @@ const DoctorApp: React.FC = () => {
 
         <Route path="services" element={<ClinicServicesPage />} />
         <Route path="manage-patients/new" element={<PatientRegistration />} />
+        <Route path="settings" element={<SettingsPage />} />
         
         {/* Catch all redirect to dashboard */}
         <Route path="*" element={<Navigate to="dashboard" replace />} />
