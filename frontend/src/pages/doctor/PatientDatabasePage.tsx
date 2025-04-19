@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PatientService from "../../services/PatientService";
 import Table from "../../components/common/Table";
-import { BsTrash } from "react-icons/bs";
+import { BsX } from "react-icons/bs";
 import DeletePatientModal from "../../components/patients/DeletePatientModal";
 import usePatientDeletion from "../../hooks/usePatientDeletion";
 
@@ -53,10 +53,10 @@ const PatientDatabasePage: React.FC = () => {
   const renderActions = (patient: Patient) => (
     <button
       onClick={(e) => openDeleteModal(patient, e)}
-      className="text-red-600"
+      className="text-black hover:text-gray-700"
       title="Delete patient"
     >
-      <BsTrash size={18} />
+      <BsX size={16} />
     </button>
   );
 

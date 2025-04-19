@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import AddServiceModal from "@/components/services/AddServiceModal";
 import DeleteConfirmationModal from "@/components/services/DeleteConfirmationModal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -225,10 +225,10 @@ const ClinicServicesPage: React.FC = () => {
               </div>
               <button
                 onClick={() => handleDeleteClick(item.id, type, item.name)}
-                className="text-red-500 hover:text-red-700 p-1"
+                className="text-black hover:text-gray-700 p-1"
                 title="Delete medicine"
               >
-                <TrashIcon className="w-4 h-4" />
+                <XMarkIcon className="w-5 h-5" />
                 <span className="sr-only">Delete</span>
               </button>
             </div>
@@ -254,10 +254,10 @@ const ClinicServicesPage: React.FC = () => {
                 </div>
                 <button
                   onClick={() => handleDeleteClick(item.id, type, item.name)}
-                  className="text-red-500 hover:text-red-700 p-2"
+                  className="text-black hover:text-gray-700 p-1"
                   title="Delete treatment"
                 >
-                  <TrashIcon className="w-5 h-5" />
+                  <XMarkIcon className="w-5 h-5" />
                   <span className="sr-only">Delete</span>
                 </button>
               </div>

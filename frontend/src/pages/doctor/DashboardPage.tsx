@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import PatientCard from "./PatientCard";
 import PatientService from '../../services/PatientService';
 import { Timestamp } from '../../types/common';
-import { BsTrash } from "react-icons/bs";
+import { BsX } from "react-icons/bs";
 import DeletePatientModal from "../../components/patients/DeletePatientModal";
 import usePatientDeletion from "../../hooks/usePatientDeletion";
 import LoadingSkeleton from "../../components/common/LoadingSkeleton"; 
@@ -160,10 +160,10 @@ const DashboardPage: React.FC = () => {
                   e.stopPropagation();
                   openDeleteModal(patient, e);
                 }}
-                className="absolute top-4 right-4 text-red-600 p-2 rounded-full hover:bg-red-50"
+                className="absolute top-4 right-4 text-black p-1 rounded-full hover:bg-gray-100"
                 title="Delete patient"
               >
-                <BsTrash size={18} />
+                <BsX size={16} />
               </button>
             </div>
           ))}
