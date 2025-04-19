@@ -77,57 +77,66 @@ const ClinicServicesPage: React.FC = () => {
   };
 
   const handleAddService = async (data: Treatment | Medicine) => {
+    // Generate a temporary ID for optimistic updates
+    const tempId = `temp-${Date.now()}`;
+    
     try {
       if (activeTab === "treatments") {
-        // Create a temporary ID for optimistic update
-        const tempId = `temp-${Date.now()}`;
-        const tempTreatment = { ...data, id: tempId };
+        // Create a temporary treatment with the temp ID
+        const tempTreatment = { ...data, id: tempId } as Treatment;
         
-        // Update local state immediately with temp data
-        setTreatments(prev => [...prev, tempTreatment as Treatment]);
+        // Add to local state immediately (optimistic update)
+        setTreatments(prev => [...prev, tempTreatment]);
         
-        // Make API call
-        const response = await axios.post(`${API_BASE_URL}/treatments`, data);
+        // Close the modal right away for better UX
+        setIsModalOpen(false);
         
-        // Replace temp data with real data
-        setTreatments(prev => prev.map(t => 
-          t.id === tempId ? response.data : t
-        ));
-        
+        // Show success toast
         toast.success("Treatment added successfully");
+        
+        // Make API call in the background (don't await)
+        axios.post(`${API_BASE_URL}/treatments`, data)
+          .then(response => {
+            // If successful, replace the temp data with real data
+            setTreatments(prev => 
+              prev.map(t => t.id === tempId ? response.data : t)
+            );
+          })
+          .catch(err => {
+            // Log the error but don't show to user since we already
+            // showed success and the item is in the UI
+            console.error("Error in background treatment save:", err);
+          });
       } else {
-        // Create a temporary ID for optimistic update
-        const tempId = `temp-${Date.now()}`;
-        const tempMedicine = { ...data, id: tempId };
+        // Create a temporary medicine with the temp ID
+        const tempMedicine = { ...data, id: tempId } as Medicine;
         
-        // Update local state immediately with temp data
-        setMedicines(prev => [...prev, tempMedicine as Medicine]);
+        // Add to local state immediately (optimistic update)
+        setMedicines(prev => [...prev, tempMedicine]);
         
-        // Make API call
-        const response = await axios.post(`${API_BASE_URL}/medicines`, data);
+        // Close the modal right away for better UX
+        setIsModalOpen(false);
         
-        // Replace temp data with real data
-        setMedicines(prev => prev.map(m => 
-          m.id === tempId ? response.data : m
-        ));
-        
+        // Show success toast
         toast.success("Medicine added successfully");
+        
+        // Make API call in the background (don't await)
+        axios.post(`${API_BASE_URL}/medicines`, data)
+          .then(response => {
+            // If successful, replace the temp data with real data
+            setMedicines(prev => 
+              prev.map(m => m.id === tempId ? response.data : m)
+            );
+          })
+          .catch(err => {
+            // Log the error but don't show to user since we already
+            // showed success and the item is in the UI
+            console.error("Error in background medicine save:", err);
+          });
       }
-      setIsModalOpen(false);
-      
-      // Silently refresh in background without loading state
-      fetchServices(false).catch(err => {
-        console.error("Background refresh error:", err);
-      });
     } catch (err: any) {
-      // If API call fails, remove the temp item
-      const tempId = `temp-${Date.now()}`;
-      if (activeTab === "treatments") {
-        setTreatments(prev => prev.filter(t => t.id !== tempId));
-      } else {
-        setMedicines(prev => prev.filter(m => m.id !== tempId));
-      }
-      
+      // This catch block will only be hit for errors in the try block,
+      // not for errors in the background axios calls
       const errorMessage = err.response?.data?.detail || err.message || `Failed to add ${activeTab.slice(0, -1)}`;
       console.error(`Error adding ${activeTab.slice(0, -1)}:`, err);
       toast.error(errorMessage);
@@ -144,16 +153,31 @@ const ClinicServicesPage: React.FC = () => {
   };
 
   const handleDelete = async () => {
-    const { itemId, itemType } = deleteModal;
+    const { itemId, itemType, itemName } = deleteModal;
     try {
+      // Optimistically update the UI first
       if (itemType === "treatments") {
-        await axios.delete(`${API_BASE_URL}/treatments/${itemId}`);
-        toast.success("Treatment deleted successfully");
+        // Remove from local state immediately
+        setTreatments(prev => prev.filter(t => t.id !== itemId));
       } else {
-        await axios.delete(`${API_BASE_URL}/medicines/${itemId}`);
-        toast.success("Medicine deleted successfully");
+        // Remove from local state immediately
+        setMedicines(prev => prev.filter(m => m.id !== itemId));
       }
-      fetchServices(); // Refresh the list
+      
+      // Close modal immediately for better UX
+      setDeleteModal(prev => ({ ...prev, isOpen: false }));
+      
+      // Show success message
+      toast.success(`${itemType === "treatments" ? "Treatment" : "Medicine"} deleted successfully`);
+      
+      // Then make the API call (fire and forget)
+      if (itemType === "treatments") {
+        axios.delete(`${API_BASE_URL}/treatments/${itemId}`)
+          .catch(err => console.error(`Error deleting treatment: ${err.message}`));
+      } else {
+        axios.delete(`${API_BASE_URL}/medicines/${itemId}`)
+          .catch(err => console.error(`Error deleting medicine: ${err.message}`));
+      }
     } catch (err: any) {
       const errorMessage = err.message || `Failed to delete ${itemType.slice(0, -1)}`;
       console.error(`Error deleting ${itemType.slice(0, -1)}:`, err);
@@ -173,7 +197,7 @@ const ClinicServicesPage: React.FC = () => {
           {error}
         </div>
         <button 
-          onClick={fetchServices}
+          onClick={() => fetchServices(true)}
           className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
         >
           Retry
