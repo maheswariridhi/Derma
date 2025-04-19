@@ -1,4 +1,4 @@
-import { Timestamp } from '../types/common';
+import { Timestamp, timestampToDate } from '../types/common';
 import axios from "axios";
 
 const API_BASE_URL = "http://localhost:8000/api"; // FastAPI backend URL with /api prefix
@@ -150,7 +150,7 @@ const PatientService = {
   calculateWaitingTime(checkInTime?: Timestamp): string {
     if (!checkInTime) return "N/A";
     const now = new Date();
-    const checkIn = checkInTime.toDate();
+    const checkIn = timestampToDate(checkInTime);
     const diff = Math.floor((now.getTime() - checkIn.getTime()) / 1000 / 60);
     return `${diff} mins`;
   },

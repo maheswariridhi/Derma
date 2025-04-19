@@ -44,7 +44,7 @@ const PatientRegistration: React.FC = () => {
       setFormData({ name: "", email: "", phone: "" });
 
       setTimeout(() => {
-        navigate("/dpatients");
+        navigate("/clinic/manage-patients");
       }, 2000);
     } catch (err: any) {
       console.error("Registration error:", err);

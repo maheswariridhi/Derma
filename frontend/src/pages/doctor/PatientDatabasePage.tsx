@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import PatientService from "../../services/PatientService";
 import Table from "../../components/common/Table";
 import { BsTrash } from "react-icons/bs";
+import DeletePatientModal from "../../components/patients/DeletePatientModal";
+import usePatientDeletion from "../../hooks/usePatientDeletion";
 
 // Define Patient interface
 interface Patient {
@@ -17,6 +19,18 @@ interface Patient {
 const PatientDatabasePage: React.FC = () => {
   const navigate = useNavigate();
   const [patients, setPatients] = useState<Patient[]>([]);
+  
+  // Use the patient deletion hook
+  const { 
+    isDeleteModalOpen, 
+    patientToDelete, 
+    openDeleteModal, 
+    closeDeleteModal, 
+    handleDeleteConfirm
+  } = usePatientDeletion((deletedPatientId) => {
+    // Update local state after successful deletion
+    setPatients(patients.filter(p => p.id !== deletedPatientId));
+  });
 
   useEffect(() => {
     const fetchPatients = async () => {
@@ -36,22 +50,9 @@ const PatientDatabasePage: React.FC = () => {
     navigate(`/clinic/manage-patient/${patient.id}`);
   };
 
-  const handleDeletePatient = async (patientId: string) => {
-    if (window.confirm("Are you sure you want to delete this patient?")) {
-      try {
-        await PatientService.deletePatient(patientId);
-        // Remove the patient from the local state
-        setPatients(patients.filter(p => p.id !== patientId));
-      } catch (error) {
-        console.error("Error deleting patient:", error);
-        alert("Failed to delete patient. Please try again.");
-      }
-    }
-  };
-
   const renderActions = (patient: Patient) => (
     <button
-      onClick={() => handleDeletePatient(patient.id)}
+      onClick={(e) => openDeleteModal(patient, e)}
       className="text-red-600"
       title="Delete patient"
     >
@@ -82,6 +83,15 @@ const PatientDatabasePage: React.FC = () => {
         onRowClick={handlePatientClick}
         actions={renderActions}
       />
+      
+      {patientToDelete && (
+        <DeletePatientModal
+          isOpen={isDeleteModalOpen}
+          onClose={closeDeleteModal}
+          onConfirm={handleDeleteConfirm}
+          patientName={patientToDelete.name}
+        />
+      )}
     </div>
   );
 };

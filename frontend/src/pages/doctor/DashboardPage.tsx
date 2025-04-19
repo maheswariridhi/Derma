@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import PatientCard from "./PatientCard";
 import PatientService from '../../services/PatientService';
 import { Timestamp } from '../../types/common';
+import { BsTrash } from "react-icons/bs";
+import DeletePatientModal from "../../components/patients/DeletePatientModal";
+import usePatientDeletion from "../../hooks/usePatientDeletion";
 
 // Import Patient interface from PatientService to ensure consistency
 // This prevents type mismatches between components
@@ -41,6 +44,18 @@ const DashboardPage: React.FC = () => {
   // State for patients and search
   const [patients, setPatients] = useState<Patient[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  
+  // Use the patient deletion hook
+  const { 
+    isDeleteModalOpen, 
+    patientToDelete, 
+    openDeleteModal, 
+    closeDeleteModal, 
+    handleDeleteConfirm
+  } = usePatientDeletion((deletedPatientId) => {
+    // Update local state after successful deletion
+    setPatients(patients.filter(p => p.id !== deletedPatientId));
+  });
 
   useEffect(() => {
     const fetchPatients = async () => {
@@ -100,13 +115,30 @@ const DashboardPage: React.FC = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {filteredPatients.map((patient) => (
-          <PatientCard
-            key={patient.id}
-            patient={patient}
-            onClick={() => handlePatientClick(patient)}
-          />
+          <div key={patient.id} className="relative">
+            <PatientCard
+              patient={patient}
+              onClick={() => handlePatientClick(patient)}
+            />
+            <button
+              onClick={(e) => openDeleteModal(patient, e)}
+              className="absolute top-4 right-4 text-red-600 p-2 rounded-full hover:bg-red-50"
+              title="Delete patient"
+            >
+              <BsTrash size={18} />
+            </button>
+          </div>
         ))}
       </div>
+
+      {patientToDelete && (
+        <DeletePatientModal
+          isOpen={isDeleteModalOpen}
+          onClose={closeDeleteModal}
+          onConfirm={handleDeleteConfirm}
+          patientName={patientToDelete.name}
+        />
+      )}
     </div>
   );
 };

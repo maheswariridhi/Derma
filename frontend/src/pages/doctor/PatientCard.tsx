@@ -65,7 +65,7 @@ const PatientCard: React.FC<PatientCardProps> = ({ patient, onClick, isLoading =
   return (
     <div 
       onClick={() => onClick(patient)}
-      className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer border border-gray-100 hover:border-pink-200 transform hover:scale-[1.02]"
+      className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer border border-gray-100 hover:border-pink-200 transform hover:scale-[1.02] h-full relative"
       role="button"
       tabIndex={0}
       onKeyPress={(e) => {
@@ -75,7 +75,7 @@ const PatientCard: React.FC<PatientCardProps> = ({ patient, onClick, isLoading =
       }}
     >
       {/* Header Section */}
-      <div className="flex justify-between items-start mb-4">
+      <div className="flex justify-between items-start mb-4 pr-8">
         <div>
           <h3 className="text-lg font-semibold text-gray-900 mb-1 transition-colors duration-200">{patient.name}</h3>
           <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(patient.status)} transition-colors duration-200`}>

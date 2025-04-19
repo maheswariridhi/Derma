@@ -109,6 +109,15 @@ async def create_patient(patient: PatientCreate):
         raise HTTPException(status_code=400, detail=result["error"])
     return result
 
+@app.post("/api/patients/register")
+async def register_patient(patient: PatientCreate):
+    """Register a new patient."""
+    print("Received patient registration request:", patient.dict())
+    result = await firebase_service.create_patient(patient.dict())
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
 @app.get("/api/patients/{identifier}")
 async def get_patient(identifier: str):
     """Get a patient by ID."""
@@ -135,6 +144,14 @@ async def update_patient(patient_id: str, patient_data: dict):
     if not result:
         raise HTTPException(status_code=404, detail="Patient not found")
     return result
+
+@app.delete("/api/patients/{patient_id}")
+async def delete_patient(patient_id: str):
+    """Delete a patient."""
+    result = await firebase_service.delete_patient(patient_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    return {"success": True}
 
 # Report Endpoints
 @app.post("/api/reports")

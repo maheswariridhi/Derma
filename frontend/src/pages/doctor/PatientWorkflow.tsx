@@ -1,129 +1,46 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import PatientService from '../../services/PatientService';
-import WorkflowSteps from '../../components/workflow/WorkflowSteps';
-import PatientInformation from '../../components/workflow/PatientInformation';
+import WorkflowSteps, { Step } from '../../components/workflow/WorkflowSteps';
 import ReviewAndFinalize from '../../components/workflow/ReviewAndFinalize';
 import SendToPatient from '../../components/workflow/SendToPatient';
 
-interface Treatment {
-  id: number;
-  name: string;
-  description: string;
-  duration: string;
-  cost: string;
-}
+// Import services data from a central location
+import { initialServices } from '../../data/services';
 
-interface Medicine {
-  id: number;
-  name: string;
-  type: string;
-  usage: string;
-  dosage: string;
-  stock: number;
-}
-
-interface Services {
-  treatments: Treatment[];
-  medicines: Medicine[];
-}
-
-interface TreatmentPlan {
-  diagnosis: string;
-  diagnosisDetails: string;
-  medications: Array<{ name: string; dosage: string }>;
-  nextSteps: string[];
-  next_appointment: string;
-  recommendations: any[];
-  additional_notes: string;
-  selectedTreatments?: Treatment[];
-  selectedMedicines?: Medicine[];
-}
-
+// Patient interface used across components
 interface Patient {
   id: string;
   name: string;
   phone?: string;
-  treatmentPlan?: any; // We'll let ReviewAndFinalize handle the specific TreatmentPlan type
+  treatmentPlan?: any;
   status?: string;
 }
-
-const initialServices: Services = {
-  treatments: [
-    {
-      id: 1,
-      name: "Chemical Peel",
-      description: "Exfoliating treatment to improve skin texture and tone",
-      duration: "30-45 minutes",
-      cost: "$150-300",
-    },
-    {
-      id: 2,
-      name: "Laser Hair Removal",
-      description: "Permanent hair reduction using laser technology",
-      duration: "15-60 minutes",
-      cost: "$200-800",
-    },
-    {
-      id: 3,
-      name: "Acne Treatment",
-      description: "Comprehensive treatment for active acne and scarring",
-      duration: "45-60 minutes",
-      cost: "$150-400",
-    },
-  ],
-  medicines: [
-    {
-      id: 1,
-      name: "Tretinoin",
-      type: "Retinoid",
-      usage: "Acne and anti-aging",
-      dosage: "0.025%",
-      stock: 75,
-    },
-    {
-      id: 2,
-      name: "Hyaluronic Acid",
-      type: "Moisturizer",
-      usage: "Hydration",
-      dosage: "2%",
-      stock: 80,
-    },
-    {
-      id: 3,
-      name: "Benzoyl Peroxide",
-      type: "Antibacterial",
-      usage: "Acne treatment",
-      dosage: "5%",
-      stock: 60,
-    },
-  ],
-};
 
 const PatientWorkflow: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const navigate = useNavigate();
   
-  // Simplified state management
+  // Consolidated state management
   const [patient, setPatient] = useState<Patient | null>(location.state?.patient || null);
-  const [loading, setLoading] = useState(true); // Always start with loading true
+  const [loading, setLoading] = useState(true);
   const [activeStep, setActiveStep] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [isScrolling, setIsScrolling] = useState(false);
   const [useDemoData, setUseDemoData] = useState(false);
 
-  const contentRef = React.useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const stepRefs = {
-    1: React.useRef<HTMLDivElement>(null),
-    2: React.useRef<HTMLDivElement>(null),
-    3: React.useRef<HTMLDivElement>(null),
+    1: useRef<HTMLDivElement>(null),
+    2: useRef<HTMLDivElement>(null),
+    3: useRef<HTMLDivElement>(null),
   };
 
-  // Demo patient data
+  // Demo patient data for fallback when API fails
   const demoPatient: Patient = {
     id: "demo-123",
     name: "Demo Patient",
@@ -140,20 +57,40 @@ const PatientWorkflow: React.FC = () => {
     }
   };
 
+  // Define step options with consistent naming and structure
+  const stepOptions: Step[] = [
+    { 
+      id: 1, 
+      label: "Tell us about the patient", 
+      description: "Basic patient details",
+      status: activeStep === 1 ? "Current" : ""
+    },
+    { 
+      id: 2, 
+      label: "Review and Finalize", 
+      description: "Review treatment plan to edit it and send it to the patient"
+    },
+    { 
+      id: 3, 
+      label: "Send to Patient", 
+      description: "Send the completed treatment plan to patient"
+    },
+  ];
+
   // Handle scroll synchronization
-  const handleScroll = React.useCallback(() => {
+  const handleScroll = useCallback(() => {
     if (!contentRef.current || isScrolling) return;
 
     const { scrollTop, clientHeight } = contentRef.current;
     const step = Math.round(scrollTop / clientHeight) + 1;
     
-    if (step >= 1 && step <= 3) {
+    if (step >= 1 && step <= stepOptions.length) {
       setActiveStep(step);
     }
-  }, [isScrolling]);
+  }, [isScrolling, stepOptions.length]);
 
   // Handle step click and smooth scroll
-  const handleStepClick = React.useCallback((step: number) => {
+  const handleStepClick = useCallback((step: number) => {
     setIsScrolling(true);
     setActiveStep(step);
 
@@ -177,7 +114,6 @@ const PatientWorkflow: React.FC = () => {
       // If we already have patient data from navigation state, just finish loading
       if (patient && location.state?.patient) {
         setLoading(false);
-        localStorage.removeItem('patientWorkflowLoading');
         return;
       }
 
@@ -232,16 +168,12 @@ const PatientWorkflow: React.FC = () => {
       mounted = false; // Cleanup to prevent state updates after unmount
       localStorage.removeItem('patientWorkflowLoading'); // Ensure flag is cleared on unmount
     };
-  }, [id, location.state]);
+  }, [id, location.state, patient, demoPatient]);
 
-  // Add transition effect when component mounts
+  // Prevent body scroll during loading
   useEffect(() => {
-    // Remove body scroll during transition
     document.body.style.overflow = loading ? 'hidden' : '';
-    
-    return () => {
-      document.body.style.overflow = '';
-    };
+    return () => { document.body.style.overflow = ''; };
   }, [loading]);
 
   const handleStepComplete = async (updatedPatient: Patient) => {
@@ -254,7 +186,7 @@ const PatientWorkflow: React.FC = () => {
       
       await PatientService.updatePatient(id, updatedPatient);
       setPatient(updatedPatient);
-      const nextStep = Math.min(activeStep + 1, 3);
+      const nextStep = Math.min(activeStep + 1, stepOptions.length);
       setActiveStep(nextStep);
       handleStepClick(nextStep);
       toast.success('Progress saved successfully');
@@ -277,39 +209,7 @@ const PatientWorkflow: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-full animate-fade-in">
-        <div className="w-[280px] border-x border-gray-200 bg-white">
-          <div className="p-6">
-            <div className="animate-pulse">
-              <div className="h-8 bg-gray-200 rounded w-3/4 mb-4"></div>
-              <div className="space-y-3">
-                <div className="h-4 bg-gray-200 rounded w-full"></div>
-                <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-                <div className="h-4 bg-gray-200 rounded w-4/6"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="flex-1 overflow-y-auto bg-gray-50 p-8">
-          <div className="max-w-4xl mx-auto">
-            <div className="animate-pulse">
-              <div className="h-8 bg-gray-200 rounded w-3/4 mb-4"></div>
-              <div className="space-y-3">
-                <div className="h-4 bg-gray-200 rounded w-full"></div>
-                <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-                <div className="h-4 bg-gray-200 rounded w-4/6"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (error) {
-    console.log('Rendering error message:', error);
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
         <div className="text-red-500 text-xl mb-4">Error: {error}</div>
@@ -322,30 +222,6 @@ const PatientWorkflow: React.FC = () => {
       </div>
     );
   }
-
-  console.log('About to render main workflow with patient:', patient);
-  console.log('Current activeStep:', activeStep);
-
-  const stepOptions = [
-    { 
-      id: 1, 
-      label: "Patient Information", 
-      description: "Enter patient details and medical history",
-      component: PatientInformation 
-    },
-    { 
-      id: 2, 
-      label: "Review & Finalize", 
-      description: "Confirm treatment plan and medications",
-      component: ReviewAndFinalize 
-    },
-    { 
-      id: 3, 
-      label: "Send to Patient", 
-      description: "Confirm contact method and send report",
-      component: SendToPatient 
-    },
-  ];
 
   return (
     <div className="flex h-full animate-fade-in">

@@ -14,7 +14,9 @@ export interface Step {
   id: number;
   label: string;
   description: string;
-  component: React.ComponentType<any>;
+  icon?: React.ReactNode;
+  status?: string;
+  component?: React.ComponentType<any>;
 }
 
 // Define Props interface
@@ -24,7 +26,7 @@ export interface WorkflowStepsProps {
   patient: Patient | null;
   loading: boolean;
   stepRefs?: Record<number, React.RefObject<HTMLDivElement>>;
-  stepOptions?: Step[];
+  stepOptions: Step[];
 }
 
 const LoadingSkeleton = () => (
@@ -43,57 +45,10 @@ const WorkflowSteps: React.FC<WorkflowStepsProps> = ({
   onStepClick,
   patient,
   loading,
-  stepRefs
+  stepOptions
 }) => {
   const location = useLocation();
   
-  // Define default step options if not provided
-  const stepOptions = [
-    { 
-      id: 1, 
-      label: "Patient Information", 
-      description: "Enter patient details and medical history",
-      component: null 
-    },
-    { 
-      id: 2, 
-      label: "Review & Finalize", 
-      description: "Confirm treatment plan and medications",
-      component: null 
-    },
-    { 
-      id: 3, 
-      label: "Send to Patient", 
-      description: "Confirm contact method and send report",
-      component: null 
-    },
-  ];
-
-  // Updated step definitions to match the screenshots
-  const updatedStepOptions = [
-    {
-      id: 1,
-      label: "Tell us about the patient",
-      description: "Basic patient details",
-      status: activeStep === 1 ? "Current" : "",
-      icon: "👤"
-    },
-    {
-      id: 2,
-      label: "Review and Finalize",
-      description: "Review treatment plan to edit it and send it to the patient",
-      status: "",
-      icon: "📋"
-    },
-    {
-      id: 3,
-      label: "Send to Patient",
-      description: "Send the completed treatment plan to patient",
-      status: "",
-      icon: "📩"
-    }
-  ];
-
   // If loading, show skeleton UI
   if (loading) {
     return (
@@ -121,7 +76,7 @@ const WorkflowSteps: React.FC<WorkflowStepsProps> = ({
       
       <nav aria-label="Workflow Steps">
         <ul className="space-y-6">
-          {updatedStepOptions.map((step) => {
+          {stepOptions.map((step) => {
             const isActive = activeStep === step.id;
             const isCompleted = activeStep > step.id;
             

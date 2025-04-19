@@ -53,14 +53,33 @@ class FirebaseService:
         """Create a new patient document in Firestore."""
         try:
             doc_ref = self.patients_collection.document()
-            patient_data.update({
+            
+            # Use a local timestamp for the response
+            current_time = datetime.now().isoformat()
+            
+            # Prepare the data to save to Firestore
+            firestore_data = {
+                **patient_data,
                 'created_at': firestore.SERVER_TIMESTAMP,
                 'updated_at': firestore.SERVER_TIMESTAMP,
                 'status': 'active'
-            })
-            doc_ref.set(patient_data)
-            return {"id": doc_ref.id, **patient_data}
+            }
+            
+            # Set the document in Firestore
+            doc_ref.set(firestore_data)
+            
+            # Prepare response data (with string timestamps instead of Firestore objects)
+            response_data = {
+                **patient_data,
+                'id': doc_ref.id,
+                'created_at': current_time,
+                'updated_at': current_time,
+                'status': 'active'
+            }
+            
+            return response_data
         except Exception as e:
+            logger.error(f"Error creating patient: {str(e)}")
             return {"error": str(e)}
 
     async def get_patient(self, patient_id: str) -> Optional[Dict[str, Any]]:
@@ -102,6 +121,18 @@ class FirebaseService:
         except Exception as e:
             print(f"Error updating patient: {e}")
             return None
+
+    async def delete_patient(self, patient_id: str) -> bool:
+        """Delete a patient from the database."""
+        try:
+            logger.info(f"Deleting patient with ID: {patient_id}")
+            doc_ref = self.patients_collection.document(patient_id)
+            doc_ref.delete()
+            logger.info(f"Patient {patient_id} deleted successfully")
+            return True
+        except Exception as e:
+            logger.error(f"Error deleting patient: {str(e)}")
+            return False
 
     # Report Methods
     async def create_report(self, report_data: Dict[str, Any]) -> str:
