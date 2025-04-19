@@ -42,11 +42,15 @@ class FirebaseService:
             self.reports_collection = self.db.collection('hospitals').document(self.hospital_id).collection('reports')
             self.treatments_collection = self.db.collection('hospitals').document(self.hospital_id).collection('treatments')
             self.medicines_collection = self.db.collection('hospitals').document(self.hospital_id).collection('medicines')
+            self.doctors_collection = self.db.collection('hospitals').document(self.hospital_id).collection('doctors')
             
             logger.info("All collections initialized successfully")
         except Exception as e:
             logger.error(f"Error initializing Firebase: {str(e)}")
             raise e
+
+    def get_collection(self, hospital_id: str, collection_name: str):
+        return self.db.collection("hospitals").document(hospital_id).collection(collection_name)
 
     # Patient Methods
     async def create_patient(self, patient_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -322,4 +326,48 @@ class FirebaseService:
             return True
         except Exception as e:
             print(f"Error updating medicine stock: {e}")
-            return False 
+            return False
+
+    # Doctor Methods
+    async def create_doctor(self, hospital_id: str, doctor_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create or update a doctor document in Firestore."""
+        try:
+            logger.info(f"Creating/updating doctor: {doctor_data}")
+            # Check if doctors exist for this hospital
+            doctors = await self.get_all_doctors(hospital_id)
+            
+            if doctors and len(doctors) > 0:
+                # Update the first doctor document
+                doc_ref = self.get_collection(hospital_id, "doctors").document(doctors[0]["id"])
+                update_data = {
+                    **doctor_data,
+                    "updated_at": firestore.SERVER_TIMESTAMP
+                }
+                doc_ref.update(update_data)
+                logger.info(f"Doctor updated with ID: {doc_ref.id}")
+                return {"id": doc_ref.id, **doctor_data}
+            else:
+                # Create a new doctor document
+                doc_ref = self.get_collection(hospital_id, "doctors").document()
+                doctor_data.update({
+                    "created_at": firestore.SERVER_TIMESTAMP,
+                    "updated_at": firestore.SERVER_TIMESTAMP
+                })
+                doc_ref.set(doctor_data)
+                logger.info(f"Doctor created with ID: {doc_ref.id}")
+                return {"id": doc_ref.id, **doctor_data}
+        except Exception as e:
+            logger.error(f"Error creating/updating doctor: {str(e)}")
+            return {"error": str(e)}
+
+    async def get_all_doctors(self, hospital_id: str) -> List[Dict[str, Any]]:
+        """Get all doctors for a hospital."""
+        try:
+            logger.info(f"Fetching all doctors for hospital: {hospital_id}")
+            docs = self.get_collection(hospital_id, "doctors").stream()
+            doctors = [{"id": doc.id, **doc.to_dict()} for doc in docs]
+            logger.info(f"Found {len(doctors)} doctors")
+            return doctors
+        except Exception as e:
+            logger.error(f"Error getting all doctors: {str(e)}")
+            return [] 

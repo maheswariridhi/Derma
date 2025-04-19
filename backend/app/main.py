@@ -85,6 +85,14 @@ class MedicineUpdate(BaseModel):
 class StockUpdate(BaseModel):
     quantity: int
 
+class DoctorCreate(BaseModel):
+    name: str
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    speciality: Optional[str] = None
+    experience: Optional[str] = None
+    bio: Optional[str] = None
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
@@ -252,6 +260,20 @@ async def update_medicine_stock(medicine_id: str, stock_update: StockUpdate):
     if not result:
         raise HTTPException(status_code=404, detail="Medicine not found or invalid stock update")
     return {"success": True}
+
+# Doctor Endpoints
+@app.post("/api/hospitals/{hospital_id}/doctors")
+async def create_doctor(hospital_id: str, doctor: DoctorCreate):
+    """Create or update a doctor."""
+    result = await firebase_service.create_doctor(hospital_id, doctor.dict())
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+@app.get("/api/hospitals/{hospital_id}/doctors")
+async def get_all_doctors(hospital_id: str):
+    """Get all doctors for a hospital."""
+    return await firebase_service.get_all_doctors(hospital_id)
 
 if __name__ == "__main__":
     import uvicorn

@@ -7,6 +7,7 @@ interface SettingSection {
 }
 
 const SettingsPage: React.FC = () => {
+  const hospitalId = "hospital_dermai_01"; // Default hospital ID
   const [activeSection, setActiveSection] = useState('profile');
   const [savedMessage, setSavedMessage] = useState('');
   const [profileData, setProfileData] = useState({
@@ -66,8 +67,27 @@ const SettingsPage: React.FC = () => {
   ];
 
   useEffect(() => {
-    // This useEffect is kept empty as we'll connect to database later
-  }, []);
+    const loadDoctor = async () => {
+      try {
+        const res = await fetch(`http://localhost:8000/api/hospitals/${hospitalId}/doctors`);
+        const doctors = await res.json();
+        if (doctors.length > 0) {
+          const d = doctors[0];
+          setProfileData({
+            fullName: d.name || 'Dr. Ridhi Maheswari',
+            email: d.email || 'ridhi@dermaai.com',
+            phone: d.phone || '+91 98765 43210',
+            specialization: d.speciality || 'Dermatologist',
+            yearsOfExperience: d.experience || '8',
+            bio: d.bio || 'Board certified dermatologist specializing in skin disorders and cosmetic procedures.',
+          });
+        }
+      } catch (err) {
+        console.error("Error loading doctor data:", err);
+      }
+    };
+    loadDoctor();
+  }, [hospitalId]);
 
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -84,10 +104,29 @@ const SettingsPage: React.FC = () => {
     setNotificationPreferences(prev => ({ ...prev, [name]: checked }));
   };
 
-  const handleSave = () => {
-    // Here you would save the settings to your backend
-    setSavedMessage('Settings saved successfully!');
-    
+  const handleSave = async () => {
+    try {
+      const res = await fetch(`http://localhost:8000/api/hospitals/${hospitalId}/doctors`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: profileData.fullName,
+          email: profileData.email,
+          phone: profileData.phone,
+          speciality: profileData.specialization,
+          experience: profileData.yearsOfExperience,
+          bio: profileData.bio,
+        }),
+      });
+
+      const data = await res.json();
+      console.log("Doctor profile saved:", data);
+      setSavedMessage('Settings saved successfully!');
+    } catch (err) {
+      console.error("Error saving settings", err);
+      setSavedMessage('Failed to save settings.');
+    }
+
     setTimeout(() => {
       setSavedMessage('');
     }, 3000);
