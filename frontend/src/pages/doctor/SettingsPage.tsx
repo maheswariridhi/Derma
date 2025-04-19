@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface SettingSection {
   id: string;
@@ -64,6 +64,10 @@ const SettingsPage: React.FC = () => {
       ),
     },
   ];
+
+  useEffect(() => {
+    // This useEffect is kept empty as we'll connect to database later
+  }, []);
 
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;

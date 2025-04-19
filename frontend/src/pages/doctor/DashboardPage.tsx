@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import PatientCard from "./PatientCard";
 import PatientService from '../../services/PatientService';
@@ -6,9 +6,8 @@ import { Timestamp } from '../../types/common';
 import { BsTrash } from "react-icons/bs";
 import DeletePatientModal from "../../components/patients/DeletePatientModal";
 import usePatientDeletion from "../../hooks/usePatientDeletion";
+import LoadingSkeleton from "../../components/common/LoadingSkeleton"; 
 
-// Import Patient interface from PatientService to ensure consistency
-// This prevents type mismatches between components
 interface ServicePatient {
   id: string;
   name: string;
@@ -31,7 +30,6 @@ interface ServicePatient {
   };
 }
 
-// Local interface that extends ServicePatient but adds fields needed locally
 interface Patient extends ServicePatient {
   treatmentValue?: string;
   appointmentDate?: string;
@@ -39,65 +37,82 @@ interface Patient extends ServicePatient {
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const userName = "Ridhi Maheswari";
+  const userName = "Dr. Ridhi Maheswari"; // Constant name
+  const [greeting, setGreeting] = useState<string>("Good day");
 
-  // State for patients and search
   const [patients, setPatients] = useState<Patient[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  
-  // Use the patient deletion hook
-  const { 
-    isDeleteModalOpen, 
-    patientToDelete, 
-    openDeleteModal, 
-    closeDeleteModal, 
+  const [isLoading, setIsLoading] = useState(true);
+
+  const {
+    isDeleteModalOpen,
+    patientToDelete,
+    openDeleteModal,
+    closeDeleteModal,
     handleDeleteConfirm
   } = usePatientDeletion((deletedPatientId) => {
-    // Update local state after successful deletion
-    setPatients(patients.filter(p => p.id !== deletedPatientId));
+    setPatients(prev => prev.filter(p => p.id !== deletedPatientId));
   });
 
   useEffect(() => {
+    // Set greeting based on time of day
+    const currentHour = new Date().getHours();
+    if (currentHour < 12) {
+      setGreeting("Good morning");
+    } else if (currentHour < 18) {
+      setGreeting("Good afternoon");
+    } else {
+      setGreeting("Good evening");
+    }
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
     const fetchPatients = async () => {
       try {
         const data = await PatientService.getPatients();
-        // Transform data if needed to match local Patient interface
-        const formattedData: Patient[] = Array.isArray(data) 
+        const formattedData: Patient[] = Array.isArray(data)
           ? data.map(p => ({
               ...p,
-              id: p.id.toString(), // Ensure id is always string
-              phone: p.phone || '', // Ensure required fields have defaults
+              id: p.id.toString(),
+              phone: p.phone || '',
               email: p.email || '',
             }))
           : [];
-        setPatients(formattedData);
+        if (isMounted) {
+          setPatients(formattedData);
+          setIsLoading(false);
+        }
       } catch (error) {
         console.error('Error fetching patients:', error);
-        setPatients([]);
+        if (isMounted) {
+          setPatients([]);
+          setIsLoading(false);
+        }
       }
     };
 
     fetchPatients();
+    return () => { isMounted = false };
   }, []);
 
+  const filteredPatients = useMemo(() => {
+    return patients.filter(patient =>
+      patient.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [patients, searchQuery]);
+
   const handlePatientClick = (patient: Patient) => {
-    // Set a loading indicator in localStorage before navigation
     localStorage.setItem('patientWorkflowLoading', 'true');
-    
-    // Navigate with patient data
     navigate(`../manage-patient/${patient.id}/workflow`, {
       state: { patient }
     });
   };
 
-  const filteredPatients = patients.filter(patient =>
-    patient.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   return (
     <div className="flex flex-col p-6">
       <div className="bg-pink-50 rounded-lg p-6 mb-8">
-        <h1 className="text-xl font-semibold">Good evening, {userName}</h1>
+        <h1 className="text-xl font-semibold">{greeting}, {userName}</h1>
         <p className="text-gray-600 mt-2">
           You've got {patients.length} cases to follow up on today.
         </p>
@@ -113,23 +128,31 @@ const DashboardPage: React.FC = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {filteredPatients.map((patient) => (
-          <div key={patient.id} className="relative">
-            <PatientCard
-              patient={patient}
+      {isLoading ? (
+        <LoadingSkeleton />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {filteredPatients.map((patient) => (
+            <div
+              key={patient.id}
+              className="relative"
               onClick={() => handlePatientClick(patient)}
-            />
-            <button
-              onClick={(e) => openDeleteModal(patient, e)}
-              className="absolute top-4 right-4 text-red-600 p-2 rounded-full hover:bg-red-50"
-              title="Delete patient"
             >
-              <BsTrash size={18} />
-            </button>
-          </div>
-        ))}
-      </div>
+              <PatientCard patient={patient} onClick={() => handlePatientClick(patient)} />
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openDeleteModal(patient, e);
+                }}
+                className="absolute top-4 right-4 text-red-600 p-2 rounded-full hover:bg-red-50"
+                title="Delete patient"
+              >
+                <BsTrash size={18} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {patientToDelete && (
         <DeletePatientModal
@@ -144,3 +167,4 @@ const DashboardPage: React.FC = () => {
 };
 
 export default DashboardPage;
+
