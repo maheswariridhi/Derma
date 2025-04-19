@@ -4,7 +4,7 @@ import PatientCard from "./PatientCard";
 import PatientService from '../../services/PatientService';
 import { Timestamp } from '../../types/common';
 import { BsX } from "react-icons/bs";
-import DeletePatientModal from "../../components/patients/DeletePatientModal";
+import DeleteConfirmationModal from "../../components/common/DeleteConfirmationModal";
 import usePatientDeletion from "../../hooks/usePatientDeletion";
 import LoadingSkeleton from "../../components/common/LoadingSkeleton"; 
 
@@ -171,11 +171,13 @@ const DashboardPage: React.FC = () => {
       )}
 
       {patientToDelete && (
-        <DeletePatientModal
+        <DeleteConfirmationModal
           isOpen={isDeleteModalOpen}
           onClose={closeDeleteModal}
           onConfirm={handleDeleteConfirm}
-          patientName={patientToDelete.name}
+          itemType="patient"
+          itemName={patientToDelete.name}
+          useDialog={false}
         />
       )}
     </div>

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import PatientService from "../../services/PatientService";
 import Table from "../../components/common/Table";
 import { BsX } from "react-icons/bs";
-import DeletePatientModal from "../../components/patients/DeletePatientModal";
+import DeleteConfirmationModal from "../../components/common/DeleteConfirmationModal";
 import usePatientDeletion from "../../hooks/usePatientDeletion";
 
 // Define Patient interface
@@ -85,11 +85,13 @@ const PatientDatabasePage: React.FC = () => {
       />
       
       {patientToDelete && (
-        <DeletePatientModal
+        <DeleteConfirmationModal
           isOpen={isDeleteModalOpen}
           onClose={closeDeleteModal}
           onConfirm={handleDeleteConfirm}
-          patientName={patientToDelete.name}
+          itemType="patient"
+          itemName={patientToDelete.name}
+          useDialog={false}
         />
       )}
     </div>
