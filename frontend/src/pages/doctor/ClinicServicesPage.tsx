@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { PlusIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import AddServiceModal from "@/components/services/AddServiceModal";
 import DeleteConfirmationModal from "@/components/common/DeleteConfirmationModal";
@@ -48,8 +48,12 @@ const ClinicServicesPage: React.FC = () => {
     itemType: "treatments",
     itemName: "",
   });
+  
+  // Add a key to force re-render and refresh data when needed
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const fetchServices = async (isInitialLoad: boolean = false) => {
+  // Define fetchServices using useCallback to maintain reference stability
+  const fetchServices = useCallback(async (isInitialLoad: boolean = false) => {
     if (isInitialLoad) {
       setIsLoading(true);
     }
@@ -74,7 +78,7 @@ const ClinicServicesPage: React.FC = () => {
         setIsLoading(false);
       }
     }
-  };
+  }, [treatments.length, medicines.length]);
 
   const handleAddService = async (data: Treatment | Medicine) => {
     // Generate a temporary ID for optimistic updates
@@ -154,41 +158,65 @@ const ClinicServicesPage: React.FC = () => {
 
   const handleDelete = async () => {
     const { itemId, itemType, itemName } = deleteModal;
+    
     try {
-      // Optimistically update the UI first
+      // Show a loading toast
+      const loadingToast = toast.loading(`Deleting ${itemType === "treatments" ? "treatment" : "medicine"}...`);
+      
+      // Make the API call first and wait for it to complete
       if (itemType === "treatments") {
-        // Remove from local state immediately
+        await axios.delete(`${API_BASE_URL}/treatments/${itemId}`);
+        // Only update state after successful API call
         setTreatments(prev => prev.filter(t => t.id !== itemId));
       } else {
-        // Remove from local state immediately
+        await axios.delete(`${API_BASE_URL}/medicines/${itemId}`);
+        // Only update state after successful API call
         setMedicines(prev => prev.filter(m => m.id !== itemId));
       }
       
-      // Close modal immediately for better UX
+      // Close modal after successful deletion
       setDeleteModal(prev => ({ ...prev, isOpen: false }));
       
-      // Show success message
+      // Force a refresh on state and increment the refresh key
+      setRefreshKey(prev => prev + 1);
+      
+      // Dismiss loading toast and show success
+      toast.dismiss(loadingToast);
       toast.success(`${itemType === "treatments" ? "Treatment" : "Medicine"} deleted successfully`);
       
-      // Then make the API call (fire and forget)
-      if (itemType === "treatments") {
-        axios.delete(`${API_BASE_URL}/treatments/${itemId}`)
-          .catch(err => console.error(`Error deleting treatment: ${err.message}`));
-      } else {
-        axios.delete(`${API_BASE_URL}/medicines/${itemId}`)
-          .catch(err => console.error(`Error deleting medicine: ${err.message}`));
-      }
+      // Refresh the data to ensure sync with server
+      fetchServices(false);
     } catch (err: any) {
-      const errorMessage = err.message || `Failed to delete ${itemType.slice(0, -1)}`;
+      const errorMessage = err.response?.data?.detail || err.message || `Failed to delete ${itemType.slice(0, -1)}`;
       console.error(`Error deleting ${itemType.slice(0, -1)}:`, err);
       toast.error(errorMessage);
     }
   };
 
+  // Add effect to refresh data when tab changes
+  useEffect(() => {
+    fetchServices(false);
+  }, [activeTab, fetchServices]);
+
   useEffect(() => {
     // Only show loading state on initial load
     fetchServices(true);
-  }, []);
+    
+    // Create a function to refresh data when component becomes visible again
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchServices(false); // Don't show loading state on refresh
+      }
+    };
+    
+    // Listen for visibility changes to fetch fresh data when returning to tab
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Cleanup function
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [fetchServices]);
 
   if (error) {
     return (
@@ -211,7 +239,7 @@ const ClinicServicesPage: React.FC = () => {
       return (
         <div className="space-y-2">
           {items.map((item) => (
-            <div key={item.id} className="flex justify-between items-start p-4 bg-white border rounded-md">
+            <div key={`${item.id}-${refreshKey}`} className="flex justify-between items-start p-4 bg-white border rounded-md">
               <div className="space-y-1">
                 <h3 className="text-base font-medium">{item.name}</h3>
                 <p className="text-sm text-gray-600">{item.description}</p>
@@ -240,7 +268,7 @@ const ClinicServicesPage: React.FC = () => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {items.map((item) => (
-          <Card key={item.id}>
+          <Card key={`${item.id}-${refreshKey}`}>
             <CardContent className="p-6">
               <div className="flex justify-between items-start">
                 <div>

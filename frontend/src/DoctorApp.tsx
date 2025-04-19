@@ -7,7 +7,6 @@ import PatientDatabasePage from "./pages/doctor/PatientDatabasePage";
 import PatientDetails from "./pages/doctor/PatientDetails";
 import ClinicServicesPage from "./pages/doctor/ClinicServicesPage";
 import ReportPage from "./pages/doctor/ReportPage";
-import PatientRegistration from "./PatientRegistration";
 import PatientInfoRoute from "./components/workflow/PatientInfoRoute";
 import MainLayout from "./layouts/MainLayout";
 import SettingsPage from "./pages/doctor/SettingsPage";
@@ -33,7 +32,6 @@ const DoctorApp: React.FC = () => {
         </Route>
 
         <Route path="services" element={<ClinicServicesPage />} />
-        <Route path="manage-patients/new" element={<PatientRegistration />} />
         <Route path="settings" element={<SettingsPage />} />
         
         {/* Catch all redirect to dashboard */}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import PatientCard from "./PatientCard";
 import PatientService from '../../services/PatientService';
@@ -44,6 +44,28 @@ const DashboardPage: React.FC = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const fetchPatients = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const data = await PatientService.getPatients();
+      const formattedData: Patient[] = Array.isArray(data)
+        ? data.map(p => ({
+            ...p,
+            id: p.id.toString(),
+            phone: p.phone || '',
+            email: p.email || '',
+          }))
+        : [];
+      setPatients(formattedData);
+    } catch (error) {
+      console.error('Error fetching patients:', error);
+      setPatients([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   const {
     isDeleteModalOpen,
@@ -51,10 +73,14 @@ const DashboardPage: React.FC = () => {
     openDeleteModal,
     closeDeleteModal,
     handleDeleteConfirm
-  } = usePatientDeletion((deletedPatientId) => {
-    setPatients(prev => prev.filter(p => p.id !== deletedPatientId));
-  });
+  } = usePatientDeletion(
+    (deletedPatientId) => {
+      setPatients(prev => prev.filter(p => p.id !== deletedPatientId));
+    },
+    fetchPatients
+  );
 
+  // Set greeting and fetch doctor name
   useEffect(() => {
     // Set greeting based on time of day
     const currentHour = new Date().getHours();
@@ -82,35 +108,33 @@ const DashboardPage: React.FC = () => {
     fetchDoctorName();
   }, [hospitalId]);
 
+  // Fetch patients when component mounts and handle visibility changes
   useEffect(() => {
     let isMounted = true;
-    const fetchPatients = async () => {
-      try {
-        const data = await PatientService.getPatients();
-        const formattedData: Patient[] = Array.isArray(data)
-          ? data.map(p => ({
-              ...p,
-              id: p.id.toString(),
-              phone: p.phone || '',
-              email: p.email || '',
-            }))
-          : [];
-        if (isMounted) {
-          setPatients(formattedData);
-          setIsLoading(false);
-        }
-      } catch (error) {
-        console.error('Error fetching patients:', error);
-        if (isMounted) {
-          setPatients([]);
-          setIsLoading(false);
-        }
+    
+    const fetchPatientsData = async () => {
+      if (!isMounted) return;
+      await fetchPatients();
+    };
+    
+    fetchPatientsData();
+
+    // Create a function to refresh data when component becomes visible again
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isMounted) {
+        fetchPatientsData();
       }
     };
-
-    fetchPatients();
-    return () => { isMounted = false };
-  }, []);
+    
+    // Listen for visibility changes to fetch fresh data when returning to tab
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Cleanup function
+    return () => { 
+      isMounted = false;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [fetchPatients, refreshKey]);
 
   const filteredPatients = useMemo(() => {
     return patients.filter(patient =>
@@ -150,7 +174,7 @@ const DashboardPage: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {filteredPatients.map((patient) => (
             <div
-              key={patient.id}
+              key={`${patient.id}-${refreshKey}`}
               className="relative"
               onClick={() => handlePatientClick(patient)}
             >
