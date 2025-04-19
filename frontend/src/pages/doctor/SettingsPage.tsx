@@ -10,29 +10,31 @@ const SettingsPage: React.FC = () => {
   const hospitalId = "hospital_dermai_01"; // Default hospital ID
   const [activeSection, setActiveSection] = useState('profile');
   const [savedMessage, setSavedMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  
   const [profileData, setProfileData] = useState({
-    fullName: 'Dr. Ridhi Maheswari',
-    email: 'ridhi@dermaai.com',
-    phone: '+91 98765 43210',
-    specialization: 'Dermatologist',
-    yearsOfExperience: '8',
-    bio: 'Board certified dermatologist specializing in skin disorders and cosmetic procedures.',
+    fullName: '',
+    email: '',
+    phone: '',
+    specialization: '',
+    yearsOfExperience: '',
+    bio: '',
   });
 
   const [clinicData, setClinicData] = useState({
-    clinicName: 'DermaAI Skin Clinic',
-    address: '123 Healthcare Avenue, Mumbai, 400001',
-    phone: '+91 22 2345 6789',
-    email: 'info@dermaai.com',
-    workingHours: 'Mon-Sat: 9:00 AM - 7:00 PM',
-    website: 'www.dermaai.com',
+    clinicName: '',
+    address: '',
+    phone: '',
+    email: '',
+    workingHours: '',
+    website: '',
   });
 
   const [notificationPreferences, setNotificationPreferences] = useState({
-    emailNotifications: true,
-    smsNotifications: true,
-    appointmentReminders: true,
-    patientUpdates: true,
+    emailNotifications: false,
+    smsNotifications: false,
+    appointmentReminders: false,
+    patientUpdates: false,
     marketingEmails: false,
   });
 
@@ -68,22 +70,27 @@ const SettingsPage: React.FC = () => {
 
   useEffect(() => {
     const loadDoctor = async () => {
+      setIsLoading(true);
       try {
         const res = await fetch(`http://localhost:8000/api/hospitals/${hospitalId}/doctors`);
         const doctors = await res.json();
         if (doctors.length > 0) {
           const d = doctors[0];
           setProfileData({
-            fullName: d.name || 'Dr. Ridhi Maheswari',
-            email: d.email || 'ridhi@dermaai.com',
-            phone: d.phone || '+91 98765 43210',
-            specialization: d.speciality || 'Dermatologist',
-            yearsOfExperience: d.experience || '8',
-            bio: d.bio || 'Board certified dermatologist specializing in skin disorders and cosmetic procedures.',
+            fullName: d.name || '',
+            email: d.email || '',
+            phone: d.phone || '',
+            specialization: d.speciality || '',
+            yearsOfExperience: d.experience || '',
+            bio: d.bio || '',
           });
+          
+          // You could also load clinic data from a similar endpoint if available
         }
       } catch (err) {
         console.error("Error loading doctor data:", err);
+      } finally {
+        setIsLoading(false);
       }
     };
     loadDoctor();
@@ -106,6 +113,7 @@ const SettingsPage: React.FC = () => {
 
   const handleSave = async () => {
     try {
+      setSavedMessage('Saving settings...');
       const res = await fetch(`http://localhost:8000/api/hospitals/${hospitalId}/doctors`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -145,256 +153,262 @@ const SettingsPage: React.FC = () => {
         </div>
       )}
 
-      <div className="flex flex-col md:flex-row gap-6">
-        {/* Settings Navigation */}
-        <div className="w-full md:w-64 bg-white rounded-lg shadow-sm p-4">
-          <ul className="space-y-2">
-            {sections.map(section => (
-              <li key={section.id}>
-                <button
-                  onClick={() => setActiveSection(section.id)}
-                  className={`w-full flex items-center p-3 rounded-lg transition-colors ${
-                    activeSection === section.id
-                      ? 'bg-teal-50 text-teal-600'
-                      : 'text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  <span className="mr-3">{section.icon}</span>
-                  {section.title}
-                </button>
-              </li>
-            ))}
-          </ul>
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500"></div>
         </div>
+      ) : (
+        <div className="flex flex-col md:flex-row gap-6">
+          {/* Settings Navigation */}
+          <div className="w-full md:w-64 bg-white rounded-lg shadow-sm p-4">
+            <ul className="space-y-2">
+              {sections.map(section => (
+                <li key={section.id}>
+                  <button
+                    onClick={() => setActiveSection(section.id)}
+                    className={`w-full flex items-center p-3 rounded-lg transition-colors ${
+                      activeSection === section.id
+                        ? 'bg-teal-50 text-teal-600'
+                        : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span className="mr-3">{section.icon}</span>
+                    {section.title}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-        {/* Settings Content */}
-        <div className="flex-1 bg-white rounded-lg shadow-sm p-6">
-          {activeSection === 'profile' && (
-            <div>
-              <h2 className="text-xl font-medium mb-6">Profile Settings</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                  <input
-                    type="text"
-                    name="fullName"
-                    value={profileData.fullName}
-                    onChange={handleProfileChange}
-                    className="w-full p-2 border border-gray-300 rounded"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={profileData.email}
-                    onChange={handleProfileChange}
-                    className="w-full p-2 border border-gray-300 rounded"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                  <input
-                    type="text"
-                    name="phone"
-                    value={profileData.phone}
-                    onChange={handleProfileChange}
-                    className="w-full p-2 border border-gray-300 rounded"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Specialization</label>
-                  <input
-                    type="text"
-                    name="specialization"
-                    value={profileData.specialization}
-                    onChange={handleProfileChange}
-                    className="w-full p-2 border border-gray-300 rounded"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Years of Experience</label>
-                  <input
-                    type="text"
-                    name="yearsOfExperience"
-                    value={profileData.yearsOfExperience}
-                    onChange={handleProfileChange}
-                    className="w-full p-2 border border-gray-300 rounded"
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
-                  <textarea
-                    name="bio"
-                    value={profileData.bio}
-                    onChange={handleProfileChange}
-                    rows={4}
-                    className="w-full p-2 border border-gray-300 rounded"
-                  />
+          {/* Settings Content */}
+          <div className="flex-1 bg-white rounded-lg shadow-sm p-6">
+            {activeSection === 'profile' && (
+              <div>
+                <h2 className="text-xl font-medium mb-6">Profile Settings</h2>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                    <input
+                      type="text"
+                      name="fullName"
+                      value={profileData.fullName}
+                      onChange={handleProfileChange}
+                      className="w-full p-2 border border-gray-300 rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={profileData.email}
+                      onChange={handleProfileChange}
+                      className="w-full p-2 border border-gray-300 rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                    <input
+                      type="text"
+                      name="phone"
+                      value={profileData.phone}
+                      onChange={handleProfileChange}
+                      className="w-full p-2 border border-gray-300 rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Specialization</label>
+                    <input
+                      type="text"
+                      name="specialization"
+                      value={profileData.specialization}
+                      onChange={handleProfileChange}
+                      className="w-full p-2 border border-gray-300 rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Years of Experience</label>
+                    <input
+                      type="text"
+                      name="yearsOfExperience"
+                      value={profileData.yearsOfExperience}
+                      onChange={handleProfileChange}
+                      className="w-full p-2 border border-gray-300 rounded"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+                    <textarea
+                      name="bio"
+                      value={profileData.bio}
+                      onChange={handleProfileChange}
+                      rows={4}
+                      className="w-full p-2 border border-gray-300 rounded"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {activeSection === 'clinic' && (
-            <div>
-              <h2 className="text-xl font-medium mb-6">Clinic Information</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Clinic Name</label>
-                  <input
-                    type="text"
-                    name="clinicName"
-                    value={clinicData.clinicName}
-                    onChange={handleClinicChange}
-                    className="w-full p-2 border border-gray-300 rounded"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={clinicData.email}
-                    onChange={handleClinicChange}
-                    className="w-full p-2 border border-gray-300 rounded"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                  <input
-                    type="text"
-                    name="phone"
-                    value={clinicData.phone}
-                    onChange={handleClinicChange}
-                    className="w-full p-2 border border-gray-300 rounded"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
-                  <input
-                    type="text"
-                    name="website"
-                    value={clinicData.website}
-                    onChange={handleClinicChange}
-                    className="w-full p-2 border border-gray-300 rounded"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Working Hours</label>
-                  <input
-                    type="text"
-                    name="workingHours"
-                    value={clinicData.workingHours}
-                    onChange={handleClinicChange}
-                    className="w-full p-2 border border-gray-300 rounded"
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                  <textarea
-                    name="address"
-                    value={clinicData.address}
-                    onChange={handleClinicChange}
-                    rows={2}
-                    className="w-full p-2 border border-gray-300 rounded"
-                  />
+            {activeSection === 'clinic' && (
+              <div>
+                <h2 className="text-xl font-medium mb-6">Clinic Information</h2>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Clinic Name</label>
+                    <input
+                      type="text"
+                      name="clinicName"
+                      value={clinicData.clinicName}
+                      onChange={handleClinicChange}
+                      className="w-full p-2 border border-gray-300 rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={clinicData.email}
+                      onChange={handleClinicChange}
+                      className="w-full p-2 border border-gray-300 rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                    <input
+                      type="text"
+                      name="phone"
+                      value={clinicData.phone}
+                      onChange={handleClinicChange}
+                      className="w-full p-2 border border-gray-300 rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                    <input
+                      type="text"
+                      name="website"
+                      value={clinicData.website}
+                      onChange={handleClinicChange}
+                      className="w-full p-2 border border-gray-300 rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Working Hours</label>
+                    <input
+                      type="text"
+                      name="workingHours"
+                      value={clinicData.workingHours}
+                      onChange={handleClinicChange}
+                      className="w-full p-2 border border-gray-300 rounded"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                    <textarea
+                      name="address"
+                      value={clinicData.address}
+                      onChange={handleClinicChange}
+                      rows={2}
+                      className="w-full p-2 border border-gray-300 rounded"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {activeSection === 'notifications' && (
-            <div>
-              <h2 className="text-xl font-medium mb-6">Notification Preferences</h2>
-              
-              <div className="space-y-4">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="emailNotifications"
-                    name="emailNotifications"
-                    checked={notificationPreferences.emailNotifications}
-                    onChange={handleNotificationChange}
-                    className="h-4 w-4 text-teal-600 border-gray-300 rounded"
-                  />
-                  <label htmlFor="emailNotifications" className="ml-2 block text-sm text-gray-700">
-                    Email Notifications
-                  </label>
-                </div>
+            {activeSection === 'notifications' && (
+              <div>
+                <h2 className="text-xl font-medium mb-6">Notification Preferences</h2>
                 
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="smsNotifications"
-                    name="smsNotifications"
-                    checked={notificationPreferences.smsNotifications}
-                    onChange={handleNotificationChange}
-                    className="h-4 w-4 text-teal-600 border-gray-300 rounded"
-                  />
-                  <label htmlFor="smsNotifications" className="ml-2 block text-sm text-gray-700">
-                    SMS Notifications
-                  </label>
-                </div>
-                
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="appointmentReminders"
-                    name="appointmentReminders"
-                    checked={notificationPreferences.appointmentReminders}
-                    onChange={handleNotificationChange}
-                    className="h-4 w-4 text-teal-600 border-gray-300 rounded"
-                  />
-                  <label htmlFor="appointmentReminders" className="ml-2 block text-sm text-gray-700">
-                    Appointment Reminders
-                  </label>
-                </div>
-                
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="patientUpdates"
-                    name="patientUpdates"
-                    checked={notificationPreferences.patientUpdates}
-                    onChange={handleNotificationChange}
-                    className="h-4 w-4 text-teal-600 border-gray-300 rounded"
-                  />
-                  <label htmlFor="patientUpdates" className="ml-2 block text-sm text-gray-700">
-                    Patient Updates
-                  </label>
-                </div>
-                
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="marketingEmails"
-                    name="marketingEmails"
-                    checked={notificationPreferences.marketingEmails}
-                    onChange={handleNotificationChange}
-                    className="h-4 w-4 text-teal-600 border-gray-300 rounded"
-                  />
-                  <label htmlFor="marketingEmails" className="ml-2 block text-sm text-gray-700">
-                    Marketing Emails
-                  </label>
+                <div className="space-y-4">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="emailNotifications"
+                      name="emailNotifications"
+                      checked={notificationPreferences.emailNotifications}
+                      onChange={handleNotificationChange}
+                      className="h-4 w-4 text-teal-600 border-gray-300 rounded"
+                    />
+                    <label htmlFor="emailNotifications" className="ml-2 block text-sm text-gray-700">
+                      Email Notifications
+                    </label>
+                  </div>
+                  
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="smsNotifications"
+                      name="smsNotifications"
+                      checked={notificationPreferences.smsNotifications}
+                      onChange={handleNotificationChange}
+                      className="h-4 w-4 text-teal-600 border-gray-300 rounded"
+                    />
+                    <label htmlFor="smsNotifications" className="ml-2 block text-sm text-gray-700">
+                      SMS Notifications
+                    </label>
+                  </div>
+                  
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="appointmentReminders"
+                      name="appointmentReminders"
+                      checked={notificationPreferences.appointmentReminders}
+                      onChange={handleNotificationChange}
+                      className="h-4 w-4 text-teal-600 border-gray-300 rounded"
+                    />
+                    <label htmlFor="appointmentReminders" className="ml-2 block text-sm text-gray-700">
+                      Appointment Reminders
+                    </label>
+                  </div>
+                  
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="patientUpdates"
+                      name="patientUpdates"
+                      checked={notificationPreferences.patientUpdates}
+                      onChange={handleNotificationChange}
+                      className="h-4 w-4 text-teal-600 border-gray-300 rounded"
+                    />
+                    <label htmlFor="patientUpdates" className="ml-2 block text-sm text-gray-700">
+                      Patient Updates
+                    </label>
+                  </div>
+                  
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="marketingEmails"
+                      name="marketingEmails"
+                      checked={notificationPreferences.marketingEmails}
+                      onChange={handleNotificationChange}
+                      className="h-4 w-4 text-teal-600 border-gray-300 rounded"
+                    />
+                    <label htmlFor="marketingEmails" className="ml-2 block text-sm text-gray-700">
+                      Marketing Emails
+                    </label>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <div className="mt-8">
-            <button
-              onClick={handleSave}
-              className="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 transition-colors"
-            >
-              Save Changes
-            </button>
+            <div className="mt-8">
+              <button
+                onClick={handleSave}
+                className="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 transition-colors"
+              >
+                Save Changes
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

@@ -37,8 +37,9 @@ interface Patient extends ServicePatient {
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const userName = "Dr. Ridhi Maheswari"; // Constant name
+  const [userName, setUserName] = useState<string>("Doctor");
   const [greeting, setGreeting] = useState<string>("Good day");
+  const hospitalId = "hospital_dermai_01"; // Default hospital ID
 
   const [patients, setPatients] = useState<Patient[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -64,7 +65,22 @@ const DashboardPage: React.FC = () => {
     } else {
       setGreeting("Good evening");
     }
-  }, []);
+
+    // Fetch doctor name from API
+    const fetchDoctorName = async () => {
+      try {
+        const res = await fetch(`http://localhost:8000/api/hospitals/${hospitalId}/doctors`);
+        const doctors = await res.json();
+        if (doctors.length > 0) {
+          setUserName(doctors[0].name || "Doctor");
+        }
+      } catch (error) {
+        console.error('Error fetching doctor:', error);
+      }
+    };
+    
+    fetchDoctorName();
+  }, [hospitalId]);
 
   useEffect(() => {
     let isMounted = true;
