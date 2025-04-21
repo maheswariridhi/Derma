@@ -3,6 +3,15 @@ import axios from "axios";
 
 const API_BASE_URL = "http://localhost:8000/api"; // FastAPI backend URL with /api prefix
 
+// Utility function for handling API errors
+const handleApiError = (error: any, operation: string): never => {
+  console.error(`Error ${operation}:`, error);
+  if (axios.isAxiosError(error)) {
+    console.error(`API Error Status: ${error.response?.status}`);
+  }
+  throw new Error(`Failed to ${operation}: ${(error as Error).message}`);
+};
+
 // Define interfaces based on the existing structure
 interface Patient {
   id: string;
@@ -80,8 +89,7 @@ const PatientService = {
       const response = await axios.get(`${API_BASE_URL}/patients`, { params: filters });
       return response.data;
     } catch (error) {
-      console.error("Error fetching patients:", error);
-      throw new Error(`Failed to fetch patients: ${(error as Error).message}`);
+      return handleApiError(error, "fetching patients");
     }
   },
 
@@ -90,8 +98,7 @@ const PatientService = {
       const response = await axios.get(`${API_BASE_URL}/queue/patients`);
       return response.data;
     } catch (error) {
-      console.error("Detailed queue error:", error);
-      throw new Error(`Failed to fetch queue: ${(error as Error).message}`);
+      return handleApiError(error, "fetching queue");
     }
   },
 
@@ -100,8 +107,7 @@ const PatientService = {
       await axios.put(`${API_BASE_URL}/patients/${patientId}/status`, { status: newStatus });
       return true;
     } catch (error) {
-      console.error("Error updating patient status:", error);
-      throw new Error(`Failed to update patient status: ${(error as Error).message}`);
+      return handleApiError(error, "updating patient status");
     }
   },
 
@@ -110,8 +116,7 @@ const PatientService = {
       await axios.put(`${API_BASE_URL}/patients/${patientId}/priority`);
       return true;
     } catch (error) {
-      console.error("Error prioritizing patient:", error);
-      throw new Error(`Failed to prioritize patient: ${(error as Error).message}`);
+      return handleApiError(error, "prioritizing patient");
     }
   },
 
@@ -123,8 +128,7 @@ const PatientService = {
       });
       return response.data.tokenNumber;
     } catch (error) {
-      console.error("Error checking in patient:", error);
-      throw new Error(`Failed to check in patient: ${(error as Error).message}`);
+      return handleApiError(error, "checking in patient");
     }
   },
 
@@ -133,8 +137,7 @@ const PatientService = {
       const response = await axios.get(`${API_BASE_URL}/queue/status`);
       return response.data;
     } catch (error) {
-      console.error("Error getting queue status:", error);
-      throw new Error(`Failed to get queue status: ${(error as Error).message}`);
+      return handleApiError(error, "getting queue status");
     }
   },
 
@@ -142,8 +145,7 @@ const PatientService = {
     try {
       await axios.put(`${API_BASE_URL}/queue/${queueId}/status`, { status: newStatus });
     } catch (error) {
-      console.error("Error updating queue status:", error);
-      throw new Error(`Failed to update queue status: ${(error as Error).message}`);
+      return handleApiError(error, "updating queue status");
     }
   },
 
@@ -157,18 +159,10 @@ const PatientService = {
 
   async getPatientById(patientId: string): Promise<Patient> {
     try {
-      console.log(`PatientService: Fetching patient with ID: ${patientId}`);
-      console.log(`PatientService: API URL: ${API_BASE_URL}/patients/${patientId}`);
       const response = await axios.get(`${API_BASE_URL}/patients/${patientId}`);
-      console.log('PatientService: Received response:', response);
       return response.data;
     } catch (error) {
-      console.error("Error fetching patient:", error);
-      if (axios.isAxiosError(error)) {
-        console.error("API Error Response:", error.response?.data);
-        console.error("API Error Status:", error.response?.status);
-      }
-      throw new Error(`Failed to fetch patient: ${(error as Error).message}`);
+      return handleApiError(error, "fetching patient");
     }
   },
 
@@ -177,8 +171,7 @@ const PatientService = {
       const response = await axios.get(`${API_BASE_URL}/patients/dashboard`);
       return response.data;
     } catch (error) {
-      console.error("Error fetching dashboard data:", error);
-      throw new Error(`Failed to fetch dashboard data: ${(error as Error).message}`);
+      return handleApiError(error, "fetching dashboard data");
     }
   },
 
@@ -187,8 +180,7 @@ const PatientService = {
       const response = await axios.get(`${API_BASE_URL}/reports`);
       return response.data;
     } catch (error) {
-      console.error("Error fetching reports:", error);
-      throw new Error(`Failed to fetch reports: ${(error as Error).message}`);
+      return handleApiError(error, "fetching reports");
     }
   },
 
@@ -197,8 +189,7 @@ const PatientService = {
       await axios.post(`${API_BASE_URL}/reports`, reportData);
       return true;
     } catch (error) {
-      console.error("Error sending patient report:", error);
-      throw new Error(`Failed to send patient report: ${(error as Error).message}`);
+      return handleApiError(error, "sending patient report");
     }
   },
 
@@ -207,8 +198,7 @@ const PatientService = {
       const response = await axios.get(`${API_BASE_URL}/patients/${patientId}/reports`);
       return response.data;
     } catch (error) {
-      console.error("Error fetching patient reports:", error);
-      throw new Error(`Failed to fetch patient reports: ${(error as Error).message}`);
+      return handleApiError(error, "fetching patient reports");
     }
   },
 
@@ -217,8 +207,7 @@ const PatientService = {
       const response = await axios.get(`${API_BASE_URL}/reports/${reportId}`);
       return response.data;
     } catch (error) {
-      console.error("Error fetching report:", error);
-      throw new Error(`Failed to fetch report: ${(error as Error).message}`);
+      return handleApiError(error, "fetching report");
     }
   },
 
@@ -230,8 +219,7 @@ const PatientService = {
       });
       return true;
     } catch (error) {
-      console.error("Error sending message:", error);
-      throw new Error(`Failed to send message: ${(error as Error).message}`);
+      return handleApiError(error, "sending message");
     }
   },
 
@@ -240,8 +228,7 @@ const PatientService = {
       const response = await axios.get(`${API_BASE_URL}/reports/unread`);
       return response.data;
     } catch (error) {
-      console.error("Error fetching unread reports:", error);
-      throw new Error(`Failed to fetch unread reports: ${(error as Error).message}`);
+      return handleApiError(error, "fetching unread reports");
     }
   },
 
@@ -250,8 +237,7 @@ const PatientService = {
       await axios.put(`${API_BASE_URL}/reports/${reportId}/messages`, { messages });
       return true;
     } catch (error) {
-      console.error("Error updating report messages:", error);
-      throw new Error(`Failed to update report messages: ${(error as Error).message}`);
+      return handleApiError(error, "updating report messages");
     }
   },
 
@@ -260,8 +246,7 @@ const PatientService = {
       const response = await axios.get(`${API_BASE_URL}/patients/profile`);
       return response.data;
     } catch (error) {
-      console.error("Error fetching patient profile:", error);
-      throw new Error(`Failed to fetch patient profile: ${(error as Error).message}`);
+      return handleApiError(error, "fetching patient profile");
     }
   },
 
@@ -269,8 +254,7 @@ const PatientService = {
     try {
       await axios.put(`${API_BASE_URL}/patients/profile`, profile);
     } catch (error) {
-      console.error("Error updating profile:", error);
-      throw new Error(`Failed to update profile: ${(error as Error).message}`);
+      return handleApiError(error, "updating profile");
     }
   },
 
@@ -279,8 +263,7 @@ const PatientService = {
       const response = await axios.get(`${API_BASE_URL}/auth/current-user`);
       return response.data.userId;
     } catch (error) {
-      console.error("Error getting current user:", error);
-      throw new Error(`Failed to get current user: ${(error as Error).message}`);
+      return handleApiError(error, "getting current user");
     }
   },
 
@@ -289,8 +272,7 @@ const PatientService = {
       const response = await axios.post(`${API_BASE_URL}/patients/register`, patientData);
       return response.data.id;
     } catch (error) {
-      console.error("Error registering patient:", error);
-      throw new Error(`Failed to register patient: ${(error as Error).message}`);
+      return handleApiError(error, "registering patient");
     }
   },
 
@@ -299,8 +281,7 @@ const PatientService = {
       await axios.delete(`${API_BASE_URL}/patients/${patientId}`);
       return true;
     } catch (error) {
-      console.error("Error deleting patient:", error);
-      throw new Error(`Failed to delete patient: ${(error as Error).message}`);
+      return handleApiError(error, "deleting patient");
     }
   },
 
@@ -309,8 +290,7 @@ const PatientService = {
       const response = await axios.put(`${API_BASE_URL}/patients/${patientId}`, patientData);
       return response.data;
     } catch (error) {
-      console.error("Error updating patient:", error);
-      throw new Error(`Failed to update patient: ${(error as Error).message}`);
+      return handleApiError(error, "updating patient");
     }
   }
 };

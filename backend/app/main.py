@@ -12,23 +12,15 @@ from app.services.supabase_service import SupabaseService
 # Load environment variables
 load_dotenv()
 
-# Debug environment variables
-print(f"SUPABASE_URL: {os.getenv('SUPABASE_URL')}")
-print(f"SUPABASE_SECRET_KEY: {'*' * 10 if os.getenv('SUPABASE_SECRET_KEY') else 'Not found!'}")
-print(f"ALLOW_ORIGINS: {os.getenv('ALLOW_ORIGINS')}")
-
 # Load ID mappings from the migration
 try:
     # Use absolute path to id_mappings.json
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     mapping_file = os.path.join(base_dir, "id_mappings.json")
-    print(f"Looking for mappings file at: {mapping_file}")
     
     with open(mapping_file, "r") as f:
         ID_MAPPINGS = json.load(f)
-    print(f"Loaded {len(ID_MAPPINGS)} ID mappings")
 except Exception as e:
-    print(f"Warning: Could not load ID mappings: {str(e)}")
     ID_MAPPINGS = {}
 
 # Helper functions for ID translation
@@ -149,15 +141,6 @@ async def create_patient(patient: PatientCreate):
         raise HTTPException(status_code=400, detail=result["error"])
     return result
 
-@app.post("/api/patients/register")
-async def register_patient(patient: PatientCreate):
-    """Register a new patient."""
-    print("Received patient registration request:", patient.dict())
-    result = await supabase_service.create_patient(patient.dict())
-    if "error" in result:
-        raise HTTPException(status_code=400, detail=result["error"])
-    return result
-
 @app.get("/api/patients/{identifier}")
 async def get_patient(identifier: str):
     """Get a patient by ID."""
@@ -172,17 +155,10 @@ async def get_patient(identifier: str):
 @app.get("/api/patients")
 async def get_all_patients():
     """Get all patients."""
-    print("Received get all patients request")
     try:
         patients = await supabase_service.get_all_patients()
-        print(f"Retrieved {len(patients)} patients from database")
-        for p in patients:
-            print(f"Patient ID: {p.get('id')}, Name: {p.get('name')}")
         return patients
     except Exception as e:
-        print(f"Error in get_all_patients endpoint: {e}")
-        import traceback
-        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.put("/api/patients/{patient_id}")

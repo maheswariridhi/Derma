@@ -37,8 +37,9 @@ interface Patient extends ServicePatient {
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const [userName, setUserName] = useState<string>("Doctor");
-  const [greeting, setGreeting] = useState<string>("Good day");
+  const [userName, setUserName] = useState<string>("");
+  const [greeting, setGreeting] = useState<string>("");
+  const [isUserLoading, setIsUserLoading] = useState(true);
   const hospitalId = "hospital_dermai_01"; // Default hospital ID
 
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -80,7 +81,7 @@ const DashboardPage: React.FC = () => {
     fetchPatients
   );
 
-  // Set greeting and fetch doctor name
+  // Set greeting and fetch user name
   useEffect(() => {
     // Set greeting based on time of day
     const currentHour = new Date().getHours();
@@ -92,20 +93,23 @@ const DashboardPage: React.FC = () => {
       setGreeting("Good evening");
     }
 
-    // Fetch doctor name from API
-    const fetchDoctorName = async () => {
+    // Fetch user name from settings
+    const fetchUserName = async () => {
+      setIsUserLoading(true);
       try {
         const res = await fetch(`http://localhost:8000/api/hospitals/${hospitalId}/doctors`);
         const doctors = await res.json();
         if (doctors.length > 0) {
-          setUserName(doctors[0].name || "Doctor");
+          setUserName(doctors[0].name || "");
         }
       } catch (error) {
-        console.error('Error fetching doctor:', error);
+        console.error('Error fetching user:', error);
+      } finally {
+        setIsUserLoading(false);
       }
     };
     
-    fetchDoctorName();
+    fetchUserName();
   }, [hospitalId]);
 
   // Fetch patients when component mounts and handle visibility changes
@@ -152,7 +156,11 @@ const DashboardPage: React.FC = () => {
   return (
     <div className="flex flex-col p-6">
       <div className="bg-pink-50 rounded-lg p-6 mb-8">
-        <h1 className="text-xl font-semibold">{greeting}, {userName}</h1>
+        {isUserLoading ? (
+          <div className="h-6 w-64 bg-gray-200 rounded animate-pulse"></div>
+        ) : (
+          <h1 className="text-xl font-semibold">{greeting}, {userName}</h1>
+        )}
         <p className="text-gray-600 mt-2">
           You've got {patients.length} cases to follow up on today.
         </p>
