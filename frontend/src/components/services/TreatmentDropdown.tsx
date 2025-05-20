@@ -28,16 +28,20 @@ const TreatmentDropdown: React.FC<TreatmentDropdownProps> = ({
   label = "Select Treatment",
   placeholder = "Select a treatment...",
 }) => {
+  const [selectedValue, setSelectedValue] = React.useState("");
+
   return (
     <div className="space-y-2">
       {label && <label className="text-sm font-medium">{label}</label>}
       <Select
+        value={selectedValue}
         onValueChange={(value) => {
           const selectedTreatment = treatments.find(
             (treatment) => treatment.id.toString() === value
           );
           if (selectedTreatment) {
             onSelect(selectedTreatment);
+            setSelectedValue("");
           }
         }}
       >
