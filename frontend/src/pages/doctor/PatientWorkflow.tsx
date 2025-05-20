@@ -32,6 +32,7 @@ const PatientWorkflow: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isScrolling, setIsScrolling] = useState(false);
   const [useDemoData, setUseDemoData] = useState(false);
+  const [treatmentPlan, setTreatmentPlan] = useState<any>(patient?.treatmentPlan || {});
 
   const contentRef = useRef<HTMLDivElement>(null);
   const stepRefs = {
@@ -176,6 +177,13 @@ const PatientWorkflow: React.FC = () => {
     return () => { document.body.style.overflow = ''; };
   }, [loading]);
 
+  // Update local treatment plan only
+  const handlePlanChange = (updatedPlan: any) => {
+    setTreatmentPlan(updatedPlan);
+    setPatient((prev) => prev ? { ...prev, treatmentPlan: updatedPlan } : prev);
+  };
+
+  // Only send to backend when finalized (in SendToPatient)
   const handleStepComplete = async (updatedPatient: Patient) => {
     try {
       if (!id) {
@@ -183,13 +191,15 @@ const PatientWorkflow: React.FC = () => {
         setError('Missing patient ID');
         return;
       }
-      
-      await PatientService.updatePatient(id, updatedPatient);
-      setPatient(updatedPatient);
+      // Only send finalized treatmentPlan to backend if status is 'Sent'
+      if (updatedPatient.status === 'Sent') {
+        await PatientService.updatePatient(id, updatedPatient);
+        setPatient(updatedPatient);
+        toast.success('Treatment plan sent to patient');
+      }
       const nextStep = Math.min(activeStep + 1, stepOptions.length);
       setActiveStep(nextStep);
       handleStepClick(nextStep);
-      toast.success('Progress saved successfully');
     } catch (error) {
       console.error('Error saving progress:', error);
       setError('Failed to update workflow.');
@@ -278,7 +288,7 @@ const PatientWorkflow: React.FC = () => {
                 {patient && (
                   <ReviewAndFinalize 
                     patient={patient} 
-                    onComplete={handleStepComplete}
+                    onPlanChange={handlePlanChange}
                     services={initialServices}
                   />
                 )}
