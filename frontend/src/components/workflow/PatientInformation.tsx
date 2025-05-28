@@ -62,91 +62,70 @@ const PatientInformation: React.FC<PatientInformationProps> = ({
     );
   }
 
+  // Get today's date in yyyy-mm-dd format
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  const todayStr = `${yyyy}-${mm}-${dd}`;
+
   return (
     <div className="space-y-6">
-      <div className="bg-white p-6 rounded-lg shadow">
-        <div className="space-y-4">
-          {/* Basic Information */}
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">
-              Name
-            </label>
-            <input
-              type="text"
-              value={editedPatient.name || ""}
-              onChange={(e) =>
-                setEditedPatient(prev => prev ? { ...prev, name: e.target.value } : null)
-              }
-              className="w-full p-2.5 border border-gray-300 rounded-lg"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">
-              Phone
-            </label>
-            <input
-              type="text"
-              value={editedPatient.phone || ""}
-              onChange={(e) =>
-                setEditedPatient(prev => prev ? { ...prev, phone: e.target.value } : null)
-              }
-              className="w-full p-2.5 border border-gray-300 rounded-lg"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              value={editedPatient.email || ""}
-              onChange={(e) =>
-                setEditedPatient(prev => prev ? { ...prev, email: e.target.value } : null)
-              }
-              className="w-full p-2.5 border border-gray-300 rounded-lg"
-            />
-          </div>
-
-          {/* Medical Information */}
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">
-              Condition
-            </label>
-            <input
-              type="text"
-              value={editedPatient.condition || ""}
-              onChange={(e) =>
-                setEditedPatient(prev => prev ? { ...prev, condition: e.target.value } : null)
-              }
-              className="w-full p-2.5 border border-gray-300 rounded-lg"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">
-              Last Visit
-            </label>
-            <input
-              type="date"
-              value={editedPatient.lastVisit || ""}
-              onChange={(e) =>
-                setEditedPatient(prev => prev ? { ...prev, lastVisit: e.target.value } : null)
-              }
-              className="w-full p-2.5 border border-gray-300 rounded-lg"
-            />
-          </div>
-        </div>
-
-        <div className="mt-6">
-          <button
-            onClick={handleSubmit}
-            className="w-full py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
-          >
-            Save and Continue
-          </button>
-        </div>
+      {/* Basic Information */}
+      <div>
+        <label className="block text-sm font-medium text-gray-600 mb-1">Name</label>
+        <input
+          type="text"
+          value={editedPatient.name || ""}
+          readOnly
+          className="w-full p-2.5 border border-gray-300 rounded-lg"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-600 mb-1">Phone</label>
+        <input
+          type="text"
+          value={editedPatient.phone || ""}
+          readOnly
+          className="w-full p-2.5 border border-gray-300 rounded-lg"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-600 mb-1">Email</label>
+        <input
+          type="email"
+          value={editedPatient.email || ""}
+          readOnly
+          className="w-full p-2.5 border border-gray-300 rounded-lg"
+        />
+      </div>
+      {/* Medical Information */}
+      <div>
+        <label className="block text-sm font-medium text-gray-600 mb-1">Condition</label>
+        <input
+          type="text"
+          value={"Summary of last visit will appear here..."}
+          readOnly
+          className="w-full p-2.5 border border-gray-300 rounded-lg"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-600 mb-1">Additional Notes</label>
+        <input
+          type="text"
+          value={"(Additional notes placeholder)"}
+          readOnly
+          className="w-full p-2.5 border border-gray-300 rounded-lg"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-600 mb-1">Date</label>
+        <input
+          type="date"
+          value={todayStr}
+          readOnly
+          className="w-full p-2.5 border border-gray-300 rounded-lg"
+        />
       </div>
     </div>
   );

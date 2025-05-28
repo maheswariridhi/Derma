@@ -255,7 +255,7 @@ const PatientWorkflow: React.FC = () => {
         className="flex-1 overflow-y-auto bg-gray-50 scroll-smooth"
         onScroll={handleScroll}
       >
-        <div className="max-w-4xl mx-auto p-8">
+        <div className="w-full p-4">
           <div className="space-y-0">
             <section 
               ref={stepRefs[1]} 

@@ -1,8 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Card, CardHeader, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
-import { ScrollArea } from "../ui/scroll-area";
-import { Progress } from "../ui/progress";
 import MedicationDropdown from "../services/MedicationDropdown";
 import TreatmentDropdown from "../services/TreatmentDropdown";
 import { MdMedicalServices, MdPsychology, MdAssistant, MdClose } from "react-icons/md";
@@ -10,8 +8,6 @@ import MedicationReminderService from "../../services/MedicationReminderService"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
-import { Checkbox } from "../ui/checkbox";
-import { Textarea } from "../ui/textarea";
 import { toast } from "react-hot-toast";
 
 // Define interfaces for treatments and medicines
@@ -95,40 +91,11 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
     selectedMedicines: patient?.treatmentPlan?.selectedMedicines || [],
   });
   const [agentDialogOpen, setAgentDialogOpen] = useState(false);
-  const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
   const [initialMessage, setInitialMessage] = useState("");
   const [isInitiating, setIsInitiating] = useState(false);
-  const [medicationDuration, setMedicationDuration] = useState(14); // Default to 14 days (2 weeks)
+  const [itemNotes, setItemNotes] = useState<{ [key: string]: string }>({});
   
-  // Reference to maintain scroll position
-  const contentRef = useRef<HTMLDivElement>(null);
-  
-  // Save scroll position before update
-  const [scrollPosition, setScrollPosition] = useState(0);
-  
-  // Save scroll position before update
-  useEffect(() => {
-    if (contentRef.current) {
-      const handleScroll = () => {
-        setScrollPosition(window.scrollY);
-      };
-      
-      window.addEventListener('scroll', handleScroll);
-      return () => window.removeEventListener('scroll', handleScroll);
-    }
-  }, []);
-  
-  // Restore scroll position after state update
-  useEffect(() => {
-    if (scrollPosition > 0) {
-      window.scrollTo(0, scrollPosition);
-    }
-  }, [treatmentPlan, scrollPosition]);
-
   const handleTreatmentSelect = (treatment: Treatment) => {
-    if (contentRef.current) {
-      setScrollPosition(window.scrollY);
-    }
     const updatedPlan = {
       ...treatmentPlan,
       selectedTreatments: [...(treatmentPlan.selectedTreatments || []), treatment]
@@ -138,9 +105,6 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
   };
 
   const handleMedicineSelect = (medicine: Medicine) => {
-    if (contentRef.current) {
-      setScrollPosition(window.scrollY);
-    }
     const medicineWithDefaults = {
       ...medicine,
       timeToTake: "08:00, 20:00",
@@ -164,9 +128,6 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
   };
 
   const removeTreatment = (treatmentId: number) => {
-    if (contentRef.current) {
-      setScrollPosition(window.scrollY);
-    }
     const updatedTreatments = treatmentPlan.selectedTreatments.filter(
       treatment => treatment.id !== treatmentId
     );
@@ -179,9 +140,6 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
   };
 
   const removeMedicine = (medicineId: number) => {
-    if (contentRef.current) {
-      setScrollPosition(window.scrollY);
-    }
     const updatedMedicines = treatmentPlan.selectedMedicines.filter(
       medicine => medicine.id !== medicineId
     );
@@ -232,21 +190,21 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
     onPlanChange(updatedPlan);
   };
 
-  const openAgentDialog = (medicine: Medicine | null = null) => {
-    setSelectedMedicine(medicine);
-    
+  const openAgentDialog = () => {
     // Create default initial message based on prescription
+    let treatmentList = "";
     let medicationList = "";
+    if (treatmentPlan.selectedTreatments && treatmentPlan.selectedTreatments.length > 0) {
+      treatmentList = treatmentPlan.selectedTreatments.map(treat => {
+        return `- ${treat.name}: ${treat.description} (Duration: ${treat.duration}, Cost: ${treat.cost})`;
+      }).join("\n");
+    }
     if (treatmentPlan.selectedMedicines && treatmentPlan.selectedMedicines.length > 0) {
       medicationList = treatmentPlan.selectedMedicines.map(med => {
         const timeInfo = med.timeToTake ? ` at ${med.timeToTake}` : '';
         const durationInfo = med.durationDays ? ` for ${med.durationDays} days` : '';
         return `- ${med.name} (${med.dosage})${timeInfo}${durationInfo}: ${med.usage || 'as prescribed'}`;
       }).join("\n");
-    } else if (medicine) {
-      const timeInfo = medicine.timeToTake ? ` at ${medicine.timeToTake}` : '';
-      const durationInfo = medicine.durationDays ? ` for ${medicine.durationDays} days` : '';
-      medicationList = `- ${medicine.name} (${medicine.dosage})${timeInfo}${durationInfo}: ${medicine.usage || 'as prescribed'}`;
     }
     
     let nextAppointment = "";
@@ -254,24 +212,19 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
       nextAppointment = `\n\nYour next appointment is scheduled for: ${treatmentPlan.next_appointment}.`;
     }
     
-    const defaultMessage = 
-      `Hello ${patient.name}, I'm your medication assistant from DermaAI clinic.\n\n` +
-      `Dr. ${localStorage.getItem('doctorName') || 'your doctor'} has prescribed the following medication(s) for your ${treatmentPlan.diagnosis || 'condition'}:\n\n` +
-      medicationList + 
-      nextAppointment + 
-      `\n\nWhen would be a good time for me to remind you to take your medication(s)? For example, would morning (8am) and evening (8pm) work for you?`;
-    
-    setInitialMessage(defaultMessage);
-    
-    // Use duration from selected medicine if available
-    if (medicine && medicine.durationDays) {
-      setMedicationDuration(medicine.durationDays);
-    } else if (treatmentPlan.selectedMedicines && treatmentPlan.selectedMedicines.length > 0) {
-      // Use the first medicine's duration as default
-      setMedicationDuration(treatmentPlan.selectedMedicines[0].durationDays || 14);
-    } else {
-      setMedicationDuration(14); // Default 2 weeks
+    let defaultMessage = `Hello ${patient.name}, I'm your assistant from DermaAI clinic.\n\n`;
+    defaultMessage += `Dr. ${localStorage.getItem('doctorName') || 'your doctor'} has prescribed the following for your ${treatmentPlan.diagnosis || 'condition'}:\n\n`;
+    if (treatmentList) {
+      defaultMessage += `Treatments:\n${treatmentList}\n\n`;
     }
+    if (medicationList) {
+      defaultMessage += `Medications:\n${medicationList}\n\n`;
+    }
+    defaultMessage += nextAppointment;
+    if (medicationList) {
+      defaultMessage += `\n\nWhen would be a good time for me to remind you to take your medication(s)? For example, would morning (8am) and evening (8pm) work for you?`;
+    }
+    setInitialMessage(defaultMessage);
     
     setAgentDialogOpen(true);
   };
@@ -285,31 +238,27 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
     try {
       setIsInitiating(true);
       
-      // Get the primary medication (first one) or use selected one
-      const primaryMedicine = selectedMedicine || treatmentPlan.selectedMedicines[0];
-      
-      // List of all medications
-      const allMedicines = treatmentPlan.selectedMedicines.map(med => 
-        `${med.name} (${med.dosage})`
-      ).join(", ");
+      // Gather all selected treatments and medicines
+      const allTreatments = treatmentPlan.selectedTreatments.map(treat => `${treat.name} (Duration: ${treat.duration}, Cost: ${treat.cost})`).join(", ");
+      const allMedicines = treatmentPlan.selectedMedicines.map(med => `${med.name} (${med.dosage})`).join(", ");
       
       // Display an initial toast to indicate we're connecting
       const toastId = toast.loading("Connecting to AI services...");
       
-      // Create a conversation with context about the entire prescription
+      // Create a conversation with context about the entire prescription and treatment plan
       const response = await MedicationReminderService.initiateAgentConversation({
         patient_id: patient.id,
         patient_name: patient.name,
         message: initialMessage,
         medicine: allMedicines,
         prescription_details: {
-          medicine_name: primaryMedicine.name,
-          dosage: primaryMedicine.dosage,
-          usage: primaryMedicine.usage || "as prescribed",
+          medicine_name: treatmentPlan.selectedMedicines[0]?.name || '',
+          dosage: treatmentPlan.selectedMedicines[0]?.dosage || '',
+          usage: treatmentPlan.selectedMedicines[0]?.usage || '',
           diagnosis: treatmentPlan.diagnosis,
           additional_notes: treatmentPlan.additional_notes,
           next_appointment: treatmentPlan.next_appointment,
-          duration_days: primaryMedicine.durationDays || 14
+          duration_days: treatmentPlan.selectedMedicines[0]?.durationDays || 14,
         }
       });
 
@@ -332,11 +281,26 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
     }
   };
 
-  // Check if there's at least one medication
-  const hasMedications = treatmentPlan.selectedMedicines && treatmentPlan.selectedMedicines.length > 0;
+  // Check if there's at least one selected item (treatment or medication)
+  const hasSelectedItems =
+    (treatmentPlan.selectedMedicines && treatmentPlan.selectedMedicines.length > 0) ||
+    (treatmentPlan.selectedTreatments && treatmentPlan.selectedTreatments.length > 0);
+
+  // Combine selected treatments and medicines into a unified list
+  const unifiedSelectedItems = [
+    ...treatmentPlan.selectedTreatments.map(item => ({ ...item, itemType: "treatment" })),
+    ...treatmentPlan.selectedMedicines.map(item => ({ ...item, itemType: "medicine" })),
+  ];
+
+  const handleNoteChange = (itemType: string, id: number, value: string) => {
+    setItemNotes(prev => ({
+      ...prev,
+      [`${itemType}-${id}`]: value
+    }));
+  };
 
   return (
-    <div className="space-y-6" ref={contentRef}>
+    <div className="space-y-6">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -347,14 +311,14 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
               <h2 className="text-xl font-medium">Treatment Plan</h2>
             </div>
             <div className="flex gap-2">
-              {hasMedications && (
+              {hasSelectedItems && (
                 <Button
                   variant="default"
                   onClick={() => openAgentDialog()}
                   className="flex items-center gap-2"
                 >
                   <MdAssistant className="w-4 h-4" />
-                  Activate Medication Assistant
+                  Activate Assistant
                 </Button>
               )}
               <Button
@@ -373,106 +337,149 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-lg font-medium mb-4">Selected Treatments</h3>
-                <TreatmentDropdown
-                  treatments={services.treatments}
-                  onSelect={handleTreatmentSelect}
-                />
-                <div className="mt-4 max-h-[400px] overflow-y-auto pr-1">
-                  {treatmentPlan.selectedTreatments?.map((treatment) => (
+            {/* Dropdowns side by side */}
+            <div className="flex flex-col md:flex-row gap-4 mb-4">
+              <TreatmentDropdown
+                treatments={services.treatments}
+                onSelect={handleTreatmentSelect}
+              />
+              <MedicationDropdown
+                medicines={services.medicines}
+                onSelect={handleMedicineSelect}
+              />
+            </div>
+            {/* Unified selected items list */}
+            <div className="mt-4 max-h-[400px] overflow-y-auto pr-1">
+              {unifiedSelectedItems.map((item) => {
+                // Type guard: if item has 'description', it's a Treatment
+                if ('description' in item) {
+                  return (
                     <div
-                      key={treatment.id}
+                      key={`treatment-${item.id}`}
                       className="p-4 bg-gray-50 rounded-lg mb-3 relative hover:bg-gray-100"
                     >
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         className="absolute top-2 right-2 h-6 w-6 text-gray-500 hover:text-red-500"
-                        onClick={() => removeTreatment(treatment.id)}
+                        onClick={() => removeTreatment(item.id)}
                       >
                         <MdClose className="h-4 w-4" />
                       </Button>
                       <div className="pr-8">
-                        <h4 className="font-medium truncate">{treatment.name}</h4>
-                        <p className="text-sm text-gray-600 mt-1 line-clamp-2">{treatment.description}</p>
+                        <h4 className="font-medium truncate">{item.name}</h4>
+                        <p className="text-sm text-gray-600 mt-1 line-clamp-2">{item.description}</p>
                         <div className="mt-2 text-sm text-gray-500 flex flex-wrap gap-1">
-                          <span>Duration: {treatment.duration}</span>
+                          <span>Duration: {item.duration}</span>
                           <span className="mx-1">|</span>
-                          <span>Cost: {treatment.cost}</span>
+                          <span>Cost: {item.cost}</span>
+                        </div>
+                        <div className="mt-2">
+                          <Label className="text-xs block mb-1">Additional Notes</Label>
+                          <Input
+                            value={itemNotes[`treatment-${item.id}`] || ""}
+                            onChange={e => handleNoteChange("treatment", item.id, e.target.value)}
+                            placeholder="Add notes for this treatment..."
+                            className="text-xs"
+                          />
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-medium mb-4">Selected Medications</h3>
-                <MedicationDropdown
-                  medicines={services.medicines}
-                  onSelect={handleMedicineSelect}
-                />
-                <div className="mt-4 max-h-[400px] overflow-y-auto pr-1">
-                  {treatmentPlan.selectedMedicines?.map((medicine) => (
+                  );
+                } else {
+                  // Otherwise, it's a Medicine
+                  return (
                     <div
-                      key={medicine.id}
+                      key={`medicine-${item.id}`}
                       className="p-4 bg-gray-50 rounded-lg mb-3 relative hover:bg-gray-100"
                     >
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         className="absolute top-2 right-2 h-6 w-6 text-gray-500 hover:text-red-500"
-                        onClick={() => removeMedicine(medicine.id)}
+                        onClick={() => removeMedicine(item.id)}
                       >
                         <MdClose className="h-4 w-4" />
                       </Button>
                       <div className="pr-8">
-                        <h4 className="font-medium truncate">{medicine.name}</h4>
+                        <h4 className="font-medium truncate">{item.name}</h4>
                         <p className="text-sm text-gray-600 truncate">
-                          {medicine.type} - {medicine.usage}
+                          {item.type} - {item.usage}
                         </p>
                         <div className="mt-1 text-sm text-gray-500">
-                          Dosage: {medicine.dosage}
+                          Dosage: {item.dosage}
                         </div>
                       </div>
                       <div className="mt-3 grid grid-cols-2 gap-3">
                         <div>
-                          <Label htmlFor={`medicine-time-${medicine.id}`} className="text-xs block mb-1">
+                          <Label htmlFor={`medicine-time-${item.id}`} className="text-xs block mb-1">
                             Time to take
                           </Label>
                           <Input
-                            id={`medicine-time-${medicine.id}`}
-                            value={medicine.timeToTake || ""}
+                            id={`medicine-time-${item.id}`}
+                            value={item.timeToTake || ""}
                             placeholder="08:00, 20:00"
-                            onChange={(e) => updateMedicineDetails(medicine.id, 'timeToTake', e.target.value)}
+                            onChange={(e) => updateMedicineDetails(item.id, 'timeToTake', e.target.value)}
                             className="text-sm"
                           />
                         </div>
                         <div>
-                          <Label htmlFor={`medicine-duration-${medicine.id}`} className="text-xs block mb-1">
+                          <Label htmlFor={`medicine-duration-${item.id}`} className="text-xs block mb-1">
                             Duration (days)
                           </Label>
                           <Input
-                            id={`medicine-duration-${medicine.id}`}
+                            id={`medicine-duration-${item.id}`}
                             type="number"
                             min="1"
                             max="365"
-                            value={medicine.durationDays || 14}
-                            onChange={(e) => updateMedicineDetails(medicine.id, 'durationDays', parseInt(e.target.value) || 14)}
+                            value={item.durationDays || 14}
+                            onChange={(e) => updateMedicineDetails(item.id, 'durationDays', parseInt(e.target.value) || 14)}
                             className="text-sm"
                           />
                         </div>
                       </div>
+                      <div className="mt-2">
+                        <Label className="text-xs block mb-1">Additional Notes</Label>
+                        <Input
+                          value={itemNotes[`medicine-${item.id}`] || ""}
+                          onChange={e => handleNoteChange("medicine", item.id, e.target.value)}
+                          placeholder="Add notes for this medication..."
+                          className="text-xs"
+                        />
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </div>
+                  );
+                }
+              })}
             </div>
           </div>
         </CardContent>
       </Card>
+      <Dialog open={agentDialogOpen} onOpenChange={setAgentDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assistant</DialogTitle>
+          </DialogHeader>
+          <div className="mb-4 whitespace-pre-line">
+            {initialMessage}
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={startConversationAgent}
+              disabled={isInitiating}
+            >
+              {isInitiating ? "Starting..." : "Start Assistant"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setAgentDialogOpen(false)}
+              disabled={isInitiating}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
