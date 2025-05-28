@@ -91,46 +91,29 @@ const PatientDashboard: React.FC = () => {
       )}
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        {/* Active Queue Status */}
+        {/* Report View Section */}
         <div className="p-6 bg-white rounded-lg shadow-md">
-          <h2 className="mb-4 text-xl font-semibold">Current Queue Status</h2>
-          {dashboardData?.activeQueue ? (
+          <h2 className="mb-4 text-xl font-semibold">Latest Visit Report</h2>
+          {dashboardData.recentVisits.length > 0 ? (
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <span className="text-3xl font-bold text-blue-600">
-                    #{dashboardData?.activeQueue?.tokenNumber}
-                  </span>
-                  <span className="ml-2 text-gray-500">
-                    {dashboardData?.activeQueue?.queueType}
-                  </span>
-                </div>
-                <span
-                  className={`px-3 py-1 rounded-full text-sm ${
-                    dashboardData.activeQueue.status === "waiting"
-                      ? "bg-yellow-100 text-yellow-800"
-                      : "bg-green-100 text-green-800"
-                  }`}
-                >
-                  {dashboardData?.activeQueue?.status}
-                </span>
+              <div className="mb-2">
+                <span className="font-medium">Date:</span>{" "}
+                {new Date(dashboardData.recentVisits[0].date).toLocaleDateString()}
               </div>
-              <Link
-                to={`/patient/queue/${dashboardData?.activeQueue?.tokenNumber}`}
-                className="block w-full py-2 text-center text-white transition-colors bg-blue-500 rounded-lg hover:bg-blue-600"
-              >
-                View Queue Details
-              </Link>
+              <div className="mb-2">
+                <span className="font-medium">Type:</span> {dashboardData.recentVisits[0].type}
+              </div>
+              <div className="mb-2">
+                <span className="font-medium">Doctor:</span> {dashboardData.recentVisits[0].doctor}
+              </div>
+              <div className="mb-2">
+                <span className="font-medium">Status:</span> {dashboardData.recentVisits[0].status}
+              </div>
+              {/* Add more report details here as needed */}
             </div>
           ) : (
-            <div className="py-8 text-center">
-              <p className="mb-4 text-gray-500">No active queue</p>
-              <Link
-                to="/patient/book"
-                className="inline-block px-6 py-2 text-white transition-colors bg-blue-500 rounded-lg hover:bg-blue-600"
-              >
-                Book Appointment
-              </Link>
+            <div className="py-8 text-center text-gray-500">
+              No recent visits to show a report.
             </div>
           )}
         </div>

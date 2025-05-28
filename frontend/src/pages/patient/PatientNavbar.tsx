@@ -25,7 +25,7 @@ const PatientNavbar: React.FC = () => {
               to="/patient/queue"
               className={`px-3 py-2 rounded-md text-sm font-medium ${isActive("/queue")}`}
             >
-              Queue Status
+              Reports
             </Link>
             <Link
               to="/patient/book"
