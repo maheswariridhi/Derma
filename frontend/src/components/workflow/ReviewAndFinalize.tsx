@@ -300,6 +300,10 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
     }));
   };
 
+  // Add type guards for rendering unifiedSelectedItems
+  const isTreatment = (item: any): item is Treatment & { itemType: string } => item.itemType === "treatment";
+  const isMedicine = (item: any): item is Medicine & { itemType: string } => item.itemType === "medicine";
+
   return (
     <div className="space-y-6">
       <Card>
@@ -343,16 +347,18 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
               <TreatmentDropdown
                 treatments={services.treatments}
                 onSelect={handleTreatmentSelect}
+                selectedTreatments={treatmentPlan.selectedTreatments}
               />
               <MedicationDropdown
                 medicines={services.medicines}
                 onSelect={handleMedicineSelect}
+                selectedMedicines={treatmentPlan.selectedMedicines}
               />
             </div>
             {/* Unified selected items list */}
             <div className="mt-4 max-h-[400px] overflow-y-auto pr-1">
               {unifiedSelectedItems.map((item) => {
-                if (item.itemType === "treatment") {
+                if (isTreatment(item)) {
                   return (
                     <div
                       key={`treatment-${item.id}`}
@@ -386,7 +392,7 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
                       </div>
                     </div>
                   );
-                } else if (item.itemType === "medicine") {
+                } else if (isMedicine(item)) {
                   return (
                     <div
                       key={`medicine-${item.id}`}

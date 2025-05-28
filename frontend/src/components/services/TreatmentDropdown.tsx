@@ -21,6 +21,7 @@ interface TreatmentDropdownProps {
   onSelect: (treatment: Treatment) => void;
   label?: string;
   placeholder?: string;
+  selectedTreatments?: Treatment[];
 }
 
 const TreatmentDropdown: React.FC<TreatmentDropdownProps> = ({
@@ -28,8 +29,14 @@ const TreatmentDropdown: React.FC<TreatmentDropdownProps> = ({
   onSelect,
   label = "Select Treatment",
   placeholder = "Select a treatment...",
+  selectedTreatments = [],
 }) => {
   const [selectedValue, setSelectedValue] = React.useState("");
+
+  // Filter out already selected treatments
+  const availableTreatments = treatments.filter(
+    t => !selectedTreatments.some(sel => sel.id === t.id)
+  );
 
   return (
     <div className="space-y-2">
@@ -37,7 +44,7 @@ const TreatmentDropdown: React.FC<TreatmentDropdownProps> = ({
       <Select
         value={selectedValue}
         onValueChange={(value) => {
-          const selectedTreatment = treatments.find(
+          const selectedTreatment = availableTreatments.find(
             (treatment) => treatment.id.toString() === value
           );
           if (selectedTreatment) {
@@ -50,7 +57,7 @@ const TreatmentDropdown: React.FC<TreatmentDropdownProps> = ({
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
-          {treatments.map((treatment) => (
+          {availableTreatments.map((treatment) => (
             <SelectItem
               key={treatment.id}
               value={treatment.id.toString()}

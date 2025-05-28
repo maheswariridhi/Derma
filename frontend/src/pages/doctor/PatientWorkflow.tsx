@@ -31,7 +31,6 @@ const PatientWorkflow: React.FC = () => {
   const [activeStep, setActiveStep] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [isScrolling, setIsScrolling] = useState(false);
-  const [useDemoData, setUseDemoData] = useState(false);
   const [treatmentPlan, setTreatmentPlan] = useState<any>(patient?.treatmentPlan || {});
   const [services, setServices] = useState({ treatments: [], medicines: [] });
 
@@ -40,23 +39,6 @@ const PatientWorkflow: React.FC = () => {
     1: useRef<HTMLDivElement>(null),
     2: useRef<HTMLDivElement>(null),
     3: useRef<HTMLDivElement>(null),
-  };
-
-  // Demo patient data for fallback when API fails
-  const demoPatient: Patient = {
-    id: "demo-123",
-    name: "Demo Patient",
-    phone: "555-123-4567",
-    status: "active",
-    treatmentPlan: {
-      diagnosis: "Sample Diagnosis",
-      diagnosisDetails: "Details of the sample diagnosis would go here",
-      medications: [{ name: "Demo Medicine", dosage: "10mg" }],
-      nextSteps: ["Follow-up in 2 weeks", "Apply treatment daily"],
-      next_appointment: "2023-12-15",
-      recommendations: [],
-      additional_notes: "Sample notes for demonstration"
-    }
   };
 
   // Define step options with consistent naming and structure
@@ -122,28 +104,16 @@ const PatientWorkflow: React.FC = () => {
       try {
         // Try to get patient data from API
         if (id) {
-          try {
-            const data = await PatientService.getPatientById(id);
-            
-            if (data && mounted) {
-              setPatient(prevPatient => ({
-                ...prevPatient,
-                ...data,
-              }));
-              setUseDemoData(false);
-            } else if (mounted) {
-              // If no data but API didn't throw, use demo data
-              setPatient(demoPatient);
-              setUseDemoData(true);
-              toast.warning('Using demo data - backend may not be running');
-            }
-          } catch (apiError) {
-            // API error - use demo data
-            if (mounted) {
-              setPatient(demoPatient);
-              setUseDemoData(true);
-              toast.warning('Using demo data - backend may not be running');
-            }
+          const data = await PatientService.getPatientById(id);
+          
+          if (data && mounted) {
+            setPatient(prevPatient => ({
+              ...prevPatient,
+              ...data,
+            }));
+          } else if (mounted) {
+            // If no data but API didn't throw, set error
+            setError('Patient not found');
           }
         } else if (mounted) {
           // No ID provided
@@ -170,7 +140,7 @@ const PatientWorkflow: React.FC = () => {
       mounted = false; // Cleanup to prevent state updates after unmount
       localStorage.removeItem('patientWorkflowLoading'); // Ensure flag is cleared on unmount
     };
-  }, [id, location.state, patient, demoPatient]);
+  }, [id, location.state, patient]);
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -251,11 +221,6 @@ const PatientWorkflow: React.FC = () => {
 
   return (
     <div className="flex h-full animate-fade-in">
-      {useDemoData && (
-        <div className="absolute top-0 left-0 right-0 bg-yellow-100 text-yellow-800 p-2 text-center">
-          Demo Mode: Using sample data (backend server may not be running)
-        </div>
-      )}
       <div className="w-[280px] border-x border-gray-200 bg-white">
         <WorkflowSteps
           activeStep={activeStep}

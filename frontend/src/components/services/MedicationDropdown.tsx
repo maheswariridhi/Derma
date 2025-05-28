@@ -21,6 +21,7 @@ interface MedicationDropdownProps {
   onSelect: (medicine: Medicine) => void;
   label?: string;
   placeholder?: string;
+  selectedMedicines?: Medicine[];
 }
 
 const MedicationDropdown: React.FC<MedicationDropdownProps> = ({
@@ -28,12 +29,18 @@ const MedicationDropdown: React.FC<MedicationDropdownProps> = ({
   onSelect,
   label = "Select Medication",
   placeholder = "Select a medication...",
+  selectedMedicines = [],
 }) => {
   const [selectedValue, setSelectedValue] = React.useState<string>("");
   const [isOpen, setIsOpen] = React.useState(false);
 
+  // Filter out already selected medicines
+  const availableMedicines = medicines.filter(
+    m => !selectedMedicines.some(sel => sel.id === m.id)
+  );
+
   const handleValueChange = (value: string) => {
-    const selectedMedicine = medicines.find(
+    const selectedMedicine = availableMedicines.find(
       (medicine) => medicine.id.toString() === value
     );
     if (selectedMedicine) {
@@ -59,7 +66,7 @@ const MedicationDropdown: React.FC<MedicationDropdownProps> = ({
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
-          {medicines.map((medicine) => (
+          {availableMedicines.map((medicine) => (
             <SelectItem
               key={medicine.id}
               value={medicine.id.toString()}
