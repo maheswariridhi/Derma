@@ -29,22 +29,31 @@ const MedicationDropdown: React.FC<MedicationDropdownProps> = ({
   label = "Select Medication",
   placeholder = "Select a medication...",
 }) => {
-  const [selectedValue, setSelectedValue] = React.useState("");
+  const [selectedValue, setSelectedValue] = React.useState<string>("");
+  const [isOpen, setIsOpen] = React.useState(false);
+
+  const handleValueChange = (value: string) => {
+    const selectedMedicine = medicines.find(
+      (medicine) => medicine.id.toString() === value
+    );
+    if (selectedMedicine) {
+      onSelect(selectedMedicine);
+      // Reset after a brief delay to allow the select to close properly
+      setTimeout(() => {
+        setSelectedValue("");
+        setIsOpen(false);
+      }, 100);
+    }
+  };
 
   return (
     <div className="space-y-2">
       {label && <label className="text-sm font-medium">{label}</label>}
       <Select
         value={selectedValue}
-        onValueChange={(value) => {
-          const selectedMedicine = medicines.find(
-            (medicine) => medicine.id.toString() === value
-          );
-          if (selectedMedicine) {
-            onSelect(selectedMedicine);
-            setSelectedValue(""); // Reset to placeholder after selection
-          }
-        }}
+        onValueChange={handleValueChange}
+        open={isOpen}
+        onOpenChange={setIsOpen}
       >
         <SelectTrigger className="w-full">
           <SelectValue placeholder={placeholder} />
@@ -56,14 +65,15 @@ const MedicationDropdown: React.FC<MedicationDropdownProps> = ({
               value={medicine.id.toString()}
               className="cursor-pointer"
             >
-              <div className="flex flex-col">
-                <span className="font-medium">{medicine.name}</span>
-                <span className="text-sm text-gray-500">
-                  {medicine.dosage} ({medicine.type})
+              <div className="flex flex-col gap-0.5">
+                <span className="font-medium text-gray-900">{medicine.name}</span>
+                <span className="text-xs text-gray-600">
+                  {medicine.dosage && <span>{medicine.dosage}</span>}
+                  {medicine.type && <span className="ml-1">({medicine.type})</span>}
                 </span>
-                <span className="text-xs text-gray-400">
-                  Stock: {medicine.stock}
-                </span>
+                {medicine.stock !== undefined && medicine.stock !== null && (
+                  <span className="text-xs text-gray-400">Stock: {medicine.stock}</span>
+                )}
               </div>
             </SelectItem>
           ))}

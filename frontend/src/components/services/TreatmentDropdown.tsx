@@ -13,6 +13,7 @@ interface Treatment {
   description: string;
   duration: string;
   cost: string;
+  price?: string;
 }
 
 interface TreatmentDropdownProps {
@@ -55,10 +56,18 @@ const TreatmentDropdown: React.FC<TreatmentDropdownProps> = ({
               value={treatment.id.toString()}
               className="cursor-pointer"
             >
-              <div className="flex flex-col">
-                <span className="font-medium">{treatment.name}</span>
-                <span className="text-sm text-gray-500">
-                  {treatment.duration} - {treatment.cost}
+              <div className="flex flex-col gap-0.5">
+                <span className="font-medium text-gray-900">{treatment.name}</span>
+                <span className="text-xs text-gray-600">
+                  {typeof treatment.duration === 'number'
+                    ? `${treatment.duration} minutes`
+                    : treatment.duration}
+                  {treatment.price !== undefined && treatment.price !== null && treatment.price !== '' && (
+                    <> - ${Number(treatment.price).toLocaleString()}</>
+                  )}
+                  {treatment.cost && (
+                    <> - {treatment.cost}</>
+                  )}
                 </span>
               </div>
             </SelectItem>

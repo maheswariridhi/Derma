@@ -7,9 +7,7 @@ import PatientService from '../../services/PatientService';
 import WorkflowSteps, { Step } from '../../components/workflow/WorkflowSteps';
 import ReviewAndFinalize from '../../components/workflow/ReviewAndFinalize';
 import SendToPatient from '../../components/workflow/SendToPatient';
-
-// Import services data from a central location
-import { initialServices } from '../../data/services';
+import axios from "axios";
 
 // Patient interface used across components
 interface Patient {
@@ -19,6 +17,8 @@ interface Patient {
   treatmentPlan?: any;
   status?: string;
 }
+
+const API_BASE_URL = "http://localhost:8000/api";
 
 const PatientWorkflow: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -33,6 +33,7 @@ const PatientWorkflow: React.FC = () => {
   const [isScrolling, setIsScrolling] = useState(false);
   const [useDemoData, setUseDemoData] = useState(false);
   const [treatmentPlan, setTreatmentPlan] = useState<any>(patient?.treatmentPlan || {});
+  const [services, setServices] = useState({ treatments: [], medicines: [] });
 
   const contentRef = useRef<HTMLDivElement>(null);
   const stepRefs = {
@@ -171,6 +172,21 @@ const PatientWorkflow: React.FC = () => {
     };
   }, [id, location.state, patient, demoPatient]);
 
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const [treatmentsData, medicinesData] = await Promise.all([
+          axios.get(`${API_BASE_URL}/treatments`).then(res => res.data),
+          axios.get(`${API_BASE_URL}/medicines`).then(res => res.data)
+        ]);
+        setServices({ treatments: treatmentsData, medicines: medicinesData });
+      } catch (err) {
+        console.error("Failed to fetch services", err);
+      }
+    };
+    fetchServices();
+  }, []);
+
   // Prevent body scroll during loading
   useEffect(() => {
     document.body.style.overflow = loading ? 'hidden' : '';
@@ -268,7 +284,7 @@ const PatientWorkflow: React.FC = () => {
                   onStepComplete: handleStepComplete,
                   onFinish: sendReportToPatient,
                   stepRefs,
-                  services: initialServices
+                  services
                 }} />
               </div>
             </section>
@@ -282,7 +298,7 @@ const PatientWorkflow: React.FC = () => {
                   <ReviewAndFinalize 
                     patient={patient} 
                     onPlanChange={handlePlanChange}
-                    services={initialServices}
+                    services={services}
                   />
                 )}
               </div>

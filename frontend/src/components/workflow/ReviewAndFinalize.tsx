@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import { Card, CardHeader, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
 import MedicationDropdown from "../services/MedicationDropdown";
@@ -68,18 +68,16 @@ interface Patient {
 interface ReviewAndFinalizeProps {
   patient: Patient;
   onPlanChange: (updatedPlan: TreatmentPlan) => void;
-  services?: Services; // Make services optional for backward compatibility
+  services: Services;
 }
 
 const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
   patient,
   onPlanChange,
-  services = {
-    treatments: [],
-    medicines: []
-  }
+  services
 }) => {
   const [treatmentPlan, setTreatmentPlan] = useState<TreatmentPlan>({
+    ...patient?.treatmentPlan,
     diagnosis: patient?.treatmentPlan?.diagnosis || "",
     diagnosisDetails: patient?.treatmentPlan?.diagnosisDetails || "",
     medications: patient?.treatmentPlan?.medications || [],
@@ -98,7 +96,7 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
   const handleTreatmentSelect = (treatment: Treatment) => {
     const updatedPlan = {
       ...treatmentPlan,
-      selectedTreatments: [...(treatmentPlan.selectedTreatments || []), treatment]
+      selectedTreatments: [...treatmentPlan.selectedTreatments, treatment]
     };
     setTreatmentPlan(updatedPlan);
     onPlanChange(updatedPlan);
@@ -112,7 +110,7 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
     };
     const updatedPlan = {
       ...treatmentPlan,
-      selectedMedicines: [...(treatmentPlan.selectedMedicines || []), medicineWithDefaults],
+      selectedMedicines: [...treatmentPlan.selectedMedicines, medicineWithDefaults],
       medications: [
         ...treatmentPlan.medications,
         { 
@@ -127,9 +125,9 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
     onPlanChange(updatedPlan);
   };
 
-  const removeTreatment = (treatmentId: number) => {
+  const removeTreatment = (treatmentId: number | string) => {
     const updatedTreatments = treatmentPlan.selectedTreatments.filter(
-      treatment => treatment.id !== treatmentId
+      treatment => treatment.id.toString() !== treatmentId.toString()
     );
     const updatedPlan = {
       ...treatmentPlan,
@@ -139,16 +137,19 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
     onPlanChange(updatedPlan);
   };
 
-  const removeMedicine = (medicineId: number) => {
+  const removeMedicine = (medicineId: number | string) => {
+    // Remove from selectedMedicines array by id
     const updatedMedicines = treatmentPlan.selectedMedicines.filter(
-      medicine => medicine.id !== medicineId
+      medicine => medicine.id.toString() !== medicineId.toString()
     );
-    const updatedMedications = treatmentPlan.medications.filter(medication => {
-      const matchingMedicine = treatmentPlan.selectedMedicines.find(
-        m => m.id === medicineId && m.name === medication.name
-      );
-      return !matchingMedicine;
-    });
+    // Get the name of the medicine being removed
+    const removedMedicine = treatmentPlan.selectedMedicines.find(
+      medicine => medicine.id.toString() === medicineId.toString()
+    );
+    // Remove all medications with the same name
+    const updatedMedications = treatmentPlan.medications.filter(
+      medication => medication.name !== removedMedicine?.name
+    );
     const updatedPlan = {
       ...treatmentPlan,
       selectedMedicines: updatedMedicines,
@@ -194,12 +195,12 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
     // Create default initial message based on prescription
     let treatmentList = "";
     let medicationList = "";
-    if (treatmentPlan.selectedTreatments && treatmentPlan.selectedTreatments.length > 0) {
+    if (treatmentPlan.selectedTreatments.length > 0) {
       treatmentList = treatmentPlan.selectedTreatments.map(treat => {
         return `- ${treat.name}: ${treat.description} (Duration: ${treat.duration}, Cost: ${treat.cost})`;
       }).join("\n");
     }
-    if (treatmentPlan.selectedMedicines && treatmentPlan.selectedMedicines.length > 0) {
+    if (treatmentPlan.selectedMedicines.length > 0) {
       medicationList = treatmentPlan.selectedMedicines.map(med => {
         const timeInfo = med.timeToTake ? ` at ${med.timeToTake}` : '';
         const durationInfo = med.durationDays ? ` for ${med.durationDays} days` : '';
@@ -351,8 +352,7 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
             {/* Unified selected items list */}
             <div className="mt-4 max-h-[400px] overflow-y-auto pr-1">
               {unifiedSelectedItems.map((item) => {
-                // Type guard: if item has 'description', it's a Treatment
-                if ('description' in item) {
+                if (item.itemType === "treatment") {
                   return (
                     <div
                       key={`treatment-${item.id}`}
@@ -386,8 +386,7 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
                       </div>
                     </div>
                   );
-                } else {
-                  // Otherwise, it's a Medicine
+                } else if (item.itemType === "medicine") {
                   return (
                     <div
                       key={`medicine-${item.id}`}
@@ -449,6 +448,8 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
                       </div>
                     </div>
                   );
+                } else {
+                  return null;
                 }
               })}
             </div>
