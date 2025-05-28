@@ -2,11 +2,11 @@ import React, { useState, useEffect, useCallback } from "react";
 import { PlusIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import AddServiceModal from "@/components/services/AddServiceModal";
 import DeleteConfirmationModal from "@/components/common/DeleteConfirmationModal";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import toast from "react-hot-toast";
 import axios from "axios";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const API_BASE_URL = "http://localhost:8000/api"; // FastAPI backend URL
 
@@ -309,12 +309,11 @@ const ClinicServicesPage: React.FC = () => {
         </button>
       </div>
 
-      <Tabs defaultValue="treatments" onValueChange={setActiveTab}>
+      <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="mb-6">
         <TabsList>
           <TabsTrigger value="treatments">Treatments</TabsTrigger>
           <TabsTrigger value="medicines">Medicines</TabsTrigger>
         </TabsList>
-
         <TabsContent value="treatments">
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -332,7 +331,6 @@ const ClinicServicesPage: React.FC = () => {
             renderServiceCards(treatments, "treatments")
           )}
         </TabsContent>
-
         <TabsContent value="medicines">
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
