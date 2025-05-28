@@ -3,8 +3,6 @@ import { Card, CardHeader, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
 import { ScrollArea } from "../ui/scroll-area";
 import { Progress } from "../ui/progress";
-import AIRecommendations from "../ai/AIRecommendations";
-import AIChatbot from "../ai/AIChatbot";
 import MedicationDropdown from "../services/MedicationDropdown";
 import TreatmentDropdown from "../services/TreatmentDropdown";
 import { MdMedicalServices, MdPsychology, MdAssistant, MdClose } from "react-icons/md";
@@ -96,7 +94,6 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
     selectedTreatments: patient?.treatmentPlan?.selectedTreatments || [],
     selectedMedicines: patient?.treatmentPlan?.selectedMedicines || [],
   });
-  const [showAI, setShowAI] = useState(false);
   const [agentDialogOpen, setAgentDialogOpen] = useState(false);
   const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
   const [initialMessage, setInitialMessage] = useState("");
@@ -362,175 +359,120 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
               )}
               <Button
                 variant="outline"
-                onClick={() => setShowAI(!showAI)}
+                onClick={() => {
+                  // Placeholder: Show a toast or alert instead of toggling AI insights
+                  alert('AI Insights coming soon!');
+                }}
                 className="flex items-center gap-2"
               >
                 <MdPsychology className="w-4 h-4" />
-                {showAI ? 'Hide AI Insights' : 'Show AI Insights'}
+                Show AI Insights
               </Button>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          {showAI ? (
-            <div className="space-y-6">
-              <AIRecommendations treatmentData={treatmentPlan} />
-              <div className="border-t pt-4">
-                <AIChatbot treatmentPlan={treatmentPlan} onUpdate={(updatedTreatment) => {
-                  setTreatmentPlan(updatedTreatment);
-                  onPlanChange(updatedTreatment);
-                }} />
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-lg font-medium mb-4">Selected Treatments</h3>
-                  <TreatmentDropdown
-                    treatments={services.treatments}
-                    onSelect={handleTreatmentSelect}
-                  />
-                  <div className="mt-4 max-h-[400px] overflow-y-auto pr-1">
-                    {treatmentPlan.selectedTreatments?.map((treatment) => (
-                      <div
-                        key={treatment.id}
-                        className="p-4 bg-gray-50 rounded-lg mb-3 relative hover:bg-gray-100"
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-lg font-medium mb-4">Selected Treatments</h3>
+                <TreatmentDropdown
+                  treatments={services.treatments}
+                  onSelect={handleTreatmentSelect}
+                />
+                <div className="mt-4 max-h-[400px] overflow-y-auto pr-1">
+                  {treatmentPlan.selectedTreatments?.map((treatment) => (
+                    <div
+                      key={treatment.id}
+                      className="p-4 bg-gray-50 rounded-lg mb-3 relative hover:bg-gray-100"
+                    >
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="absolute top-2 right-2 h-6 w-6 text-gray-500 hover:text-red-500"
+                        onClick={() => removeTreatment(treatment.id)}
                       >
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="absolute top-2 right-2 h-6 w-6 text-gray-500 hover:text-red-500"
-                          onClick={() => removeTreatment(treatment.id)}
-                        >
-                          <MdClose className="h-4 w-4" />
-                        </Button>
-                        <div className="pr-8">
-                          <h4 className="font-medium truncate">{treatment.name}</h4>
-                          <p className="text-sm text-gray-600 mt-1 line-clamp-2">{treatment.description}</p>
-                          <div className="mt-2 text-sm text-gray-500 flex flex-wrap gap-1">
-                            <span>Duration: {treatment.duration}</span>
-                            <span className="mx-1">|</span>
-                            <span>Cost: {treatment.cost}</span>
-                          </div>
+                        <MdClose className="h-4 w-4" />
+                      </Button>
+                      <div className="pr-8">
+                        <h4 className="font-medium truncate">{treatment.name}</h4>
+                        <p className="text-sm text-gray-600 mt-1 line-clamp-2">{treatment.description}</p>
+                        <div className="mt-2 text-sm text-gray-500 flex flex-wrap gap-1">
+                          <span>Duration: {treatment.duration}</span>
+                          <span className="mx-1">|</span>
+                          <span>Cost: {treatment.cost}</span>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
+              </div>
 
-                <div>
-                  <h3 className="text-lg font-medium mb-4">Selected Medications</h3>
-                  <MedicationDropdown
-                    medicines={services.medicines}
-                    onSelect={handleMedicineSelect}
-                  />
-                  <div className="mt-4 max-h-[400px] overflow-y-auto pr-1">
-                    {treatmentPlan.selectedMedicines?.map((medicine) => (
-                      <div
-                        key={medicine.id}
-                        className="p-4 bg-gray-50 rounded-lg mb-3 relative hover:bg-gray-100"
+              <div>
+                <h3 className="text-lg font-medium mb-4">Selected Medications</h3>
+                <MedicationDropdown
+                  medicines={services.medicines}
+                  onSelect={handleMedicineSelect}
+                />
+                <div className="mt-4 max-h-[400px] overflow-y-auto pr-1">
+                  {treatmentPlan.selectedMedicines?.map((medicine) => (
+                    <div
+                      key={medicine.id}
+                      className="p-4 bg-gray-50 rounded-lg mb-3 relative hover:bg-gray-100"
+                    >
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="absolute top-2 right-2 h-6 w-6 text-gray-500 hover:text-red-500"
+                        onClick={() => removeMedicine(medicine.id)}
                       >
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="absolute top-2 right-2 h-6 w-6 text-gray-500 hover:text-red-500"
-                          onClick={() => removeMedicine(medicine.id)}
-                        >
-                          <MdClose className="h-4 w-4" />
-                        </Button>
-                        <div className="pr-8">
-                          <h4 className="font-medium truncate">{medicine.name}</h4>
-                          <p className="text-sm text-gray-600 truncate">
-                            {medicine.type} - {medicine.usage}
-                          </p>
-                          <div className="mt-1 text-sm text-gray-500">
-                            Dosage: {medicine.dosage}
-                          </div>
-                        </div>
-                        
-                        <div className="mt-3 grid grid-cols-2 gap-3">
-                          <div>
-                            <Label htmlFor={`medicine-time-${medicine.id}`} className="text-xs block mb-1">
-                              Time to take
-                            </Label>
-                            <Input
-                              id={`medicine-time-${medicine.id}`}
-                              value={medicine.timeToTake || ""}
-                              placeholder="08:00, 20:00"
-                              onChange={(e) => updateMedicineDetails(medicine.id, 'timeToTake', e.target.value)}
-                              className="text-sm"
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor={`medicine-duration-${medicine.id}`} className="text-xs block mb-1">
-                              Duration (days)
-                            </Label>
-                            <Input
-                              id={`medicine-duration-${medicine.id}`}
-                              type="number"
-                              min="1"
-                              max="365"
-                              value={medicine.durationDays || 14}
-                              onChange={(e) => updateMedicineDetails(medicine.id, 'durationDays', parseInt(e.target.value) || 14)}
-                              className="text-sm"
-                            />
-                          </div>
+                        <MdClose className="h-4 w-4" />
+                      </Button>
+                      <div className="pr-8">
+                        <h4 className="font-medium truncate">{medicine.name}</h4>
+                        <p className="text-sm text-gray-600 truncate">
+                          {medicine.type} - {medicine.usage}
+                        </p>
+                        <div className="mt-1 text-sm text-gray-500">
+                          Dosage: {medicine.dosage}
                         </div>
                       </div>
-                    ))}
-                  </div>
+                      <div className="mt-3 grid grid-cols-2 gap-3">
+                        <div>
+                          <Label htmlFor={`medicine-time-${medicine.id}`} className="text-xs block mb-1">
+                            Time to take
+                          </Label>
+                          <Input
+                            id={`medicine-time-${medicine.id}`}
+                            value={medicine.timeToTake || ""}
+                            placeholder="08:00, 20:00"
+                            onChange={(e) => updateMedicineDetails(medicine.id, 'timeToTake', e.target.value)}
+                            className="text-sm"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`medicine-duration-${medicine.id}`} className="text-xs block mb-1">
+                            Duration (days)
+                          </Label>
+                          <Input
+                            id={`medicine-duration-${medicine.id}`}
+                            type="number"
+                            min="1"
+                            max="365"
+                            value={medicine.durationDays || 14}
+                            onChange={(e) => updateMedicineDetails(medicine.id, 'durationDays', parseInt(e.target.value) || 14)}
+                            className="text-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      
-      {/* Intelligent Agent Dialog */}
-      <Dialog open={agentDialogOpen} onOpenChange={setAgentDialogOpen}>
-        <DialogContent className="sm:max-w-[550px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <MdAssistant className="text-blue-600" />
-              Activate Medication Assistant
-            </DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-1 gap-2">
-              <Label htmlFor="medications">Medications</Label>
-              <Input 
-                id="medications" 
-                value={selectedMedicine ? 
-                  selectedMedicine.name : 
-                  (treatmentPlan.selectedMedicines?.map(m => m.name).join(", ") || "")} 
-                readOnly 
-              />
-            </div>
-            <div className="grid grid-cols-1 gap-2">
-              <Label htmlFor="initialMessage">Initial Message</Label>
-              <Textarea 
-                id="initialMessage" 
-                rows={10}
-                value={initialMessage} 
-                onChange={(e) => setInitialMessage(e.target.value)}
-              />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAgentDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={startConversationAgent} 
-              className="flex items-center gap-2"
-              disabled={isInitiating}
-            >
-              {isInitiating ? "Starting..." : "Start Medication Assistant"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </CardContent>
+      </Card>
     </div>
   );
 };

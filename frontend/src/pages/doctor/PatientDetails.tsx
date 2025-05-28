@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from "react";
-import AIRecommendationPanel from "../../components/ai/AIChatbot";
-import AIRecommendations from "../../components/ai/AIRecommendations";
 import PatientCard from "./PatientCard";
 import { api } from "../../utils/api";
 
@@ -99,17 +97,6 @@ const PatientDetails: React.FC = () => {
           isLoading={loading}
         />
       </section>
-
-      {/* AI Analysis Section */}
-      {!loading && aiResults && (
-        <section className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4">AI Analysis</h2>
-          <div className="space-y-6">
-            <AIRecommendationPanel diagnosisData={aiResults.diagnosis} />
-            <AIRecommendations treatmentData={aiResults.treatment_plan} />
-          </div>
-        </section>
-      )}
     </div>
   );
 };
