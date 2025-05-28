@@ -11,14 +11,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Treatment } from "@/services/TreatmentService";
-import { Medicine } from "@/services/MedicineService";
 
 interface AddServiceModalProps {
   isOpen: boolean;
   onClose: () => void;
   type: "treatment" | "medicine";
-  onSubmit: (data: Treatment | Medicine) => void;
+  onSubmit: (data: any) => void;
 }
 
 const AddServiceModal: React.FC<AddServiceModalProps> = ({

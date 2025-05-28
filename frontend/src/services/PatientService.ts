@@ -269,7 +269,7 @@ const PatientService = {
 
   async registerPatient(patientData: { name: string; email: string; phone: string; }): Promise<string> {
     try {
-      const response = await axios.post(`${API_BASE_URL}/patients/register`, patientData);
+      const response = await axios.post(`${API_BASE_URL}/patients`, patientData);
       return response.data.id;
     } catch (error) {
       return handleApiError(error, "registering patient");
