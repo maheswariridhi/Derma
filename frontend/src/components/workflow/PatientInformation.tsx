@@ -25,6 +25,23 @@ interface PatientInformationProps {
   services: Services;
 }
 
+// Helper for date formatting
+function formatDate(dateStr: string) {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+// InfoRow component for each field
+function InfoRow({ icon, label, value }: { icon: string; label: string; value?: string }) {
+  return (
+    <div className="flex items-center gap-3 border-b border-gray-200 pb-3">
+      <span className="text-xl select-none">{icon}</span>
+      <span className="w-32 font-medium text-gray-600">{label}</span>
+      <span className="flex-1 text-right text-gray-900">{value || '-'}</span>
+    </div>
+  );
+}
+
 const PatientInformation: React.FC<PatientInformationProps> = ({ 
   patient, 
   onStepComplete, 
@@ -70,62 +87,30 @@ const PatientInformation: React.FC<PatientInformationProps> = ({
   const todayStr = `${yyyy}-${mm}-${dd}`;
 
   return (
-    <div className="space-y-6">
-      {/* Basic Information */}
-      <div>
-        <label className="block text-sm font-medium text-gray-600 mb-1">Name</label>
-        <input
-          type="text"
-          value={editedPatient.name || ""}
-          readOnly
-          className="w-full p-2.5 border border-gray-300 rounded-lg"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-600 mb-1">Phone</label>
-        <input
-          type="text"
-          value={editedPatient.phone || ""}
-          readOnly
-          className="w-full p-2.5 border border-gray-300 rounded-lg"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-600 mb-1">Email</label>
-        <input
-          type="email"
-          value={editedPatient.email || ""}
-          readOnly
-          className="w-full p-2.5 border border-gray-300 rounded-lg"
-        />
-      </div>
-      {/* Medical Information */}
-      <div>
-        <label className="block text-sm font-medium text-gray-600 mb-1">Condition</label>
-        <input
-          type="text"
-          value={"Summary of last visit will appear here..."}
-          readOnly
-          className="w-full p-2.5 border border-gray-300 rounded-lg"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-600 mb-1">Additional Notes</label>
-        <input
-          type="text"
-          value={"(Additional notes placeholder)"}
-          readOnly
-          className="w-full p-2.5 border border-gray-300 rounded-lg"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-600 mb-1">Date</label>
-        <input
-          type="date"
-          value={todayStr}
-          readOnly
-          className="w-full p-2.5 border border-gray-300 rounded-lg"
-        />
+    <div className="max-w-xl mx-auto mt-10 p-8 rounded-2xl shadow-xl bg-white/70 backdrop-blur-lg border border-blue-200">
+      <h2 className="text-2xl font-bold mb-8 flex items-center gap-2 text-black">
+        <span className="text-3xl select-none">🧑‍⚕️</span>
+        Patient Information
+      </h2>
+      <div className="space-y-6">
+        <InfoRow icon="👤" label="Name" value={editedPatient.name} />
+        <InfoRow icon="📞" label="Phone" value={editedPatient.phone} />
+        <InfoRow icon="✉️" label="Email" value={editedPatient.email} />
+        <div className="rounded-lg bg-blue-50/60 p-4 flex items-start gap-3">
+          <span className="text-2xl select-none text-blue-400 mt-1">💡</span>
+          <div>
+            <div className="font-semibold text-blue-700">Condition</div>
+            <div className="text-gray-700">Summary of last visit will appear here...</div>
+          </div>
+        </div>
+        <div className="rounded-lg bg-purple-50/60 p-4 flex items-start gap-3">
+          <span className="text-2xl select-none text-purple-400 mt-1">📝</span>
+          <div>
+            <div className="font-semibold text-purple-700">Additional Notes</div>
+            <div className="text-gray-700">(Additional notes placeholder)</div>
+          </div>
+        </div>
+        <InfoRow icon="📅" label="Date" value={formatDate(todayStr)} />
       </div>
     </div>
   );

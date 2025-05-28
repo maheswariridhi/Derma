@@ -65,7 +65,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Main Sidebar - Fixed */}
-      <div className="w-64 fixed h-full z-20 flex flex-col bg-white shadow-sm">
+      <div className="w-64 fixed h-full z-20 flex flex-col bg-gray-50 border-r border-gray-200">
         <div className="p-6">
           <Link to="/clinic/dashboard" className="block">
             <h1 className="text-2xl font-semibold text-teal-600">DermaAI</h1>

@@ -259,30 +259,23 @@ const PatientWorkflow: React.FC = () => {
           <div className="space-y-0">
             <section 
               ref={stepRefs[1]} 
-              className="min-h-screen w-full flex items-center py-8 first:pt-0 last:pb-0"
+              className="min-h-screen w-full flex items-start pt-0 first:pt-0 last:pb-0"
             >
               <div className="w-full">
-                <div className="bg-white rounded-lg shadow-sm">
-                  <div className="p-6 border-b">
-                    <h1 className="text-2xl font-medium text-gray-800">Patient Information</h1>
-                  </div>
-                  <div className="p-6">
-                    <Outlet context={{ 
-                      patient,
-                      loading,
-                      onStepComplete: handleStepComplete,
-                      onFinish: sendReportToPatient,
-                      stepRefs,
-                      services: initialServices
-                    }} />
-                  </div>
-                </div>
+                <Outlet context={{ 
+                  patient,
+                  loading,
+                  onStepComplete: handleStepComplete,
+                  onFinish: sendReportToPatient,
+                  stepRefs,
+                  services: initialServices
+                }} />
               </div>
             </section>
 
             <section 
               ref={stepRefs[2]} 
-              className="min-h-screen w-full flex items-center py-8"
+              className="min-h-screen w-full flex items-start pt-0"
             >
               <div className="w-full">
                 {patient && (

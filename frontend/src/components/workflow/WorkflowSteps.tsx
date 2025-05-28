@@ -96,30 +96,10 @@ const WorkflowSteps: React.FC<WorkflowStepsProps> = ({
                   >
                     <div className="flex-shrink-0 flex h-8 w-8 items-center justify-center mr-3">
                       <div
-                        className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                          isActive
-                            ? 'bg-teal-100 text-teal-600'
-                            : isCompleted
-                            ? 'bg-green-100 text-green-600'
-                            : 'bg-gray-100 text-gray-400'
-                        }`}
+                        className={`flex items-center justify-center w-8 h-8 rounded-full border-2 text-lg font-bold transition-all duration-200
+                          ${isCompleted ? 'bg-green-100 border-green-400 text-green-700' : isActive ? 'bg-teal-100 border-teal-500 text-teal-700 shadow-lg' : 'bg-white border-gray-300 text-gray-400'}`}
                       >
-                        {isCompleted ? (
-                          <svg
-                            className="h-5 w-5"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        ) : (
-                          <span>{step.id}</span>
-                        )}
+                        {step.id}
                       </div>
                     </div>
                     <div>
