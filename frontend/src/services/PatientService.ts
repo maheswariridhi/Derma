@@ -1,4 +1,3 @@
-import { Timestamp, timestampToDate } from '../types/common';
 import axios from "axios";
 
 const API_BASE_URL = "http://localhost:8000/api"; // FastAPI backend URL with /api prefix
@@ -22,8 +21,8 @@ interface Patient {
   priority?: boolean;
   condition?: string;
   lastVisit?: string;
-  created_at?: Timestamp;
-  updated_at?: Timestamp;
+  created_at?: string;
+  updated_at?: string;
   treatmentPlan?: {
     diagnosis?: string;
     currentStatus?: string;
@@ -42,7 +41,7 @@ interface QueueEntry {
   tokenNumber: number;
   status: string;
   date: string;
-  checkInTime: Timestamp;
+  checkInTime: string;
   estimatedWaitTime?: number;
 }
 
@@ -65,13 +64,13 @@ interface PatientReport {
   additional_notes?: string;
   selectedTreatments?: any[];
   selectedMedicines?: any[];
-  created_at?: Timestamp;
+  created_at?: string;
   doctor?: string;
   messages?: {
     id: string;
     sender: 'patient' | 'doctor';
     content: string;
-    timestamp: Timestamp;
+    timestamp: string;
   }[];
 }
 
@@ -93,15 +92,6 @@ const PatientService = {
     }
   },
 
-  async getQueuePatients(): Promise<QueueEntry[]> {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/queue/patients`);
-      return response.data;
-    } catch (error) {
-      return handleApiError(error, "fetching queue");
-    }
-  },
-
   async updatePatientStatus(patientId: string, newStatus: string): Promise<boolean> {
     try {
       await axios.put(`${API_BASE_URL}/patients/${patientId}/status`, { status: newStatus });
@@ -118,43 +108,6 @@ const PatientService = {
     } catch (error) {
       return handleApiError(error, "prioritizing patient");
     }
-  },
-
-  async checkInPatient(patientId: string, queueType: string = "check-up"): Promise<number> {
-    try {
-      const response = await axios.post(`${API_BASE_URL}/queue/check-in`, {
-        patientId,
-        queueType
-      });
-      return response.data.tokenNumber;
-    } catch (error) {
-      return handleApiError(error, "checking in patient");
-    }
-  },
-
-  async getQueueStatus(): Promise<Record<string, QueueEntry[]>> {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/queue/status`);
-      return response.data;
-    } catch (error) {
-      return handleApiError(error, "getting queue status");
-    }
-  },
-
-  async updateQueueStatus(queueId: string, newStatus: string): Promise<void> {
-    try {
-      await axios.put(`${API_BASE_URL}/queue/${queueId}/status`, { status: newStatus });
-    } catch (error) {
-      return handleApiError(error, "updating queue status");
-    }
-  },
-
-  calculateWaitingTime(checkInTime?: Timestamp): string {
-    if (!checkInTime) return "N/A";
-    const now = new Date();
-    const checkIn = timestampToDate(checkInTime);
-    const diff = Math.floor((now.getTime() - checkIn.getTime()) / 1000 / 60);
-    return `${diff} mins`;
   },
 
   async getPatientById(patientId: string): Promise<Patient> {
