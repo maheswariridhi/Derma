@@ -5,15 +5,12 @@ const PatientLogin: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
     // Removed: const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
     if (error) setError(error.message);
     else navigate('/patient/dashboard');
   };
@@ -46,9 +43,8 @@ const PatientLogin: React.FC = () => {
         <button
           type="submit"
           className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition"
-          disabled={loading}
         >
-          {loading ? 'Logging in...' : 'Login'}
+          Login
         </button>
         <div className="mt-4 text-center">
           Don't have an account?{' '}

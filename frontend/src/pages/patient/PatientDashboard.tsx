@@ -43,7 +43,6 @@ interface DashboardData {
 
 const PatientDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [dashboardData, setDashboardData] = useState<DashboardData>({
     activeQueue: null,
@@ -58,29 +57,18 @@ const PatientDashboard: React.FC = () => {
 
   const loadDashboardData = async () => {
     try {
-      setLoading(true);
       const data: DashboardData = await PatientService.getPatientDashboardData();
       setDashboardData(data);
       setError(null);
     } catch (err) {
       setError("Failed to load dashboard data");
       console.error(err);
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleReportClick = (reportId: string) => {
     navigate(`/patient/report/${reportId}`);
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-12 h-12 border-b-2 border-blue-500 rounded-full animate-spin"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-6xl p-4 mx-auto">

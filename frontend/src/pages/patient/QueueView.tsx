@@ -3,7 +3,6 @@ import PatientService from "../../services/PatientService";
 
 const ReportView: React.FC = () => {
   const [reports, setReports] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -11,19 +10,15 @@ const ReportView: React.FC = () => {
     const currentPatientId = "CURRENT_PATIENT_ID";
     const fetchReports = async () => {
       try {
-        setLoading(true);
         const data = await PatientService.getPatientReports(currentPatientId);
         setReports(data);
       } catch (err: any) {
         setError("Failed to load reports");
-      } finally {
-        setLoading(false);
       }
     };
     fetchReports();
   }, []);
 
-  if (loading) return <div className="p-8 text-center">Loading reports...</div>;
   if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
 
   return (

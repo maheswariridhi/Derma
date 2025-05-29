@@ -20,19 +20,15 @@ const AppointmentBooking: React.FC = () => {
     symptoms: "",
     notes: "",
   });
-  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoading(true);
     try {
       const result = await PatientService.bookAppointment(appointment);
       navigate(`/patient/queue/${result.tokenNumber}`);
     } catch (err: any) {
       setError("Failed to book appointment: " + err.message);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -120,10 +116,9 @@ const AppointmentBooking: React.FC = () => {
 
           <button
             type="submit"
-            disabled={loading}
             className="w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-blue-300"
           >
-            {loading ? "Booking..." : "Book Appointment"}
+            Book Appointment
           </button>
         </form>
       </div>

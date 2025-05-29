@@ -7,6 +7,7 @@ import PatientNavbar from "./pages/patient/PatientNavbar";
 import ReportPage from "./pages/patient/ReportPage";
 import PatientLogin from "./pages/patient/Login";
 import PatientRegister from "./pages/patient/Register";
+import PatientSettingsPage from "./pages/patient/SettingsPage";
 
 const PatientApp: React.FC = () => {
   return (
@@ -23,7 +24,7 @@ const PatientApp: React.FC = () => {
                 <Route path="dashboard" element={<PatientDashboard />} />
                 <Route path="queue/:tokenNumber?" element={<QueueView />} />
                 <Route path="book" element={<AppointmentBooking />} />
-                <Route path="profile" element={<PatientProfile />} />
+                <Route path="settings" element={<PatientSettingsPage />} />
                 <Route path="report/:reportId" element={<ReportPage />} />
                 <Route path="*" element={<Navigate to="/patient/dashboard" replace />} />
               </Routes>

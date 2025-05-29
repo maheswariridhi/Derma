@@ -6,15 +6,12 @@ const PatientRegister: React.FC = () => {
   const [firstName, setFirstName] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
     // You may want to implement your own sign up logic here or leave a placeholder.
-    setLoading(false);
     navigate('/patient/login');
   };
 
@@ -56,9 +53,8 @@ const PatientRegister: React.FC = () => {
         <button
           type="submit"
           className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
-          disabled={loading}
         >
-          {loading ? 'Registering...' : 'Register'}
+          Register
         </button>
       </form>
     </div>
