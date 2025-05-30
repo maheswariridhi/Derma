@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { supabase } from '../../lib/supabaseClient';
 
 const PatientLogin: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -10,8 +11,8 @@ const PatientLogin: React.FC = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    // Removed: const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) setError(error.message);
+    const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+    if (loginError) setError(loginError.message);
     else navigate('/patient/dashboard');
   };
 

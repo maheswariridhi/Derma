@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../../lib/supabaseClient';
 
 const PatientRegister: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -11,8 +12,42 @@ const PatientRegister: React.FC = () => {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    // You may want to implement your own sign up logic here or leave a placeholder.
-    navigate('/patient/login');
+    try {
+      console.log('Registering with Supabase Auth...');
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password: password || firstName,
+      });
+      console.log('Supabase Auth result:', data, signUpError);
+
+      if (signUpError) {
+        setError(signUpError.message);
+        return;
+      }
+
+      console.log('Creating patient profile in backend...');
+      const response = await fetch('http://localhost:8000/api/patients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: firstName,
+          email: email,
+          // Optionally: supabase_user_id: data.user?.id
+        }),
+      });
+      console.log('Backend response:', response);
+
+      if (!response.ok) {
+        const respData = await response.json();
+        setError(respData.detail || 'Registration failed');
+        return;
+      }
+
+      navigate('/patient/login');
+    } catch (err) {
+      setError('Network error');
+      console.error('Registration error:', err);
+    }
   };
 
   return (

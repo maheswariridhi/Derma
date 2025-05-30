@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import PatientService from "../../services/PatientService";
+import { supabase } from '../../lib/supabaseClient';
 
 // Define QueueStatus interface
 interface QueueStatus {
@@ -52,7 +53,15 @@ const PatientDashboard: React.FC = () => {
   });
 
   useEffect(() => {
-    loadDashboardData();
+    // Route protection: check if user is logged in
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        navigate('/patient/login');
+      } else {
+        loadDashboardData();
+      }
+    });
+    // eslint-disable-next-line
   }, []);
 
   const loadDashboardData = async () => {
