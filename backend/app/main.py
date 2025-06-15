@@ -3,7 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from typing import Optional, List, Dict, Any
 import os
-import json
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from datetime import datetime
@@ -11,29 +10,6 @@ from app.services.supabase_service import SupabaseService
 
 # Load environment variables
 load_dotenv()
-
-# Load ID mappings from the migration
-try:
-    # Use absolute path to id_mappings.json
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    mapping_file = os.path.join(base_dir, "id_mappings.json")
-    
-    with open(mapping_file, "r") as f:
-        ID_MAPPINGS = json.load(f)
-except Exception as e:
-    ID_MAPPINGS = {}
-
-# Helper functions for ID translation
-def firebase_to_supabase_id(firebase_id: str) -> str:
-    """Convert a Firebase ID to Supabase UUID if it exists in the mappings"""
-    return ID_MAPPINGS.get(firebase_id, firebase_id)
-
-def is_uuid(id_str: str) -> bool:
-    """Check if an ID is a UUID (Supabase) or a Firebase ID"""
-    if not id_str:
-        return False
-    # Simple UUID format check (not comprehensive)
-    return len(id_str) == 36 and id_str.count('-') == 4
 
 app = FastAPI(
     title="Dermatology API",
@@ -144,10 +120,7 @@ async def create_patient(patient: PatientCreate):
 @app.get("/api/patients/{identifier}")
 async def get_patient(identifier: str):
     """Get a patient by ID."""
-    # Convert Firebase ID to Supabase UUID if needed
-    supabase_id = firebase_to_supabase_id(identifier)
-    
-    patient = await supabase_service.get_patient(supabase_id)
+    patient = await supabase_service.get_patient(identifier)
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
     return patient
@@ -164,10 +137,7 @@ async def get_all_patients():
 @app.put("/api/patients/{patient_id}")
 async def update_patient(patient_id: str, patient_data: dict):
     """Update a patient's data."""
-    # Convert Firebase ID to Supabase UUID if needed
-    supabase_id = firebase_to_supabase_id(patient_id)
-    
-    result = await supabase_service.update_patient(supabase_id, patient_data)
+    result = await supabase_service.update_patient(patient_id, patient_data)
     if not result:
         raise HTTPException(status_code=404, detail="Patient not found")
     return result
@@ -175,10 +145,7 @@ async def update_patient(patient_id: str, patient_data: dict):
 @app.delete("/api/patients/{patient_id}")
 async def delete_patient(patient_id: str):
     """Delete a patient."""
-    # Convert Firebase ID to Supabase UUID if needed
-    supabase_id = firebase_to_supabase_id(patient_id)
-    
-    result = await supabase_service.delete_patient(supabase_id)
+    result = await supabase_service.delete_patient(patient_id)
     if not result:
         raise HTTPException(status_code=404, detail="Patient not found")
     return {"success": True}
@@ -187,20 +154,13 @@ async def delete_patient(patient_id: str):
 @app.post("/api/reports")
 async def create_report(report: Report):
     """Create a new report."""
-    # Convert patientId if it's a Firebase ID
-    if report.patientId:
-        report.patientId = firebase_to_supabase_id(report.patientId)
-    
     result = await supabase_service.create_report(report.dict())
     return {"id": result}
 
 @app.get("/api/reports/{report_id}")
 async def get_report(report_id: str):
     """Get a report by ID."""
-    # Convert Firebase ID to Supabase UUID if needed
-    supabase_id = firebase_to_supabase_id(report_id)
-    
-    report = await supabase_service.get_report(supabase_id)
+    report = await supabase_service.get_report(report_id)
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
     return report
@@ -208,10 +168,7 @@ async def get_report(report_id: str):
 @app.get("/api/patients/{patient_id}/reports")
 async def get_patient_reports(patient_id: str):
     """Get all reports for a specific patient."""
-    # Convert Firebase ID to Supabase UUID if needed
-    supabase_id = firebase_to_supabase_id(patient_id)
-    
-    return await supabase_service.get_patient_reports(supabase_id)
+    return await supabase_service.get_patient_reports(patient_id)
 
 # Treatment Endpoints
 @app.post("/api/treatments")
@@ -223,10 +180,7 @@ async def create_treatment(treatment: TreatmentCreate):
 @app.get("/api/treatments/{treatment_id}")
 async def get_treatment(treatment_id: str):
     """Get a treatment by ID."""
-    # Convert Firebase ID to Supabase UUID if needed
-    supabase_id = firebase_to_supabase_id(treatment_id)
-    
-    treatment = await supabase_service.get_treatment(supabase_id)
+    treatment = await supabase_service.get_treatment(treatment_id)
     if not treatment:
         raise HTTPException(status_code=404, detail="Treatment not found")
     return treatment
@@ -239,10 +193,7 @@ async def get_all_treatments():
 @app.put("/api/treatments/{treatment_id}")
 async def update_treatment(treatment_id: str, treatment: TreatmentUpdate):
     """Update a treatment."""
-    # Convert Firebase ID to Supabase UUID if needed
-    supabase_id = firebase_to_supabase_id(treatment_id)
-    
-    result = await supabase_service.update_treatment(supabase_id, treatment.dict(exclude_unset=True))
+    result = await supabase_service.update_treatment(treatment_id, treatment.dict(exclude_unset=True))
     if not result:
         raise HTTPException(status_code=404, detail="Treatment not found")
     return result
@@ -250,10 +201,7 @@ async def update_treatment(treatment_id: str, treatment: TreatmentUpdate):
 @app.delete("/api/treatments/{treatment_id}")
 async def delete_treatment(treatment_id: str):
     """Delete a treatment."""
-    # Convert Firebase ID to Supabase UUID if needed
-    supabase_id = firebase_to_supabase_id(treatment_id)
-    
-    success = await supabase_service.delete_treatment(supabase_id)
+    success = await supabase_service.delete_treatment(treatment_id)
     if not success:
         raise HTTPException(status_code=404, detail="Treatment not found")
     return {"success": True}
@@ -268,10 +216,7 @@ async def create_medicine(medicine: MedicineCreate):
 @app.get("/api/medicines/{medicine_id}")
 async def get_medicine(medicine_id: str):
     """Get a medicine by ID."""
-    # Convert Firebase ID to Supabase UUID if needed
-    supabase_id = firebase_to_supabase_id(medicine_id)
-    
-    medicine = await supabase_service.get_medicine(supabase_id)
+    medicine = await supabase_service.get_medicine(medicine_id)
     if not medicine:
         raise HTTPException(status_code=404, detail="Medicine not found")
     return medicine
@@ -284,10 +229,7 @@ async def get_all_medicines():
 @app.put("/api/medicines/{medicine_id}")
 async def update_medicine(medicine_id: str, medicine: MedicineUpdate):
     """Update a medicine."""
-    # Convert Firebase ID to Supabase UUID if needed
-    supabase_id = firebase_to_supabase_id(medicine_id)
-    
-    result = await supabase_service.update_medicine(supabase_id, medicine.dict(exclude_unset=True))
+    result = await supabase_service.update_medicine(medicine_id, medicine.dict(exclude_unset=True))
     if not result:
         raise HTTPException(status_code=404, detail="Medicine not found")
     return result
@@ -295,10 +237,7 @@ async def update_medicine(medicine_id: str, medicine: MedicineUpdate):
 @app.delete("/api/medicines/{medicine_id}")
 async def delete_medicine(medicine_id: str):
     """Delete a medicine."""
-    # Convert Firebase ID to Supabase UUID if needed
-    supabase_id = firebase_to_supabase_id(medicine_id)
-    
-    success = await supabase_service.delete_medicine(supabase_id)
+    success = await supabase_service.delete_medicine(medicine_id)
     if not success:
         raise HTTPException(status_code=404, detail="Medicine not found")
     return {"success": True}
@@ -306,10 +245,7 @@ async def delete_medicine(medicine_id: str):
 @app.put("/api/medicines/{medicine_id}/stock")
 async def update_medicine_stock(medicine_id: str, stock_update: StockUpdate):
     """Update medicine stock."""
-    # Convert Firebase ID to Supabase UUID if needed
-    supabase_id = firebase_to_supabase_id(medicine_id)
-    
-    success = await supabase_service.update_medicine_stock(supabase_id, stock_update.quantity)
+    success = await supabase_service.update_medicine_stock(medicine_id, stock_update.quantity)
     if not success:
         raise HTTPException(status_code=404, detail="Medicine not found")
     return {"success": True}
