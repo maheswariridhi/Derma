@@ -17,6 +17,17 @@ export interface PrescriptionDetails {
   additional_notes?: string;
   next_appointment?: string;
   duration_days: number;
+  treatments?: Array<{
+    name: string;
+    description: string;
+    duration: string;
+  }>;
+  medications?: Array<{
+    name: string;
+    dosage: string;
+    timeToTake?: string;
+    durationDays?: number;
+  }>;
 }
 
 export interface MedicationSchedule {

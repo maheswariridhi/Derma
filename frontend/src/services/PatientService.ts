@@ -1,4 +1,5 @@
 import axios from "axios";
+import { TreatmentPlan } from "../types/workflow";
 
 const API_BASE_URL = "http://localhost:8000/api"; // FastAPI backend URL with /api prefix
 
@@ -10,6 +11,17 @@ const handleApiError = (error: any, operation: string): never => {
   }
   throw new Error(`Failed to ${operation}: ${(error as Error).message}`);
 };
+
+// Transform treatment plan for API
+const transformTreatmentPlanForApi = (plan: TreatmentPlan) => ({
+  ...plan,
+  medications: plan.selectedMedicines.map(med => ({
+    name: med.name,
+    dosage: med.dosage,
+    timeToTake: med.timeToTake,
+    durationDays: med.durationDays
+  }))
+});
 
 // Define interfaces based on the existing structure
 interface Patient {
@@ -137,9 +149,10 @@ const PatientService = {
     }
   },
 
-  async sendPatientReport(reportData: PatientReport): Promise<boolean> {
+  async sendPatientReport(reportData: TreatmentPlan): Promise<boolean> {
     try {
-      await axios.post(`${API_BASE_URL}/reports`, reportData);
+      const transformedData = transformTreatmentPlanForApi(reportData);
+      await axios.post(`${API_BASE_URL}/reports`, transformedData);
       return true;
     } catch (error) {
       return handleApiError(error, "sending patient report");

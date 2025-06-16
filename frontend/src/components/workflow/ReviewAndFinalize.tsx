@@ -3,33 +3,13 @@ import { Card, CardHeader, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
 import MedicationDropdown from "../services/MedicationDropdown";
 import TreatmentDropdown from "../services/TreatmentDropdown";
-import { MdMedicalServices, MdPsychology, MdAssistant, MdClose } from "react-icons/md";
+import { MdMedicalServices, MdPsychology, MdAssistant, MdClose, MdArrowBack, MdArrowForward } from "react-icons/md";
 import MedicationReminderService from "../../services/MedicationReminderService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { toast } from "react-hot-toast";
-
-// Define interfaces for treatments and medicines
-interface Treatment {
-  id: number;
-  name: string;
-  description: string;
-  duration: string;
-  cost: string;
-}
-
-interface Medicine {
-  id: number;
-  name: string;
-  type: string;
-  usage: string;
-  dosage: string;
-  stock: number;
-  // Add new fields for medication time and duration
-  timeToTake?: string;
-  durationDays?: number;
-}
+import { TreatmentPlan, Patient, Treatment, Medicine } from "../../types/workflow";
 
 // Define Services structure
 interface Services {
@@ -37,50 +17,25 @@ interface Services {
   medicines: Medicine[];
 }
 
-// Define Treatment Plan interface
-export interface TreatmentPlan {
-  diagnosis: string;
-  diagnosisDetails: string;
-  medications: Array<{
-    name: string;
-    dosage: string;
-    timeToTake?: string;
-    durationDays?: number;
-  }>;
-  nextSteps: string[];
-  next_appointment: string;
-  recommendations: string[];
-  additional_notes: string;
-  selectedTreatments: Treatment[];
-  selectedMedicines: Medicine[];
-}
-
-// Define Patient interface
-interface Patient {
-  id: string;
-  name: string;
-  phone?: string;
-  email?: string;
-  treatmentPlan?: TreatmentPlan;
-}
-
 // Define Props interface
 interface ReviewAndFinalizeProps {
   patient: Patient;
   onPlanChange: (updatedPlan: TreatmentPlan) => void;
   services: Services;
+  onNext: () => void;
+  onBack: () => void;
 }
 
 const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
   patient,
   onPlanChange,
-  services
+  services,
+  onNext,
+  onBack
 }) => {
   const [treatmentPlan, setTreatmentPlan] = useState<TreatmentPlan>({
-    ...patient?.treatmentPlan,
     diagnosis: patient?.treatmentPlan?.diagnosis || "",
     diagnosisDetails: patient?.treatmentPlan?.diagnosisDetails || "",
-    medications: patient?.treatmentPlan?.medications || [],
     nextSteps: patient?.treatmentPlan?.nextSteps || [],
     next_appointment: patient?.treatmentPlan?.next_appointment || "",
     recommendations: patient?.treatmentPlan?.recommendations || [],
@@ -110,16 +65,7 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
     };
     const updatedPlan = {
       ...treatmentPlan,
-      selectedMedicines: [...treatmentPlan.selectedMedicines, medicineWithDefaults],
-      medications: [
-        ...treatmentPlan.medications,
-        { 
-          name: medicine.name, 
-          dosage: medicine.dosage,
-          timeToTake: medicineWithDefaults.timeToTake,
-          durationDays: medicineWithDefaults.durationDays
-        }
-      ]
+      selectedMedicines: [...treatmentPlan.selectedMedicines, medicineWithDefaults]
     };
     setTreatmentPlan(updatedPlan);
     onPlanChange(updatedPlan);
@@ -138,28 +84,17 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
   };
 
   const removeMedicine = (medicineId: number | string) => {
-    // Remove from selectedMedicines array by id
     const updatedMedicines = treatmentPlan.selectedMedicines.filter(
       medicine => medicine.id.toString() !== medicineId.toString()
     );
-    // Get the name of the medicine being removed
-    const removedMedicine = treatmentPlan.selectedMedicines.find(
-      medicine => medicine.id.toString() === medicineId.toString()
-    );
-    // Remove all medications with the same name
-    const updatedMedications = treatmentPlan.medications.filter(
-      medication => medication.name !== removedMedicine?.name
-    );
     const updatedPlan = {
       ...treatmentPlan,
-      selectedMedicines: updatedMedicines,
-      medications: updatedMedications
+      selectedMedicines: updatedMedicines
     };
     setTreatmentPlan(updatedPlan);
     onPlanChange(updatedPlan);
   };
 
-  // Update medicine time and duration
   const updateMedicineDetails = (medicineId: number, field: 'timeToTake' | 'durationDays', value: string | number) => {
     const updatedMedicines = treatmentPlan.selectedMedicines.map(medicine => {
       if (medicine.id === medicineId) {
@@ -168,23 +103,9 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
       return medicine;
     });
     
-    // Also update in medications array
-    const updatedMedications = treatmentPlan.medications.map(medication => {
-      const matchingMedicine = updatedMedicines.find(m => m.name === medication.name);
-      if (matchingMedicine) {
-        return { 
-          ...medication, 
-          timeToTake: matchingMedicine.timeToTake,
-          durationDays: matchingMedicine.durationDays
-        };
-      }
-      return medication;
-    });
-    
     const updatedPlan = {
       ...treatmentPlan,
-      selectedMedicines: updatedMedicines,
-      medications: updatedMedications
+      selectedMedicines: updatedMedicines
     };
     
     setTreatmentPlan(updatedPlan);
@@ -231,52 +152,43 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
   };
 
   const startConversationAgent = async () => {
-    if (!patient || !treatmentPlan) {
-      toast.error("Patient or treatment plan information is missing");
+    if (!initialMessage.trim()) {
+      toast.error("Please enter an initial message");
       return;
     }
 
+    setIsInitiating(true);
     try {
-      setIsInitiating(true);
-      
-      // Gather all selected treatments and medicines
-      const allTreatments = treatmentPlan.selectedTreatments.map(treat => `${treat.name} (Duration: ${treat.duration}, Cost: ${treat.cost})`).join(", ");
-      const allMedicines = treatmentPlan.selectedMedicines.map(med => `${med.name} (${med.dosage})`).join(", ");
-      
-      // Display an initial toast to indicate we're connecting
-      const toastId = toast.loading("Connecting to AI services...");
-      
-      // Create a conversation with context about the entire prescription and treatment plan
       const response = await MedicationReminderService.initiateAgentConversation({
         patient_id: patient.id,
         patient_name: patient.name,
         message: initialMessage,
-        medicine: allMedicines,
         prescription_details: {
-          medicine_name: treatmentPlan.selectedMedicines[0]?.name || '',
-          dosage: treatmentPlan.selectedMedicines[0]?.dosage || '',
-          usage: treatmentPlan.selectedMedicines[0]?.usage || '',
           diagnosis: treatmentPlan.diagnosis,
-          additional_notes: treatmentPlan.additional_notes,
           next_appointment: treatmentPlan.next_appointment,
-          duration_days: treatmentPlan.selectedMedicines[0]?.durationDays || 14,
+          treatments: treatmentPlan.selectedTreatments.map(t => ({
+            name: t.name,
+            description: t.description,
+            duration: t.duration,
+          })),
+          medications: treatmentPlan.selectedMedicines.map(m => ({
+            name: m.name,
+            dosage: m.dosage,
+            timeToTake: m.timeToTake,
+            durationDays: m.durationDays
+          }))
         }
       });
 
-      // Clear the loading toast
-      toast.dismiss(toastId);
-
       if (response.status === "success") {
-        toast.success("Medication assistant has been initiated!");
+        toast.success("AI agent conversation started successfully");
+        setAgentDialogOpen(false);
       } else {
-        toast.error(`Failed to initiate medication assistant: ${response.message || 'Unknown error'}`);
-        console.error("Error from server:", response);
+        toast.error(response.message || "Failed to start conversation");
       }
-      
-      setAgentDialogOpen(false);
     } catch (error) {
-      console.error("Error initiating conversation agent:", error);
-      toast.error("Failed to initiate medication assistant: Connection error");
+      console.error("Error starting conversation:", error);
+      toast.error("Failed to start conversation with AI agent");
     } finally {
       setIsInitiating(false);
     }
@@ -487,6 +399,9 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <div className="flex justify-between mt-6">
+        {/* Removed Back and Next buttons as requested */}
+      </div>
     </div>
   );
 };
