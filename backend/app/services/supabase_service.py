@@ -445,4 +445,68 @@ class SupabaseService:
             return result.data
         except Exception as e:
             logger.error(f"Error getting doctors: {str(e)}")
-            return [] 
+            return []
+
+    # Treatment Info Methods
+    async def get_treatment_info(self, item_type: str, item_id: str) -> Optional[Dict[str, Any]]:
+        """Get treatment info by item type and ID."""
+        try:
+            result = self.supabase.table('treatment_info')\
+                .select('*')\
+                .eq('item_type', item_type)\
+                .eq('item_id', item_id)\
+                .eq('hospital_id', self.hospital_id)\
+                .execute()
+                
+            if len(result.data) == 0:
+                return None
+                
+            return result.data[0]
+        except Exception as e:
+            logger.error(f"Error getting treatment info: {str(e)}")
+            return None
+
+    async def create_treatment_info(self, treatment_info_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a new treatment info entry."""
+        try:
+            # Prepare the data
+            current_time = datetime.now().isoformat()
+            new_treatment_info = {
+                **treatment_info_data,
+                'hospital_id': self.hospital_id,
+                'created_at': current_time,
+                'updated_at': current_time
+            }
+            
+            result = self.supabase.table('treatment_info').insert(new_treatment_info).execute()
+            
+            if len(result.data) == 0:
+                raise HTTPException(status_code=500, detail="Failed to create treatment info")
+                
+            return result.data[0]
+        except Exception as e:
+            logger.error(f"Error creating treatment info: {str(e)}")
+            raise e
+
+    async def update_treatment_info(self, item_type: str, item_id: str, explanation: str) -> Optional[Dict[str, Any]]:
+        """Update treatment info explanation."""
+        try:
+            update_data = {
+                'explanation': explanation,
+                'updated_at': datetime.now().isoformat()
+            }
+            
+            result = self.supabase.table('treatment_info')\
+                .update(update_data)\
+                .eq('item_type', item_type)\
+                .eq('item_id', item_id)\
+                .eq('hospital_id', self.hospital_id)\
+                .execute()
+                
+            if len(result.data) == 0:
+                return None
+                
+            return result.data[0]
+        except Exception as e:
+            logger.error(f"Error updating treatment info: {str(e)}")
+            return None 

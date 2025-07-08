@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ProfileForm from '../../components/common/ProfileForm';
 
 interface SettingSection {
   id: string;
@@ -6,13 +7,30 @@ interface SettingSection {
   icon: React.ReactNode;
 }
 
+interface DoctorProfileData {
+  fullName: string;
+  email: string;
+  phone: string;
+  specialization: string;
+  yearsOfExperience: string;
+  bio: string;
+}
+
+const fieldLabels: Record<keyof DoctorProfileData, string> = {
+  fullName: 'Full Name',
+  email: 'Email Address',
+  phone: 'Phone Number',
+  specialization: 'Specialization',
+  yearsOfExperience: 'Years of Experience',
+  bio: 'Bio',
+};
+
 const SettingsPage: React.FC = () => {
   const hospitalId = "hospital_dermai_01"; // Default hospital ID
   const [activeSection, setActiveSection] = useState('profile');
   const [savedMessage, setSavedMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  
-  const [profileData, setProfileData] = useState({
+  const [profileData, setProfileData] = useState<DoctorProfileData>({
     fullName: '',
     email: '',
     phone: '',
@@ -20,6 +38,8 @@ const SettingsPage: React.FC = () => {
     yearsOfExperience: '',
     bio: '',
   });
+  const [isEditing, setIsEditing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [clinicData, setClinicData] = useState({
     clinicName: '',
@@ -84,11 +104,9 @@ const SettingsPage: React.FC = () => {
             yearsOfExperience: d.experience || '',
             bio: d.bio || '',
           });
-          
-          // You could also load clinic data from a similar endpoint if available
         }
       } catch (err) {
-        console.error("Error loading doctor data:", err);
+        setError('Error loading doctor data');
       } finally {
         setIsLoading(false);
       }
@@ -96,9 +114,36 @@ const SettingsPage: React.FC = () => {
     loadDoctor();
   }, [hospitalId]);
 
-  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setProfileData(prev => ({ ...prev, [name]: value }));
+  const handleProfileChange = (key: keyof DoctorProfileData, value: string) => {
+    setProfileData(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleProfileSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    setSavedMessage('Saving settings...');
+    try {
+      const res = await fetch(`http://localhost:8000/api/hospitals/${hospitalId}/doctors`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: profileData.fullName,
+          email: profileData.email,
+          phone: profileData.phone,
+          speciality: profileData.specialization,
+          experience: profileData.yearsOfExperience,
+          bio: profileData.bio,
+        }),
+      });
+      await res.json();
+      setIsEditing(false);
+      setSavedMessage('Settings saved successfully!');
+    } catch (err) {
+      setError('Failed to save settings.');
+    }
+    setTimeout(() => {
+      setSavedMessage('');
+    }, 3000);
   };
 
   const handleClinicChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -185,69 +230,17 @@ const SettingsPage: React.FC = () => {
             {activeSection === 'profile' && (
               <div>
                 <h2 className="text-xl font-medium mb-6">Profile Settings</h2>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                    <input
-                      type="text"
-                      name="fullName"
-                      value={profileData.fullName}
-                      onChange={handleProfileChange}
-                      className="w-full p-2 border border-gray-300 rounded"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={profileData.email}
-                      onChange={handleProfileChange}
-                      className="w-full p-2 border border-gray-300 rounded"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                    <input
-                      type="text"
-                      name="phone"
-                      value={profileData.phone}
-                      onChange={handleProfileChange}
-                      className="w-full p-2 border border-gray-300 rounded"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Specialization</label>
-                    <input
-                      type="text"
-                      name="specialization"
-                      value={profileData.specialization}
-                      onChange={handleProfileChange}
-                      className="w-full p-2 border border-gray-300 rounded"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Years of Experience</label>
-                    <input
-                      type="text"
-                      name="yearsOfExperience"
-                      value={profileData.yearsOfExperience}
-                      onChange={handleProfileChange}
-                      className="w-full p-2 border border-gray-300 rounded"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
-                    <textarea
-                      name="bio"
-                      value={profileData.bio}
-                      onChange={handleProfileChange}
-                      rows={4}
-                      className="w-full p-2 border border-gray-300 rounded"
-                    />
-                  </div>
-                </div>
+                <ProfileForm
+                  profile={profileData}
+                  isEditing={isEditing}
+                  error={error}
+                  success={savedMessage}
+                  fieldLabels={fieldLabels}
+                  onChange={handleProfileChange}
+                  onSubmit={handleProfileSubmit}
+                  onEdit={() => setIsEditing(true)}
+                  onCancel={() => { setIsEditing(false); setError(null); }}
+                />
               </div>
             )}
 
@@ -400,8 +393,9 @@ const SettingsPage: React.FC = () => {
 
             <div className="mt-8">
               <button
-                onClick={handleSave}
+                onClick={activeSection === 'profile' ? undefined : handleSave}
                 className="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 transition-colors"
+                type={activeSection === 'profile' ? 'button' : 'submit'}
               >
                 Save Changes
               </button>

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request, Depends
+from fastapi import FastAPI, HTTPException, Request, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from typing import Optional, List, Dict, Any
@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 from pydantic import BaseModel
 from datetime import datetime
 from app.services.supabase_service import SupabaseService
+from app.services.ai_service import AIService
+import jwt
 
 # Load environment variables
 load_dotenv()
@@ -26,8 +28,9 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-# Initialize Supabase service
+# Initialize services
 supabase_service = SupabaseService()
+ai_service = AIService()
 
 # Request/Response Models
 class PatientCreate(BaseModel):
@@ -93,6 +96,10 @@ class DoctorCreate(BaseModel):
     experience: Optional[str] = None
     bio: Optional[str] = None
 
+class TreatmentInfoRequest(BaseModel):
+    item_type: str  # 'treatment' or 'medicine'
+    item_id: str
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
@@ -108,14 +115,25 @@ async def health_check():
     }
 
 # Patient Endpoints
-@app.post("/api/patients")
-async def create_patient(patient: PatientCreate):
-    """Create a new patient."""
-    print("Received create patient request:", patient.dict())
-    result = await supabase_service.create_patient(patient.dict())
-    if "error" in result:
-        raise HTTPException(status_code=400, detail=result["error"])
-    return result
+@app.get("/api/patients/profile")
+async def get_patient_profile(Authorization: str = Header(...)):
+    try:
+        print(f"Authorization header: {Authorization}")  # Debug log
+        token = Authorization.split(" ")[-1]
+        print(f"Extracted token: {token}")  # Debug log
+        decoded = jwt.decode(token, options={"verify_signature": False})
+        print(f"Decoded JWT: {decoded}")  # Debug log
+        user_id = decoded.get("sub")
+        print(f"Extracted user_id: {user_id}")  # Debug log
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid token: no user id")
+        patient = await supabase_service.get_patient(user_id)
+        if not patient:
+            raise HTTPException(status_code=404, detail="Patient not found")
+        return patient
+    except Exception as e:
+        print(f"Exception in get_patient_profile: {e}")  # Debug log
+        raise HTTPException(status_code=401, detail=f"Could not get patient profile: {str(e)}")
 
 @app.get("/api/patients/{identifier}")
 async def get_patient(identifier: str):
@@ -260,6 +278,126 @@ async def create_doctor(hospital_id: str, doctor: DoctorCreate):
 async def get_all_doctors(hospital_id: str):
     """Get all doctors for a hospital."""
     return await supabase_service.get_all_doctors(hospital_id)
+
+# Treatment Info Endpoints
+@app.get("/api/treatment-info/{item_type}/{item_id}")
+async def get_treatment_info(item_type: str, item_id: str):
+    """Get educational content for a treatment or medicine."""
+    try:
+        # Validate item_type
+        if item_type not in ['treatment', 'medicine']:
+            raise HTTPException(status_code=400, detail="Invalid item_type. Must be 'treatment' or 'medicine'")
+        
+        # Check if explanation already exists
+        existing_info = await supabase_service.get_treatment_info(item_type, item_id)
+        
+        if existing_info:
+            return existing_info
+        
+        # If no existing info, generate it
+        if item_type == 'treatment':
+            treatment = await supabase_service.get_treatment(item_id)
+            if not treatment:
+                raise HTTPException(status_code=404, detail="Treatment not found")
+            
+            explanation = await ai_service.generate_treatment_explanation(treatment)
+            
+            # Store the generated explanation
+            treatment_info_data = {
+                'item_type': item_type,
+                'item_id': item_id,
+                'item_name': treatment['name'],
+                'explanation': explanation
+            }
+            
+            result = await supabase_service.create_treatment_info(treatment_info_data)
+            return result
+            
+        elif item_type == 'medicine':
+            medicine = await supabase_service.get_medicine(item_id)
+            if not medicine:
+                raise HTTPException(status_code=404, detail="Medicine not found")
+            
+            explanation = await ai_service.generate_medicine_explanation(medicine)
+            
+            # Store the generated explanation
+            treatment_info_data = {
+                'item_type': item_type,
+                'item_id': item_id,
+                'item_name': medicine['name'],
+                'explanation': explanation
+            }
+            
+            result = await supabase_service.create_treatment_info(treatment_info_data)
+            return result
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating treatment info: {str(e)}")
+
+@app.post("/api/treatment-info/generate")
+async def generate_treatment_info(request: TreatmentInfoRequest):
+    """Generate educational content for a treatment or medicine."""
+    try:
+        # Validate item_type
+        if request.item_type not in ['treatment', 'medicine']:
+            raise HTTPException(status_code=400, detail="Invalid item_type. Must be 'treatment' or 'medicine'")
+        
+        if request.item_type == 'treatment':
+            treatment = await supabase_service.get_treatment(request.item_id)
+            if not treatment:
+                raise HTTPException(status_code=404, detail="Treatment not found")
+            
+            explanation = await ai_service.generate_treatment_explanation(treatment)
+            
+            # Check if info already exists
+            existing_info = await supabase_service.get_treatment_info(request.item_type, request.item_id)
+            
+            if existing_info:
+                # Update existing info
+                result = await supabase_service.update_treatment_info(request.item_type, request.item_id, explanation)
+            else:
+                # Create new info
+                treatment_info_data = {
+                    'item_type': request.item_type,
+                    'item_id': request.item_id,
+                    'item_name': treatment['name'],
+                    'explanation': explanation
+                }
+                result = await supabase_service.create_treatment_info(treatment_info_data)
+            
+            return result
+            
+        elif request.item_type == 'medicine':
+            medicine = await supabase_service.get_medicine(request.item_id)
+            if not medicine:
+                raise HTTPException(status_code=404, detail="Medicine not found")
+            
+            explanation = await ai_service.generate_medicine_explanation(medicine)
+            
+            # Check if info already exists
+            existing_info = await supabase_service.get_treatment_info(request.item_type, request.item_id)
+            
+            if existing_info:
+                # Update existing info
+                result = await supabase_service.update_treatment_info(request.item_type, request.item_id, explanation)
+            else:
+                # Create new info
+                treatment_info_data = {
+                    'item_type': request.item_type,
+                    'item_id': request.item_id,
+                    'item_name': medicine['name'],
+                    'explanation': explanation
+                }
+                result = await supabase_service.create_treatment_info(treatment_info_data)
+            
+            return result
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating treatment info: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

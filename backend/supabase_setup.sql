@@ -65,6 +65,19 @@ CREATE TABLE IF NOT EXISTS medicines (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Create treatment_info table for AI-generated educational content
+CREATE TABLE IF NOT EXISTS treatment_info (
+    id TEXT PRIMARY KEY,
+    hospital_id TEXT NOT NULL,
+    item_type TEXT NOT NULL CHECK (item_type IN ('treatment', 'medicine')),
+    item_id TEXT NOT NULL,
+    item_name TEXT NOT NULL,
+    explanation TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(item_type, item_id)
+);
+
 -- Create doctors table
 CREATE TABLE IF NOT EXISTS doctors (
     id TEXT PRIMARY KEY,
@@ -86,6 +99,8 @@ CREATE INDEX IF NOT EXISTS idx_reports_patient_id ON reports(patientId);
 CREATE INDEX IF NOT EXISTS idx_reports_hospital_id ON reports(hospital_id);
 CREATE INDEX IF NOT EXISTS idx_treatments_hospital_id ON treatments(hospital_id);
 CREATE INDEX IF NOT EXISTS idx_medicines_hospital_id ON medicines(hospital_id);
+CREATE INDEX IF NOT EXISTS idx_treatment_info_hospital_id ON treatment_info(hospital_id);
+CREATE INDEX IF NOT EXISTS idx_treatment_info_item ON treatment_info(item_type, item_id);
 CREATE INDEX IF NOT EXISTS idx_doctors_hospital_id ON doctors(hospital_id);
 
 -- Set up Row-Level Security (RLS) policies
@@ -93,6 +108,7 @@ ALTER TABLE patients ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE treatments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE medicines ENABLE ROW LEVEL SECURITY;
+ALTER TABLE treatment_info ENABLE ROW LEVEL SECURITY;
 ALTER TABLE doctors ENABLE ROW LEVEL SECURITY;
 
 -- Create policies that allow full access when authenticated
@@ -100,6 +116,7 @@ CREATE POLICY "Allow full access to authenticated users" ON patients FOR ALL USI
 CREATE POLICY "Allow full access to authenticated users" ON reports FOR ALL USING (true);
 CREATE POLICY "Allow full access to authenticated users" ON treatments FOR ALL USING (true);
 CREATE POLICY "Allow full access to authenticated users" ON medicines FOR ALL USING (true);
+CREATE POLICY "Allow full access to authenticated users" ON treatment_info FOR ALL USING (true);
 CREATE POLICY "Allow full access to authenticated users" ON doctors FOR ALL USING (true);
 
 -- Create policies for unauthenticated access during migration
@@ -107,6 +124,7 @@ CREATE POLICY "Allow public read/write access during migration" ON patients FOR 
 CREATE POLICY "Allow public read/write access during migration" ON reports FOR ALL TO anon USING (true);
 CREATE POLICY "Allow public read/write access during migration" ON treatments FOR ALL TO anon USING (true);
 CREATE POLICY "Allow public read/write access during migration" ON medicines FOR ALL TO anon USING (true);
+CREATE POLICY "Allow public read/write access during migration" ON treatment_info FOR ALL TO anon USING (true);
 CREATE POLICY "Allow public read/write access during migration" ON doctors FOR ALL TO anon USING (true);
 
 -- Create function for updating timestamps
@@ -139,7 +157,15 @@ BEFORE UPDATE ON medicines
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER update_treatment_info_updated_at
+BEFORE UPDATE ON treatment_info
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at_column();
+
 CREATE TRIGGER update_doctors_updated_at
 BEFORE UPDATE ON doctors
 FOR EACH ROW
-EXECUTE FUNCTION update_updated_at_column(); 
+EXECUTE FUNCTION update_updated_at_column();
+
+-- Migration: Set hospital_id for all patients where it is NULL
+UPDATE patients SET hospital_id = 'hospital_dermai_01' WHERE hospital_id IS NULL; 

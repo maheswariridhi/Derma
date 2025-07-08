@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PatientService from '../../services/PatientService';
+import TreatmentInfoService, { TreatmentInfo } from '../../services/TreatmentInfoService';
 import { Timestamp } from '../../types/common';
+import { MdExpandMore, MdExpandLess } from 'react-icons/md';
 
 interface Message {
   id: string;
@@ -34,6 +36,9 @@ const ReportViewer: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState<string>('');
+  const [educationalContent, setEducationalContent] = useState<TreatmentInfo[]>([]);
+  const [expandedItems, setExpandedItems] = useState<{ [key: string]: boolean }>({});
+  const [loadingContent, setLoadingContent] = useState<{ [key: string]: boolean }>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -86,6 +91,43 @@ const ReportViewer: React.FC = () => {
       e.preventDefault();
       handleSendMessage();
     }
+  };
+  
+  const fetchEducationalContent = async (itemType: 'treatment' | 'medicine', itemId: string) => {
+    const key = `${itemType}-${itemId}`;
+    setLoadingContent(prev => ({ ...prev, [key]: true }));
+    
+    try {
+      const content = await TreatmentInfoService.getTreatmentInfo(itemType, itemId);
+      setEducationalContent(prev => {
+        const filtered = prev.filter(item => !(item.item_type === itemType && item.item_id === itemId));
+        return [...filtered, content];
+      });
+    } catch (error) {
+      console.error(`Error fetching educational content for ${itemType} ${itemId}:`, error);
+    } finally {
+      setLoadingContent(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
+  const toggleExpanded = (itemType: string, itemId: string | number) => {
+    const key = `${itemType}-${itemId}`;
+    setExpandedItems(prev => ({ ...prev, [key]: !prev[key] }));
+    
+    // Fetch content if not already loaded
+    const content = educationalContent.find(
+      item => item.item_type === itemType && item.item_id === itemId.toString()
+    );
+    
+    if (!content && !loadingContent[key]) {
+      fetchEducationalContent(itemType as 'treatment' | 'medicine', itemId.toString());
+    }
+  };
+
+  const getEducationalContent = (itemType: string, itemId: string | number) => {
+    return educationalContent.find(
+      item => item.item_type === itemType && item.item_id === itemId.toString()
+    );
   };
   
   if (loading) {
@@ -145,14 +187,50 @@ const ReportViewer: React.FC = () => {
           
           <h2 className="text-lg font-semibold mb-4">Medications</h2>
           {report.medications && report.medications.length > 0 ? (
-            <ul className="list-disc pl-5 mb-6">
-              {report.medications.map((med, index) => (
-                <li key={index}>
-                  <span className="font-medium">{med.name}</span>
-                  {med.dosage && <span> - {med.dosage}</span>}
-                </li>
-              ))}
-            </ul>
+            <div className="space-y-3 mb-6">
+              {report.medications.map((med, index) => {
+                const content = getEducationalContent("medicine", med.name);
+                const isExpanded = expandedItems[`medicine-${med.name}`];
+                const isLoading = loadingContent[`medicine-${med.name}`];
+                
+                return (
+                  <div key={index} className="border border-gray-200 rounded-lg p-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="font-medium">{med.name}</span>
+                        {med.dosage && <span> - {med.dosage}</span>}
+                      </div>
+                      <button
+                        onClick={() => toggleExpanded("medicine", med.name)}
+                        className="text-blue-600 hover:text-blue-800 p-1"
+                      >
+                        {isLoading ? (
+                          <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                        ) : isExpanded ? (
+                          <MdExpandLess className="w-4 h-4" />
+                        ) : (
+                          <MdExpandMore className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+                    
+                    {/* Educational Content */}
+                    {isExpanded && (
+                      <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <h5 className="text-sm font-medium text-blue-800 mb-2">About this medication</h5>
+                        {isLoading ? (
+                          <div className="text-sm text-gray-600">Loading educational content...</div>
+                        ) : content ? (
+                          <div className="text-sm text-gray-700 whitespace-pre-line">{content.explanation}</div>
+                        ) : (
+                          <div className="text-sm text-gray-600">No educational content available.</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           ) : (
             <p className="mb-6 text-gray-500">No medications prescribed</p>
           )}
@@ -179,6 +257,57 @@ const ReportViewer: React.FC = () => {
             <div className="mb-6">
               <h2 className="text-lg font-semibold mb-2">Additional Notes</h2>
               <p className="text-gray-700">{report.additional_notes}</p>
+            </div>
+          )}
+
+          {/* Treatments Section */}
+          {report.selectedTreatments && report.selectedTreatments.length > 0 && (
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold mb-4">Treatments</h2>
+              <div className="space-y-3">
+                {report.selectedTreatments.map((treatment: any, index: number) => {
+                  const content = getEducationalContent("treatment", treatment.id || treatment.name);
+                  const isExpanded = expandedItems[`treatment-${treatment.id || treatment.name}`];
+                  const isLoading = loadingContent[`treatment-${treatment.id || treatment.name}`];
+                  
+                  return (
+                    <div key={index} className="border border-gray-200 rounded-lg p-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="font-medium">{treatment.name}</span>
+                          {treatment.description && <span className="text-gray-600"> - {treatment.description}</span>}
+                        </div>
+                        <button
+                          onClick={() => toggleExpanded("treatment", treatment.id || treatment.name)}
+                          className="text-blue-600 hover:text-blue-800 p-1"
+                        >
+                          {isLoading ? (
+                            <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                          ) : isExpanded ? (
+                            <MdExpandLess className="w-4 h-4" />
+                          ) : (
+                            <MdExpandMore className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
+                      
+                      {/* Educational Content */}
+                      {isExpanded && (
+                        <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                          <h5 className="text-sm font-medium text-blue-800 mb-2">About this treatment</h5>
+                          {isLoading ? (
+                            <div className="text-sm text-gray-600">Loading educational content...</div>
+                          ) : content ? (
+                            <div className="text-sm text-gray-700 whitespace-pre-line">{content.explanation}</div>
+                          ) : (
+                            <div className="text-sm text-gray-600">No educational content available.</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>

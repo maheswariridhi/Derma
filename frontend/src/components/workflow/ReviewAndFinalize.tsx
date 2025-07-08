@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
 import MedicationDropdown from "../services/MedicationDropdown";
 import TreatmentDropdown from "../services/TreatmentDropdown";
-import { MdMedicalServices, MdPsychology, MdAssistant, MdClose, MdArrowBack, MdArrowForward } from "react-icons/md";
+import { MdMedicalServices, MdPsychology, MdAssistant, MdClose, MdArrowBack, MdArrowForward, MdExpandMore, MdExpandLess } from "react-icons/md";
 import MedicationReminderService from "../../services/MedicationReminderService";
+import TreatmentInfoService, { TreatmentInfo } from "../../services/TreatmentInfoService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
@@ -47,6 +48,9 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
   const [initialMessage, setInitialMessage] = useState("");
   const [isInitiating, setIsInitiating] = useState(false);
   const [itemNotes, setItemNotes] = useState<{ [key: string]: string }>({});
+  const [educationalContent, setEducationalContent] = useState<TreatmentInfo[]>([]);
+  const [expandedItems, setExpandedItems] = useState<{ [key: string]: boolean }>({});
+  const [loadingContent, setLoadingContent] = useState<{ [key: string]: boolean }>({});
   
   const handleTreatmentSelect = (treatment: Treatment) => {
     const updatedPlan = {
@@ -216,6 +220,44 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
   const isTreatment = (item: any): item is Treatment & { itemType: string } => item.itemType === "treatment";
   const isMedicine = (item: any): item is Medicine & { itemType: string } => item.itemType === "medicine";
 
+  const fetchEducationalContent = async (itemType: 'treatment' | 'medicine', itemId: string) => {
+    const key = `${itemType}-${itemId}`;
+    setLoadingContent(prev => ({ ...prev, [key]: true }));
+    
+    try {
+      const content = await TreatmentInfoService.getTreatmentInfo(itemType, itemId);
+      setEducationalContent(prev => {
+        const filtered = prev.filter(item => !(item.item_type === itemType && item.item_id === itemId));
+        return [...filtered, content];
+      });
+    } catch (error) {
+      console.error(`Error fetching educational content for ${itemType} ${itemId}:`, error);
+      toast.error(`Failed to load educational content for ${itemType}`);
+    } finally {
+      setLoadingContent(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
+  const toggleExpanded = (itemType: string, itemId: string | number) => {
+    const key = `${itemType}-${itemId}`;
+    setExpandedItems(prev => ({ ...prev, [key]: !prev[key] }));
+    
+    // Fetch content if not already loaded
+    const content = educationalContent.find(
+      item => item.item_type === itemType && item.item_id === itemId.toString()
+    );
+    
+    if (!content && !loadingContent[key]) {
+      fetchEducationalContent(itemType as 'treatment' | 'medicine', itemId.toString());
+    }
+  };
+
+  const getEducationalContent = (itemType: string, itemId: string | number) => {
+    return educationalContent.find(
+      item => item.item_type === itemType && item.item_id === itemId.toString()
+    );
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -271,6 +313,10 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
             <div className="mt-4 max-h-[400px] overflow-y-auto pr-1">
               {unifiedSelectedItems.map((item) => {
                 if (isTreatment(item)) {
+                  const content = getEducationalContent("treatment", item.id);
+                  const isExpanded = expandedItems[`treatment-${item.id}`];
+                  const isLoading = loadingContent[`treatment-${item.id}`];
+                  
                   return (
                     <div
                       key={`treatment-${item.id}`}
@@ -285,13 +331,44 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
                         <MdClose className="h-4 w-4" />
                       </Button>
                       <div className="pr-8">
-                        <h4 className="font-medium truncate">{item.name}</h4>
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium truncate">{item.name}</h4>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleExpanded("treatment", item.id)}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            {isLoading ? (
+                              <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                            ) : isExpanded ? (
+                              <MdExpandLess className="w-4 h-4" />
+                            ) : (
+                              <MdExpandMore className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </div>
                         <p className="text-sm text-gray-600 mt-1 line-clamp-2">{item.description}</p>
                         <div className="mt-2 text-sm text-gray-500 flex flex-wrap gap-1">
                           <span>Duration: {item.duration}</span>
                           <span className="mx-1">|</span>
                           <span>Cost: {item.cost}</span>
                         </div>
+                        
+                        {/* Educational Content */}
+                        {isExpanded && (
+                          <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <h5 className="text-sm font-medium text-blue-800 mb-2">Patient Education</h5>
+                            {isLoading ? (
+                              <div className="text-sm text-gray-600">Loading educational content...</div>
+                            ) : content ? (
+                              <div className="text-sm text-gray-700 whitespace-pre-line">{content.explanation}</div>
+                            ) : (
+                              <div className="text-sm text-gray-600">No educational content available.</div>
+                            )}
+                          </div>
+                        )}
+                        
                         <div className="mt-2">
                           <Label className="text-xs block mb-1">Additional Notes</Label>
                           <Input
@@ -305,6 +382,10 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
                     </div>
                   );
                 } else if (isMedicine(item)) {
+                  const content = getEducationalContent("medicine", item.id);
+                  const isExpanded = expandedItems[`medicine-${item.id}`];
+                  const isLoading = loadingContent[`medicine-${item.id}`];
+                  
                   return (
                     <div
                       key={`medicine-${item.id}`}
@@ -319,13 +400,43 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
                         <MdClose className="h-4 w-4" />
                       </Button>
                       <div className="pr-8">
-                        <h4 className="font-medium truncate">{item.name}</h4>
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium truncate">{item.name}</h4>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleExpanded("medicine", item.id)}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            {isLoading ? (
+                              <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                            ) : isExpanded ? (
+                              <MdExpandLess className="w-4 h-4" />
+                            ) : (
+                              <MdExpandMore className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </div>
                         <p className="text-sm text-gray-600 truncate">
                           {item.type} - {item.usage}
                         </p>
                         <div className="mt-1 text-sm text-gray-500">
                           Dosage: {item.dosage}
                         </div>
+                        
+                        {/* Educational Content */}
+                        {isExpanded && (
+                          <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <h5 className="text-sm font-medium text-blue-800 mb-2">Patient Education</h5>
+                            {isLoading ? (
+                              <div className="text-sm text-gray-600">Loading educational content...</div>
+                            ) : content ? (
+                              <div className="text-sm text-gray-700 whitespace-pre-line">{content.explanation}</div>
+                            ) : (
+                              <div className="text-sm text-gray-600">No educational content available.</div>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="mt-3 grid grid-cols-2 gap-3">
                         <div>

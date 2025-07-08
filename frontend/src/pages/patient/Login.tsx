@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 
@@ -8,12 +8,23 @@ const PatientLogin: React.FC = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  useEffect(() => {
+    // Automatically redirect to dashboard
+    navigate("/patient/dashboard");
+  }, [navigate]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
     if (loginError) setError(loginError.message);
-    else navigate('/patient/dashboard');
+    else {
+      // Save the access token to localStorage
+      if (data && data.session && data.session.access_token) {
+        localStorage.setItem('token', data.session.access_token);
+      }
+      navigate('/patient/dashboard');
+    }
   };
 
   return (

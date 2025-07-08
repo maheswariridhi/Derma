@@ -3,6 +3,19 @@ import { TreatmentPlan } from "../types/workflow";
 
 const API_BASE_URL = "http://localhost:8000/api"; // FastAPI backend URL with /api prefix
 
+// Add Axios interceptor to attach token
+axios.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers["Authorization"] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 // Utility function for handling API errors
 const handleApiError = (error: any, operation: string): never => {
   console.error(`Error ${operation}:`, error);

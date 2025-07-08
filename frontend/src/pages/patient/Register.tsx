@@ -1,48 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 
-const PatientRegister: React.FC = () => {
+const Register: React.FC = () => {
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  useEffect(() => {
+    // Automatically redirect to dashboard
+    navigate("/patient/dashboard");
+  }, [navigate]);
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    if (!password) {
+      setError('Password is required.');
+      return;
+    }
     try {
-      console.log('Registering with Supabase Auth...');
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
-        password: password || firstName,
+        password,
+        options: {
+          data: { phone, firstName }
+        }
       });
-      console.log('Supabase Auth result:', data, signUpError);
-
       if (signUpError) {
         setError(signUpError.message);
         return;
       }
-
-      console.log('Creating patient profile in backend...');
-      const response = await fetch('http://localhost:8000/api/patients', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: firstName,
-          email: email,
-          // Optionally: supabase_user_id: data.user?.id
-        }),
-      });
-      console.log('Backend response:', response);
-
-      if (!response.ok) {
-        const respData = await response.json();
-        setError(respData.detail || 'Registration failed');
-        return;
-      }
-
       navigate('/patient/login');
     } catch (err) {
       setError('Network error');
@@ -75,13 +66,24 @@ const PatientRegister: React.FC = () => {
           />
         </div>
         <div className="mb-4">
-          <label className="block mb-1">Password (optional, defaults to first name)</label>
+          <label className="block mb-1">Phone</label>
+          <input
+            type="text"
+            value={phone}
+            onChange={e => setPhone(e.target.value)}
+            className="w-full border px-3 py-2 rounded"
+            required
+          />
+        </div>
+        <div className="mb-4">
+          <label className="block mb-1">Password</label>
           <input
             type="password"
             value={password}
             onChange={e => setPassword(e.target.value)}
             className="w-full border px-3 py-2 rounded"
-            placeholder="Leave blank to use first name"
+            required
+            placeholder="Enter a secure password"
           />
         </div>
         {error && <div className="mb-4 text-red-500 text-center">{error}</div>}
@@ -96,4 +98,4 @@ const PatientRegister: React.FC = () => {
   );
 };
 
-export default PatientRegister; 
+export default Register; 
