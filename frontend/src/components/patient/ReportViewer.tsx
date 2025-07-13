@@ -27,6 +27,8 @@ interface Report {
   created_at?: Timestamp;
   doctor?: string;
   messages?: Message[];
+  ai_summary?: string;
+  ai_explanation?: string;
 }
 
 const ReportViewer: React.FC = () => {
@@ -184,6 +186,20 @@ const ReportViewer: React.FC = () => {
               <p className="text-gray-700">{report.diagnosisDetails}</p>
             </div>
           )}
+
+          {/* AI Summary and Explanation */}
+          {report.ai_summary && (
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold mb-2 text-blue-700">AI Summary</h2>
+              <p className="text-gray-800 whitespace-pre-line">{report.ai_summary}</p>
+            </div>
+          )}
+          {report.ai_explanation && (
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold mb-2 text-blue-700">AI Explanation</h2>
+              <p className="text-gray-800 whitespace-pre-line">{report.ai_explanation}</p>
+            </div>
+          )}
           
           <h2 className="text-lg font-semibold mb-4">Medications</h2>
           {report.medications && report.medications.length > 0 ? (
@@ -267,108 +283,4 @@ const ReportViewer: React.FC = () => {
               <div className="space-y-3">
                 {report.selectedTreatments.map((treatment: any, index: number) => {
                   const content = getEducationalContent("treatment", treatment.id || treatment.name);
-                  const isExpanded = expandedItems[`treatment-${treatment.id || treatment.name}`];
-                  const isLoading = loadingContent[`treatment-${treatment.id || treatment.name}`];
-                  
-                  return (
-                    <div key={index} className="border border-gray-200 rounded-lg p-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="font-medium">{treatment.name}</span>
-                          {treatment.description && <span className="text-gray-600"> - {treatment.description}</span>}
-                        </div>
-                        <button
-                          onClick={() => toggleExpanded("treatment", treatment.id || treatment.name)}
-                          className="text-blue-600 hover:text-blue-800 p-1"
-                        >
-                          {isLoading ? (
-                            <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                          ) : isExpanded ? (
-                            <MdExpandLess className="w-4 h-4" />
-                          ) : (
-                            <MdExpandMore className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                      
-                      {/* Educational Content */}
-                      {isExpanded && (
-                        <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                          <h5 className="text-sm font-medium text-blue-800 mb-2">About this treatment</h5>
-                          {isLoading ? (
-                            <div className="text-sm text-gray-600">Loading educational content...</div>
-                          ) : content ? (
-                            <div className="text-sm text-gray-700 whitespace-pre-line">{content.explanation}</div>
-                          ) : (
-                            <div className="text-sm text-gray-600">No educational content available.</div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-        
-        <div className="border-t border-gray-200">
-          <div className="p-4 bg-gray-50">
-            <h2 className="text-lg font-semibold mb-4">Questions about your treatment?</h2>
-            <p className="text-gray-600 mb-4">
-              Chat with your doctor about any concerns or questions regarding your treatment.
-            </p>
-          </div>
-          
-          <div className="p-4 h-80 overflow-y-auto border-t border-b border-gray-200">
-            {report.messages && report.messages.length > 0 ? (
-              report.messages.map((message) => (
-                <div 
-                  key={message.id} 
-                  className={`mb-4 flex ${message.sender === 'patient' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div 
-                    className={`max-w-[80%] p-3 rounded-lg ${
-                      message.sender === 'patient' 
-                        ? 'bg-blue-500 text-white rounded-br-none' 
-                        : 'bg-gray-200 text-gray-800 rounded-bl-none'
-                    }`}
-                  >
-                    <p>{message.content}</p>
-                    <span className="text-xs opacity-70 block mt-1">
-                      {message.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="flex items-center justify-center h-full text-gray-500">
-                No messages yet. Start the conversation!
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-          
-          <div className="p-4 flex gap-2">
-            <textarea
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Type your message here..."
-              className="flex-1 p-2 border border-gray-300 rounded-lg resize-none min-h-[80px]"
-            />
-            <button
-              onClick={handleSendMessage}
-              disabled={!newMessage.trim()}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed self-end"
-            >
-              Send
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default ReportViewer; 
+                  const isExpanded = expandedItems[`

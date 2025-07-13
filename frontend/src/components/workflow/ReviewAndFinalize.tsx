@@ -11,6 +11,7 @@ import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { toast } from "react-hot-toast";
 import { TreatmentPlan, Patient, Treatment, Medicine } from "../../types/workflow";
+import PatientService from '../../services/PatientService';
 
 // Define Services structure
 interface Services {
@@ -195,6 +196,32 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
       toast.error("Failed to start conversation with AI agent");
     } finally {
       setIsInitiating(false);
+    }
+  };
+
+  // Function to finalize and send the report with AI fields
+  const finalizeReport = async (aiSummary: string, aiExplanation: string) => {
+    try {
+      const report = {
+        patientId: patient.id,
+        diagnosis: treatmentPlan.diagnosis,
+        diagnosisDetails: treatmentPlan.diagnosisDetails,
+        medications: treatmentPlan.selectedMedicines,
+        nextSteps: treatmentPlan.nextSteps,
+        next_appointment: treatmentPlan.next_appointment,
+        recommendations: treatmentPlan.recommendations,
+        additional_notes: treatmentPlan.additional_notes,
+        selectedTreatments: treatmentPlan.selectedTreatments,
+        selectedMedicines: treatmentPlan.selectedMedicines,
+        doctor: localStorage.getItem('doctorName') || 'Unknown',
+        ai_summary: aiSummary,
+        ai_explanation: aiExplanation,
+      };
+      await PatientService.sendFullPatientReport(report);
+      toast.success('Report finalized and sent to patient!');
+    } catch (error) {
+      toast.error('Failed to finalize and send report');
+      console.error('Error finalizing report:', error);
     }
   };
 

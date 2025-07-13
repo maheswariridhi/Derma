@@ -27,6 +27,8 @@ interface Report {
   created_at?: Timestamp;
   doctor?: string;
   messages?: Message[];
+  ai_summary?: string;
+  ai_explanation?: string;
 }
 
 const DoctorReportViewer: React.FC = () => {
@@ -201,6 +203,20 @@ const DoctorReportViewer: React.FC = () => {
                 <div className="mb-6">
                   <h2 className="text-lg font-semibold mb-2">Next Appointment</h2>
                   <p>{report.next_appointment}</p>
+                </div>
+              )}
+
+              {/* AI Summary and Explanation */}
+              {report.ai_summary && (
+                <div className="mb-6">
+                  <h2 className="text-lg font-semibold mb-2 text-blue-700">AI Summary</h2>
+                  <p className="text-gray-800 whitespace-pre-line">{report.ai_summary}</p>
+                </div>
+              )}
+              {report.ai_explanation && (
+                <div className="mb-6">
+                  <h2 className="text-lg font-semibold mb-2 text-blue-700">AI Explanation</h2>
+                  <p className="text-gray-800 whitespace-pre-line">{report.ai_explanation}</p>
                 </div>
               )}
               

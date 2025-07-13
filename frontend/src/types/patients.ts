@@ -94,6 +94,8 @@ export interface PatientReport {
   selectedMedicines?: Medicine[];
   created_at?: string;
   doctor?: string;
+  ai_summary?: string;
+  ai_explanation?: string;
   messages?: {
     id: string;
     sender: 'patient' | 'doctor';

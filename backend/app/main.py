@@ -54,6 +54,8 @@ class Report(BaseModel):
     selectedTreatments: Optional[List[Any]] = None
     selectedMedicines: Optional[List[Any]] = None
     doctor: Optional[str] = None
+    ai_summary: Optional[str] = None
+    ai_explanation: Optional[str] = None
 
 # Models for Treatments and Medicines
 class TreatmentCreate(BaseModel):

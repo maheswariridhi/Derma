@@ -220,6 +220,15 @@ const PatientService = {
     } catch (error) {
       return handleApiError(error, "updating patient");
     }
+  },
+
+  async sendFullPatientReport(report: PatientReport): Promise<boolean> {
+    try {
+      await axios.post(`${API_BASE_URL}/reports`, report);
+      return true;
+    } catch (error) {
+      return handleApiError(error, "sending full patient report");
+    }
   }
 };
 

@@ -156,16 +156,13 @@ class SupabaseService:
                 'created_at': current_time,
                 'updated_at': current_time
             }
-            
             # Convert patientId to patientid for database consistency
             if 'patientId' in new_report:
                 new_report['patientid'] = new_report.pop('patientId')
-            
+            # ai_summary and ai_explanation are included if present in report_data
             result = self.supabase.table('reports').insert(new_report).execute()
-            
             if len(result.data) == 0:
                 raise HTTPException(status_code=500, detail="Failed to create report")
-                
             return result.data[0]['id']
         except Exception as e:
             logger.error(f"Error creating report: {str(e)}")
