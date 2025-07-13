@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { MdDashboard, MdMedicalServices, MdSettings, MdLogout } from "react-icons/md"; // Material Design icons
+import { MdDashboard, MdMedicalServices, MdSettings, MdLogout, MdSmartToy } from "react-icons/md"; // Material Design icons
 import { FaUserInjured } from "react-icons/fa"; // Font Awesome icons
 import { BsCalendarCheck } from "react-icons/bs"; // Bootstrap icons
 
@@ -46,6 +46,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({
       path: "/clinic/services",
       label: "Services",
       icon: <MdMedicalServices className="w-5 h-5" />,
+    },
+    {
+      path: "/clinic/ai",
+      label: "AI Assistant",
+      icon: <MdSmartToy className="w-5 h-5" />,
     },
     {
       path: "/clinic/settings",

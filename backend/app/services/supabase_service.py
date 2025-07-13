@@ -157,6 +157,10 @@ class SupabaseService:
                 'updated_at': current_time
             }
             
+            # Convert patientId to patientid for database consistency
+            if 'patientId' in new_report:
+                new_report['patientid'] = new_report.pop('patientId')
+            
             result = self.supabase.table('reports').insert(new_report).execute()
             
             if len(result.data) == 0:
@@ -189,7 +193,7 @@ class SupabaseService:
         try:
             result = self.supabase.table('reports')\
                 .select('*')\
-                .eq('patientId', patient_id)\
+                .eq('patientid', patient_id)\
                 .eq('hospital_id', self.hospital_id)\
                 .order('created_at', desc=True)\
                 .execute()

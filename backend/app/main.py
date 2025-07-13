@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request, Depends, Header
+from fastapi import FastAPI, HTTPException, Request, Depends, Header, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from typing import Optional, List, Dict, Any
@@ -9,13 +9,14 @@ from datetime import datetime
 from app.services.supabase_service import SupabaseService
 from app.services.ai_service import AIService
 import jwt
+import aiofiles
 
 # Load environment variables
 load_dotenv()
 
 app = FastAPI(
     title="Dermatology API",
-    description="Dermatology patient management system",
+    description="Dermatology patient management system with AI-powered medical document understanding and chatbot",
     version="1.0.0",
 )
 
@@ -100,6 +101,24 @@ class TreatmentInfoRequest(BaseModel):
     item_type: str  # 'treatment' or 'medicine'
     item_id: str
 
+# New models for medical documents and chatbot
+class MedicalDocumentRequest(BaseModel):
+    content: str
+    document_type: str = "medical_document"
+    patient_id: Optional[str] = None
+    doctor_id: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+class ChatRequest(BaseModel):
+    message: str
+    user_id: str
+    session_id: Optional[str] = None
+    patient_id: Optional[str] = None
+
+class DocumentAnalysisRequest(BaseModel):
+    content: str
+    document_type: str = "report"
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
@@ -109,15 +128,33 @@ async def global_exception_handler(request: Request, exc: Exception):
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint"""
-    return {
-        "status": "healthy",
-        "services": {"supabase": "running"},
-    }
+    try:
+        vector_stats = await ai_service.get_vector_db_stats()
+        return {
+            "status": "healthy",
+            "services": {
+                "supabase": "running",
+                "vector_db": "running" if "error" not in vector_stats else "error"
+            },
+            "vector_db_stats": vector_stats
+        }
+    except Exception as e:
+        return {
+            "status": "degraded",
+            "services": {
+                "supabase": "running",
+                "vector_db": "error"
+            },
+            "error": str(e)
+        }
 
 # Patient Endpoints
 @app.get("/api/patients/profile")
-async def get_patient_profile(Authorization: str = Header(...)):
+async def get_patient_profile(Authorization: Optional[str] = Header(None)):
     try:
+        if not Authorization:
+            raise HTTPException(status_code=401, detail="Authorization header required")
+        
         print(f"Authorization header: {Authorization}")  # Debug log
         token = Authorization.split(" ")[-1]
         print(f"Extracted token: {token}")  # Debug log
@@ -398,6 +435,204 @@ async def generate_treatment_info(request: TreatmentInfoRequest):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating treatment info: {str(e)}")
+
+# Medical Document Endpoints
+@app.post("/api/documents")
+async def add_medical_document(request: MedicalDocumentRequest):
+    """Add a medical document to the vector database."""
+    try:
+        # Prepare metadata
+        metadata = request.metadata or {}
+        if request.patient_id:
+            metadata['patient_id'] = request.patient_id
+        if request.doctor_id:
+            metadata['doctor_id'] = request.doctor_id
+        
+        # Add document to vector database
+        doc_id = await ai_service.add_medical_document(
+            content=request.content,
+            metadata=metadata
+        )
+        
+        return {
+            "document_id": doc_id,
+            "status": "success",
+            "message": "Document added successfully"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error adding document: {str(e)}")
+
+@app.get("/api/documents/search")
+async def search_medical_documents(query: str, n_results: int = 5):
+    """Search for medical documents based on query."""
+    try:
+        results = await ai_service.vector_db.search_documents(
+            query=query,
+            n_results=n_results
+        )
+        
+        return {
+            "query": query,
+            "results": results,
+            "total_found": len(results)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error searching documents: {str(e)}")
+
+@app.post("/api/documents/analyze")
+async def analyze_medical_document(request: DocumentAnalysisRequest):
+    """Analyze a medical document and extract key information."""
+    try:
+        analysis = await ai_service.analyze_medical_document(
+            document_content=request.content,
+            document_type=request.document_type
+        )
+        
+        return {
+            "analysis": analysis,
+            "document_type": request.document_type,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error analyzing document: {str(e)}")
+
+@app.delete("/api/documents/{document_id}")
+async def delete_medical_document(document_id: str):
+    """Delete a medical document from the vector database."""
+    try:
+        success = await ai_service.vector_db.delete_document(document_id)
+        
+        if success:
+            return {"status": "success", "message": "Document deleted successfully"}
+        else:
+            raise HTTPException(status_code=404, detail="Document not found")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting document: {str(e)}")
+
+# Chatbot Endpoints
+@app.post("/api/chat")
+async def chat_with_medical_assistant(request: ChatRequest):
+    """Chat with the medical assistant using context from vector database."""
+    try:
+        # Get patient context if patient_id is provided
+        patient_context = None
+        if request.patient_id:
+            patient = await supabase_service.get_patient(request.patient_id)
+            if patient:
+                patient_context = {
+                    "name": patient.get("name"),
+                    "condition": patient.get("condition"),
+                    "medications": []  # Could be populated from patient's current medications
+                }
+        
+        # Get chat response with medical context
+        response = await ai_service.chat_with_medical_context(
+            user_message=request.message,
+            user_id=request.user_id,
+            session_id=request.session_id,
+            patient_context=patient_context
+        )
+        
+        return response
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error in chat: {str(e)}")
+
+@app.get("/api/chat/history/{user_id}")
+async def get_chat_history(user_id: str, session_id: Optional[str] = None, limit: int = 10):
+    """Get chat history for a user."""
+    try:
+        history = await ai_service.get_chat_history(
+            user_id=user_id,
+            session_id=session_id,
+            limit=limit
+        )
+        
+        return {
+            "user_id": user_id,
+            "session_id": session_id,
+            "history": history,
+            "total_messages": len(history)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting chat history: {str(e)}")
+
+@app.get("/api/vector-db/stats")
+async def get_vector_database_stats():
+    """Get statistics about the vector database."""
+    try:
+        stats = await ai_service.get_vector_db_stats()
+        return stats
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting vector DB stats: {str(e)}")
+
+# File Upload Endpoint for Medical Documents
+@app.post("/api/documents/upload")
+async def upload_medical_document(
+    file: UploadFile = File(...),
+    patient_id: Optional[str] = None,
+    doctor_id: Optional[str] = None,
+    document_type: str = "medical_document"
+):
+    """Upload a medical document file and add it to the vector database."""
+    try:
+        # Validate file type
+        allowed_extensions = ['.txt', '.pdf', '.doc', '.docx', '.rtf']
+        file_extension = os.path.splitext(file.filename)[1].lower()
+        
+        if file_extension not in allowed_extensions:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"File type not allowed. Allowed types: {', '.join(allowed_extensions)}"
+            )
+        
+        # Read file content
+        content = await file.read()
+        
+        # For now, handle text files only (PDF processing would require additional libraries)
+        if file_extension == '.txt':
+            document_content = content.decode('utf-8')
+        else:
+            # For other file types, return a placeholder message
+            document_content = f"Document content from {file.filename} - processing not yet implemented for {file_extension} files."
+        
+        # Prepare metadata
+        metadata = {
+            "filename": file.filename,
+            "file_size": len(content),
+            "file_type": file_extension,
+            "uploaded_at": datetime.now().isoformat()
+        }
+        
+        if patient_id:
+            metadata['patient_id'] = patient_id
+        if doctor_id:
+            metadata['doctor_id'] = doctor_id
+        
+        # Add to vector database
+        doc_id = await ai_service.add_medical_document(
+            content=document_content,
+            metadata=metadata
+        )
+        
+        return {
+            "document_id": doc_id,
+            "filename": file.filename,
+            "status": "success",
+            "message": "Document uploaded and processed successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error uploading document: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
