@@ -189,6 +189,14 @@ async def get_all_patients():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/patients")
+async def create_patient(patient: PatientCreate):
+    """Create a new patient."""
+    result = await supabase_service.create_patient(patient.dict())
+    if not result or "error" in result:
+        raise HTTPException(status_code=500, detail="Failed to create patient")
+    return {"id": result["id"]}
+
 @app.put("/api/patients/{patient_id}")
 async def update_patient(patient_id: str, patient_data: dict):
     """Update a patient's data."""

@@ -1,5 +1,5 @@
 import axios from "axios";
-import { TreatmentPlan } from "../types/workflow";
+import { TreatmentPlan, Patient, PatientFilters, PatientReport } from "../types/patients";
 
 const API_BASE_URL = "http://localhost:8000/api"; // FastAPI backend URL with /api prefix
 
@@ -36,29 +36,7 @@ const transformTreatmentPlanForApi = (plan: TreatmentPlan) => ({
   }))
 });
 
-// Define interfaces based on the existing structure
-interface Patient {
-  id: string;
-  name: string;
-  phone?: string;
-  email?: string;
-  status: string;
-  priority?: boolean;
-  condition?: string;
-  lastVisit?: string;
-  created_at?: string;
-  updated_at?: string;
-  treatmentPlan?: {
-    diagnosis?: string;
-    currentStatus?: string;
-    medications?: Array<{ name: string; dosage: string }>;
-    nextSteps?: string[];
-    next_appointment?: string;
-    recommendations?: any[];
-    additional_notes?: string;
-  };
-}
-
+// Define QueueEntry interface
 interface QueueEntry {
   id: string;
   patientId: string;
@@ -68,35 +46,6 @@ interface QueueEntry {
   date: string;
   checkInTime: string;
   estimatedWaitTime?: number;
-}
-
-interface PatientFilters {
-  status?: string;
-  sortBy?: string;
-  sortDirection?: "asc" | "desc";
-}
-
-// Define the PatientReport interface
-interface PatientReport {
-  id?: string;
-  patientId: string;
-  diagnosis?: string;
-  diagnosisDetails?: string;
-  medications?: Array<{ name: string; dosage: string }>;
-  nextSteps?: string[];
-  next_appointment?: string;
-  recommendations?: any[];
-  additional_notes?: string;
-  selectedTreatments?: any[];
-  selectedMedicines?: any[];
-  created_at?: string;
-  doctor?: string;
-  messages?: {
-    id: string;
-    sender: 'patient' | 'doctor';
-    content: string;
-    timestamp: string;
-  }[];
 }
 
 interface PatientProfileData {
