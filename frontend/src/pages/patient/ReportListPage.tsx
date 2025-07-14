@@ -9,8 +9,12 @@ const ReportListPage: React.FC = () => {
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
 
   useEffect(() => {
-    // TODO: Replace with real patient ID from auth/session
-    const currentPatientId = "CURRENT_PATIENT_ID";
+    // Get patient ID from localStorage or another reliable source
+    const currentPatientId = localStorage.getItem("patient_id");
+    if (!currentPatientId) {
+      setError("No patient ID found. Please log in or register.");
+      return;
+    }
     const fetchReports = async () => {
       try {
         const data = await PatientService.getPatientReports(currentPatientId);

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
+import PatientService from '../../services/PatientService';
 
 const Register: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -10,10 +11,7 @@ const Register: React.FC = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // Automatically redirect to dashboard
-    navigate("/patient/dashboard");
-  }, [navigate]);
+  // Removed useEffect that redirected to dashboard
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,6 +21,7 @@ const Register: React.FC = () => {
       return;
     }
     try {
+      // 1. Register with Supabase Auth
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -34,7 +33,25 @@ const Register: React.FC = () => {
         setError(signUpError.message);
         return;
       }
-      navigate('/');
+      // 2. Register in backend DB (patients table)
+      const patientId = await PatientService.registerPatient({
+        name: firstName,
+        email,
+        phone
+      });
+      if (patientId) {
+        localStorage.setItem('patient_id', patientId);
+      } else if (data && data.user && data.user.id) {
+        // fallback: store Supabase user id
+        localStorage.setItem('patient_id', data.user.id);
+      } else {
+        // fallback: fetch all patients and use the latest
+        const patients = await PatientService.getAllPatients();
+        if (patients && patients.length > 0) {
+          localStorage.setItem('patient_id', patients[patients.length - 1].id);
+        }
+      }
+      navigate('/patient/dashboard');
     } catch (err) {
       setError('Network error');
       console.error('Registration error:', err);

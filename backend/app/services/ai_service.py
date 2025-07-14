@@ -2,18 +2,17 @@ import os
 import logging
 from typing import Dict, Any, Optional, List
 from datetime import datetime
+import httpx
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class AIService:
-    def __init__(self):
-        try:
-            logger.info("AIService initialized successfully (mock mode)")
-        except Exception as e:
-            logger.error(f"Error initializing AIService: {str(e)}")
-            raise e
+    def __init__(self, vector_db_service, anthropic_api_key: str):
+        self.vector_db = vector_db_service
+        self.anthropic_api_key = anthropic_api_key
+        logging.info("AIService initialized with real vector DB and Anthropic integration (Claude API key set: %s)" % bool(anthropic_api_key))
 
     async def generate_treatment_explanation(self, treatment_data: Dict[str, Any]) -> str:
         """Generate educational content for a treatment."""
@@ -72,10 +71,7 @@ class AIService:
     async def add_medical_document(self, content: str, metadata: Dict[str, Any]) -> str:
         """Add a medical document to the vector database for later retrieval."""
         try:
-            # Mock implementation - just return a fake ID
-            doc_id = f"doc_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            logger.info(f"Medical document added (mock): {doc_id}")
-            return doc_id
+            return await self.vector_db.add_document(content, metadata)
         except Exception as e:
             logger.error(f"Error adding medical document: {str(e)}")
             raise e
@@ -87,22 +83,15 @@ class AIService:
                                        patient_context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Chat with medical context using vector database retrieval."""
         try:
-            # Mock response based on common medical questions
-            if "eczema" in user_message.lower():
-                response = "Eczema is a common skin condition that causes red, itchy, and inflamed patches of skin. Treatment typically involves moisturizing regularly, avoiding triggers, and using prescribed medications. Always consult with your dermatologist for personalized treatment."
-            elif "acne" in user_message.lower():
-                response = "Acne is a skin condition that occurs when hair follicles become plugged with oil and dead skin cells. Treatment options include topical medications, oral medications, and lifestyle changes. Your dermatologist can recommend the best approach for your specific case."
-            elif "treatment" in user_message.lower():
-                response = "There are many different treatments available depending on your specific condition. It's important to consult with your healthcare provider to determine the most appropriate treatment plan for your individual needs."
-            else:
-                response = "I'm here to help with your medical questions. For specific medical advice, diagnosis, or treatment, please consult with your healthcare provider. I can provide general information about skin conditions and treatments."
-            
-            return {
-                "response": response,
-                "relevant_documents": 0,
-                "session_id": session_id,
-                "timestamp": datetime.now().isoformat()
-            }
+            # 1. Retrieve relevant docs from vector DB
+            docs = await self.vector_db.search_documents(user_message)
+            # 2. Retrieve chat history
+            history = await self.vector_db.get_chat_history(user_id, session_id)
+            # 3. Call Anthropic Claude API with context (stubbed for now)
+            response = await self._call_anthropic(user_message, docs, history)
+            # 4. Store chat in vector DB
+            await self.vector_db.add_chat_message(user_id, user_message, response, session_id)
+            return {"response": response, "relevant_documents": docs, "session_id": session_id, "timestamp": datetime.now().isoformat()}
             
         except Exception as e:
             logger.error(f"Error in chat_with_medical_context: {str(e)}")
@@ -110,6 +99,13 @@ class AIService:
                 "response": "I'm sorry, I'm having trouble processing your request right now. Please try again later or contact your healthcare provider for immediate assistance.",
                 "error": str(e)
             }
+
+    async def _call_anthropic(self, user_message, docs, history):
+        # This is a stub. Replace with real Anthropic Claude API call.
+        # Example: Use httpx to POST to Anthropic endpoint with your API key and context.
+        # For now, just echo the message and docs.
+        context = "\n".join([doc['content'] for doc in docs])
+        return f"[AI] You said: {user_message}\nRelevant context: {context[:200]}..."
 
     async def analyze_medical_document(self, document_content: str, document_type: str = "report") -> Dict[str, Any]:
         """Analyze a medical document and extract key information."""
@@ -143,12 +139,7 @@ class AIService:
     async def get_vector_db_stats(self) -> Dict[str, Any]:
         """Get vector database statistics."""
         try:
-            return {
-                "documents_count": 0,
-                "chat_messages_count": 0,
-                "total_items": 0,
-                "status": "mock_mode"
-            }
+            return await self.vector_db.get_collection_stats()
         except Exception as e:
             logger.error(f"Error getting vector DB stats: {str(e)}")
             return {"error": str(e)} 

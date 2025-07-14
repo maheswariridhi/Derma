@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request, Depends, Header, UploadFile, File
+from fastapi import FastAPI, HTTPException, Request, Depends, Header, UploadFile, File, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from typing import Optional, List, Dict, Any
@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from datetime import datetime
 from app.services.supabase_service import SupabaseService
 from app.services.ai_service import AIService
+from app.services.vector_db_service import VectorDBService
 import jwt
 import aiofiles
 
@@ -31,7 +32,8 @@ app.add_middleware(
 
 # Initialize services
 supabase_service = SupabaseService()
-ai_service = AIService()
+vector_db_service = VectorDBService()
+ai_service = AIService(vector_db_service, os.getenv("ANTHROPIC_API_KEY", ""))
 
 # Request/Response Models
 class PatientCreate(BaseModel):
@@ -643,6 +645,47 @@ async def upload_medical_document(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error uploading document: {str(e)}")
+
+@app.post("/api/reminders/start")
+async def start_reminder_conversation(data: Dict[str, Any] = Body(...)):
+    """Start a new reminder/agent conversation."""
+    user_id = data.get("user_id")
+    message = data.get("message")
+    session_id = data.get("session_id")
+    # Optionally: store reminder in Supabase
+    # For now, just start chat
+    result = await ai_service.chat_with_medical_context(message, user_id, session_id)
+    return result
+
+@app.post("/api/reminders/message")
+async def send_reminder_message(data: Dict[str, Any] = Body(...)):
+    """Send a message in a reminder/agent conversation."""
+    user_id = data.get("user_id")
+    message = data.get("message")
+    session_id = data.get("session_id")
+    result = await ai_service.chat_with_medical_context(message, user_id, session_id)
+    return result
+
+@app.post("/api/reminders/schedule")
+async def schedule_reminder(data: Dict[str, Any] = Body(...)):
+    """Schedule a reminder for a patient (store in Supabase)."""
+    # Example: {patient_id, reminder_time, message}
+    try:
+        reminder = {
+            **data,
+            "created_at": datetime.now().isoformat()
+        }
+        # Store in Supabase (assume a 'reminders' table exists)
+        result = supabase_service.supabase.table('reminders').insert(reminder).execute()
+        return {"success": True, "reminder_id": result.data[0]["id"]}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/reminders/history")
+async def get_reminder_history(user_id: str, session_id: Optional[str] = None, limit: int = 10):
+    """Get chat/reminder history for a user/session."""
+    history = await vector_db_service.get_chat_history(user_id, session_id, limit)
+    return {"history": history}
 
 if __name__ == "__main__":
     import uvicorn

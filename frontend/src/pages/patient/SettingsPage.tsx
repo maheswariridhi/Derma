@@ -32,9 +32,7 @@ const PatientSettingsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadProfile();
-  }, []);
+  // Remove the useEffect that automatically redirects to dashboard
 
   const loadProfile = async () => {
     setError(null);
@@ -63,14 +61,14 @@ const PatientSettingsPage: React.FC = () => {
     }
   };
 
-  // Add a function to check if the user is logged in
+  // Update isLoggedIn to check for patient_id
   const isLoggedIn = () => {
-    return !!localStorage.getItem("token");
+    return !!localStorage.getItem("patient_id");
   };
 
-  // Add a logout handler
+  // Update logout handler to remove patient_id
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    localStorage.removeItem("patient_id");
     navigate("/");
   };
 
@@ -95,14 +93,15 @@ const PatientSettingsPage: React.FC = () => {
         </div>
         <div className="flex flex-col items-center pt-4">
           <h2 className="text-lg font-semibold mb-2 text-gray-800">Account</h2>
-          {isLoggedIn() ? (
+          {!isLoggedIn() && (
             <button
-              onClick={handleLogout}
-              className="w-full max-w-xs px-4 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 transition"
+              type="button"
+              onClick={() => navigate('/patient/register')}
+              className="w-full max-w-xs px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition"
             >
-              Logout
+              Register
             </button>
-          ) : null}
+          )}
         </div>
       </div>
     </div>

@@ -38,8 +38,15 @@ class SupabaseService:
 
     # Patient Methods
     async def create_patient(self, patient_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Create a new patient in the database."""
+        """Create a new patient in the database, or return existing if email exists."""
         try:
+            # Check for existing patient by email
+            email = patient_data.get('email')
+            if email:
+                existing = self.supabase.table('patients').select('*').eq('email', email).eq('hospital_id', self.hospital_id).execute()
+                if existing.data and len(existing.data) > 0:
+                    return existing.data[0]  # Return existing patient
+
             # Prepare the data
             current_time = datetime.now().isoformat()
             new_patient = {
@@ -49,17 +56,10 @@ class SupabaseService:
                 'updated_at': current_time,
                 'status': 'active'
             }
-            
-            # Insert into database
             result = self.supabase.table('patients').insert(new_patient).execute()
-            
             if len(result.data) == 0:
                 raise HTTPException(status_code=500, detail="Failed to create patient")
-                
-            # Return the created patient
-            created_patient = result.data[0]
-            return created_patient
-            
+            return result.data[0]
         except Exception as e:
             logger.error(f"Error creating patient: {str(e)}")
             return {"error": str(e)}
