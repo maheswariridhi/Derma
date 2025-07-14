@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import Modal from "../../components/common/Modal";
 import PatientService from "../../services/PatientService";
-import PatientNavbar from "./PatientNavbar";
+import ReportViewer from "../../components/patient/ReportViewer";
 
-const ReportPage: React.FC = () => {
+const ReportListPage: React.FC = () => {
   const [reports, setReports] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
 
   useEffect(() => {
     // TODO: Replace with real patient ID from auth/session
@@ -25,7 +26,6 @@ const ReportPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <PatientNavbar />
       <div className="max-w-2xl mx-auto py-12">
         <h1 className="text-3xl font-bold text-center mb-6">Your Reports</h1>
         {reports.length === 0 ? (
@@ -33,22 +33,28 @@ const ReportPage: React.FC = () => {
         ) : (
           <div className="space-y-4">
             {reports.map((report) => (
-              <Link
-                to={`/patient/report/${report.id}`}
+              <button
                 key={report.id}
-                className="block p-4 bg-white rounded shadow hover:bg-blue-50 transition"
+                className="block w-full text-left p-4 bg-white rounded shadow hover:bg-blue-50 transition"
+                onClick={() => setSelectedReportId(report.id)}
               >
                 <div><b>Date:</b> {report.created_at ? new Date(report.created_at).toLocaleDateString() : "N/A"}</div>
                 <div><b>Doctor:</b> {report.doctor || "N/A"}</div>
                 <div><b>Diagnosis:</b> {report.diagnosis || "N/A"}</div>
                 <div><b>Notes:</b> {report.additional_notes || "N/A"}</div>
-              </Link>
+              </button>
             ))}
           </div>
         )}
+        <Modal isOpen={!!selectedReportId} onClose={() => setSelectedReportId(null)}>
+          {selectedReportId && (
+            // @ts-ignore: ReportViewer expects reportId from useParams, so we mock it
+            <ReportViewer reportId={selectedReportId} />
+          )}
+        </Modal>
       </div>
     </div>
   );
 };
 
-export default ReportPage; 
+export default ReportListPage; 

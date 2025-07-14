@@ -22,8 +22,8 @@ const PatientNavbar: React.FC = () => {
 
           <div className="flex space-x-4">
             <Link
-              to="/patient/queue"
-              className={`px-3 py-2 rounded-md text-sm font-medium ${isActive("/queue")}`}
+              to="/patient/reports"
+              className={`px-3 py-2 rounded-md text-sm font-medium ${isActive("/reports")}`}
             >
               Reports
             </Link>

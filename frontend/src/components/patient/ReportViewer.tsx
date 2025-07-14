@@ -31,8 +31,14 @@ interface Report {
   ai_explanation?: string;
 }
 
-const ReportViewer: React.FC = () => {
-  const { reportId } = useParams<{ reportId: string }>();
+// Accept optional reportId prop
+interface ReportViewerProps {
+  reportId?: string;
+}
+
+const ReportViewer: React.FC<ReportViewerProps> = ({ reportId: propReportId }) => {
+  const { reportId: routeReportId } = useParams<{ reportId: string }>();
+  const reportId = propReportId || routeReportId;
   const navigate = useNavigate();
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -283,4 +289,116 @@ const ReportViewer: React.FC = () => {
               <div className="space-y-3">
                 {report.selectedTreatments.map((treatment: any, index: number) => {
                   const content = getEducationalContent("treatment", treatment.id || treatment.name);
-                  const isExpanded = expandedItems[`
+                  const isExpanded = expandedItems[`treatment-${treatment.id || treatment.name}`];
+                  const isLoading = loadingContent[`treatment-${treatment.id || treatment.name}`];
+                  
+                  return (
+                    <div key={index} className="border border-gray-200 rounded-lg p-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="font-medium">{treatment.name}</span>
+                        </div>
+                        <button
+                          onClick={() => toggleExpanded("treatment", treatment.id || treatment.name)}
+                          className="text-blue-600 hover:text-blue-800 p-1"
+                        >
+                          {isLoading ? (
+                            <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                          ) : isExpanded ? (
+                            <MdExpandLess className="w-4 h-4" />
+                          ) : (
+                            <MdExpandMore className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
+                      
+                      {/* Educational Content */}
+                      {isExpanded && (
+                        <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                          <h5 className="text-sm font-medium text-blue-800 mb-2">About this treatment</h5>
+                          {isLoading ? (
+                            <div className="text-sm text-gray-600">Loading educational content...</div>
+                          ) : content ? (
+                            <div className="text-sm text-gray-700 whitespace-pre-line">{content.explanation}</div>
+                          ) : (
+                            <div className="text-sm text-gray-600">No educational content available.</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Chat Section */}
+          <div className="mt-8">
+            <h2 className="text-lg font-semibold mb-4">Questions for Doctor</h2>
+            <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+              <div className="bg-gray-50 p-4 border-b">
+                <h3 className="font-medium">Chat with your doctor</h3>
+                <p className="text-sm text-gray-500">Ask questions about your treatment</p>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-4 border-b" style={{ maxHeight: '400px' }}>
+                {report.messages && report.messages.length > 0 ? (
+                  report.messages.map((message) => (
+                    <div 
+                      key={message.id} 
+                      className={`mb-4 flex ${message.sender === 'patient' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div 
+                        className={`max-w-[90%] p-3 rounded-lg ${
+                          message.sender === 'patient' 
+                            ? 'bg-blue-500 text-white rounded-br-none' 
+                            : 'bg-gray-200 text-gray-800 rounded-bl-none'
+                        }`}
+                      >
+                        <p>{message.content}</p>
+                        <div className="flex justify-between items-center mt-1">
+                          <span className="text-xs opacity-70">
+                            {message.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                          {message.sender === 'patient' && (
+                            <span className="text-xs opacity-70">
+                              {message.readByDoctor ? 'Read' : 'Sent'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-500">
+                    No messages yet
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+              
+              <div className="p-4">
+                <textarea
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Type your question here..."
+                  className="w-full p-2 border border-gray-300 rounded-lg resize-none min-h-[80px]"
+                />
+                <button
+                  onClick={handleSendMessage}
+                  disabled={!newMessage.trim()}
+                  className="w-full mt-2 px-4 py-2 bg-blue-500 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Send
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ReportViewer;

@@ -34,7 +34,7 @@ const Register: React.FC = () => {
         setError(signUpError.message);
         return;
       }
-      navigate('/patient/login');
+      navigate('/');
     } catch (err) {
       setError('Network error');
       console.error('Registration error:', err);

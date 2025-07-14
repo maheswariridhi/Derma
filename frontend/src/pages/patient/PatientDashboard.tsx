@@ -53,14 +53,7 @@ const PatientDashboard: React.FC = () => {
   });
 
   useEffect(() => {
-    // Route protection: check if user is logged in
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        navigate('/patient/login');
-      } else {
-        loadDashboardData();
-      }
-    });
+    loadDashboardData();
     // eslint-disable-next-line
   }, []);
 

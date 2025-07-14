@@ -71,7 +71,7 @@ const PatientSettingsPage: React.FC = () => {
   // Add a logout handler
   const handleLogout = () => {
     localStorage.removeItem("token");
-    navigate("/patient/login");
+    navigate("/");
   };
 
   return (
@@ -102,14 +102,7 @@ const PatientSettingsPage: React.FC = () => {
             >
               Logout
             </button>
-          ) : (
-            <button
-              onClick={() => navigate("/patient/login")}
-              className="w-full max-w-xs px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition"
-            >
-              Login
-            </button>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
