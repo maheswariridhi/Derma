@@ -6,6 +6,7 @@ import PatientNavbar from "./pages/patient/PatientNavbar";
 import ReportListPage from "./pages/patient/ReportListPage";
 import PatientSettingsPage from "./pages/patient/SettingsPage";
 import Register from "./pages/patient/Register";
+import PatientAIPage from "./pages/patient/AIPage";
 
 const PatientApp: React.FC = () => {
   return (
@@ -22,6 +23,7 @@ const PatientApp: React.FC = () => {
                 <Route path="settings" element={<PatientSettingsPage />} />
                 <Route path="reports" element={<ReportListPage />} />
                 <Route path="register" element={<Register />} />
+                <Route path="ai" element={<PatientAIPage />} />
                 <Route path="*" element={<Navigate to="/patient/dashboard" replace />} />
               </Routes>
             </div>

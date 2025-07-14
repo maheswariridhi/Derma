@@ -45,6 +45,12 @@ const PatientNavbar: React.FC = () => {
             >
               Settings
             </Link>
+            <Link
+              to="/patient/ai"
+              className={`px-3 py-2 rounded-md text-sm font-medium ${isActive("/ai")}`}
+            >
+              AI Assistant
+            </Link>
           </div>
         </div>
       </div>
