@@ -22,11 +22,11 @@ const fieldLabels: Record<keyof PatientProfileData, string> = {
 const PatientSettingsPage: React.FC = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<PatientProfileData>({
-    name: "",
-    email: "",
-    phone: "",
-    dateOfBirth: "",
-    address: "",
+    name: "John Doe",
+    email: "john.doe@example.com",
+    phone: "123-456-7890",
+    dateOfBirth: "1990-01-01",
+    address: "123 Main St, Springfield, USA",
   });
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -93,15 +93,23 @@ const PatientSettingsPage: React.FC = () => {
         </div>
         <div className="flex flex-col items-center pt-4">
           <h2 className="text-lg font-semibold mb-2 text-gray-800">Account</h2>
-          {!isLoggedIn() && (
-            <button
-              type="button"
-              onClick={() => navigate('/patient/register')}
-              className="w-full max-w-xs px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition"
-            >
-              Register
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => navigate('/patient/register')}
+            className="w-full max-w-xs px-4 py-2 mb-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition"
+          >
+            Register
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              localStorage.removeItem('patient_id');
+              navigate('/patient/dashboard');
+            }}
+            className="w-full max-w-xs px-4 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 transition"
+          >
+            Logout
+          </button>
         </div>
       </div>
     </div>
