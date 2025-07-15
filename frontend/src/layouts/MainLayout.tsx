@@ -48,11 +48,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({
       icon: <MdMedicalServices className="w-5 h-5" />,
     },
     {
-      path: "/clinic/ai",
-      label: "AI Assistant",
-      icon: <MdSmartToy className="w-5 h-5" />,
-    },
-    {
       path: "/clinic/settings",
       label: "Settings",
       icon: <MdSettings className="w-5 h-5" />,

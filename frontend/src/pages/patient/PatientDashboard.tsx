@@ -58,8 +58,13 @@ const PatientDashboard: React.FC = () => {
   }, []);
 
   const loadDashboardData = async () => {
+    const patientId = localStorage.getItem("patient_id");
+    if (!patientId) {
+      setError("No patient selected. Please use the settings page to select a patient.");
+      return;
+    }
     try {
-      const data: DashboardData = await PatientService.getPatientDashboardData();
+      const data = await PatientService.getPatientDashboardData(patientId);
       setDashboardData(data);
       setError(null);
     } catch (err) {

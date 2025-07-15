@@ -52,6 +52,8 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
   const [educationalContent, setEducationalContent] = useState<TreatmentInfo[]>([]);
   const [expandedItems, setExpandedItems] = useState<{ [key: string]: boolean }>({});
   const [loadingContent, setLoadingContent] = useState<{ [key: string]: boolean }>({});
+  const [aiSummary, setAISummary] = useState<string | null>(null);
+  const [loadingAI, setLoadingAI] = useState(false);
   
   const handleTreatmentSelect = (treatment: Treatment) => {
     const updatedPlan = {
@@ -199,6 +201,22 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
     }
   };
 
+  const handleActivateAssistant = async () => {
+    setLoadingAI(true);
+    setAISummary(null);
+    try {
+      const summary = await PatientService.getAISummaryForTreatmentPlan({
+        patientId: patient.id,
+        ...treatmentPlan
+      });
+      setAISummary(summary);
+    } catch (err) {
+      setAISummary("AI failed to generate a summary.");
+    } finally {
+      setLoadingAI(false);
+    }
+  };
+
   // Function to finalize and send the report with AI fields
   const finalizeReport = async (aiSummary: string, aiExplanation: string) => {
     try {
@@ -309,14 +327,12 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
               )}
               <Button
                 variant="outline"
-                onClick={() => {
-                  // Placeholder: Show a toast or alert instead of toggling AI insights
-                  alert('AI Insights coming soon!');
-                }}
+                onClick={handleActivateAssistant}
                 className="flex items-center gap-2"
+                disabled={loadingAI}
               >
                 <MdPsychology className="w-4 h-4" />
-                Show AI Insights
+                {loadingAI ? "Loading..." : "Show AI Insights"}
               </Button>
             </div>
           </div>
@@ -540,6 +556,12 @@ const ReviewAndFinalize: React.FC<ReviewAndFinalizeProps> = ({
       <div className="flex justify-between mt-6">
         {/* Removed Back and Next buttons as requested */}
       </div>
+      {aiSummary && (
+        <div className="mt-4 p-4 bg-blue-50 rounded">
+          <h3 className="font-bold mb-2">AI Summary</h3>
+          <div>{aiSummary}</div>
+        </div>
+      )}
     </div>
   );
 };

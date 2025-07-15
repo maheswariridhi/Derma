@@ -123,6 +123,13 @@ class DocumentAnalysisRequest(BaseModel):
     content: str
     document_type: str = "report"
 
+class TreatmentPlanSummaryRequest(BaseModel):
+    diagnosis: Optional[str] = None
+    selectedTreatments: Optional[List[Any]] = None
+    selectedMedicines: Optional[List[Any]] = None
+    next_appointment: Optional[str] = None
+    additional_notes: Optional[str] = None
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
@@ -686,6 +693,15 @@ async def get_reminder_history(user_id: str, session_id: Optional[str] = None, l
     """Get chat/reminder history for a user/session."""
     history = await vector_db_service.get_chat_history(user_id, session_id, limit)
     return {"history": history}
+
+@app.post("/api/ai/summarize")
+async def summarize_treatment_plan(request: TreatmentPlanSummaryRequest):
+    """Generate an AI summary for a treatment plan."""
+    try:
+        summary = await ai_service.summarize_treatment_plan(request.dict())
+        return {"summary": summary}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating summary: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

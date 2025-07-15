@@ -93,9 +93,9 @@ const PatientService = {
     }
   },
 
-  async getPatientDashboardData() {
+  async getPatientDashboardData(patientId: string) {
     try {
-      const response = await axios.get(`${API_BASE_URL}/patients/dashboard`);
+      const response = await axios.get(`${API_BASE_URL}/patients/${patientId}/dashboard`);
       return response.data;
     } catch (error) {
       return handleApiError(error, "fetching dashboard data");
@@ -111,9 +111,9 @@ const PatientService = {
     }
   },
 
-  async sendPatientReport(reportData: TreatmentPlan): Promise<boolean> {
+  async sendPatientReport(reportData: { patientId: string } & TreatmentPlan): Promise<boolean> {
     try {
-      const transformedData = transformTreatmentPlanForApi(reportData);
+      const transformedData = { ...transformTreatmentPlanForApi(reportData), patientId: reportData.patientId };
       await axios.post(`${API_BASE_URL}/reports`, transformedData);
       return true;
     } catch (error) {
@@ -229,6 +229,11 @@ const PatientService = {
     } catch (error) {
       return handleApiError(error, "sending full patient report");
     }
+  },
+
+  async getAISummaryForTreatmentPlan(plan: any): Promise<string> {
+    const response = await axios.post(`${API_BASE_URL}/ai/summarize`, plan);
+    return response.data.summary;
   }
 };
 

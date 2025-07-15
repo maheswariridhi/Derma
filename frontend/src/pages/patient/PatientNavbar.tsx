@@ -40,16 +40,16 @@ const PatientNavbar: React.FC = () => {
               Dashboard
             </Link>
             <Link
-              to="/patient/settings"
-              className={`px-3 py-2 rounded-md text-sm font-medium ${isActive("/settings")}`}
-            >
-              Settings
-            </Link>
-            <Link
               to="/patient/ai"
               className={`px-3 py-2 rounded-md text-sm font-medium ${isActive("/ai")}`}
             >
               AI Assistant
+            </Link>
+            <Link
+              to="/patient/settings"
+              className={`px-3 py-2 rounded-md text-sm font-medium ${isActive("/settings")}`}
+            >
+              Settings
             </Link>
           </div>
         </div>

@@ -31,8 +31,19 @@ const PatientSettingsPage: React.FC = () => {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [allPatients, setAllPatients] = useState<any[]>([]);
+  const [selectedPatientId, setSelectedPatientId] = useState<string>(localStorage.getItem("patient_id") || "");
 
-  // Remove the useEffect that automatically redirects to dashboard
+  useEffect(() => {
+    PatientService.getPatients().then(setAllPatients);
+  }, []);
+
+  const handlePatientSwitch = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const id = e.target.value;
+    setSelectedPatientId(id);
+    localStorage.setItem("patient_id", id);
+    window.location.reload();
+  };
 
   const loadProfile = async () => {
     setError(null);
@@ -90,6 +101,22 @@ const PatientSettingsPage: React.FC = () => {
             onEdit={() => setIsEditing(true)}
             onCancel={() => { setIsEditing(false); setSuccess(null); setError(null); loadProfile(); }}
           />
+        </div>
+        {/* Patient Switcher for Dev/Testing */}
+        <div className="mb-6 w-full">
+          <label className="block mb-2 font-medium text-gray-700">Switch Patient (Dev Only)</label>
+          <select
+            value={selectedPatientId}
+            onChange={handlePatientSwitch}
+            className="w-full border px-3 py-2 rounded"
+          >
+            <option value="">Select patient...</option>
+            {allPatients.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name} ({p.email})
+              </option>
+            ))}
+          </select>
         </div>
         <div className="flex flex-col items-center pt-4">
           <h2 className="text-lg font-semibold mb-2 text-gray-800">Account</h2>
